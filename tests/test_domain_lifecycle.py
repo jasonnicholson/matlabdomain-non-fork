@@ -68,7 +68,7 @@ def doctree_text(app, docname):
 
 
 def test_initial_data_layout():
-    assert MATLABDomain.data_version == 5
+    assert MATLABDomain.data_version == 6
     assert set(MATLABDomain.initial_data) == {
         "objects",
         "folders",
@@ -201,6 +201,57 @@ def test_config_change_invalidates_parse_cache(make_app, srcdir, parsed):
     parsed.clear()
     build(make_app, srcdir, matlab_show_property_default_value=True)
     assert len(parsed) == len(list(srcdir.rglob("*.m")))
+
+
+# data_version of the commits that cached block-comment docstrings (59016b1).
+DOCSTRING_CACHE_VERSION_BEFORE_HELP_FIX = 5
+
+
+@pytest.mark.parametrize("older", [True, False], ids=["older_version", "same_version"])
+def test_older_domain_data_version_drops_cached_docstrings(
+    make_app, tmp_path, parsed, older
+):
+    (tmp_path / "conf.py").write_text(
+        'extensions = ["sphinx.ext.autodoc", "sphinxcontrib.matlab"]\n'
+        'matlab_src_code_project_root = "."\n'
+    )
+    (tmp_path / "index.rst").write_text(
+        "Index\n=====\n\n.. mat:autofunction:: up_blk\n"
+    )
+    (tmp_path / "up_blk.m").write_text("%{\nBLOCK BODY\n%}\nfunction up_blk\nend\n")
+    app1 = build(make_app, tmp_path)
+    assert "BLOCK BODY" not in (app1.outdir / "index.html").read_text()
+
+    # Leave the pickled environment as an earlier release would have: a
+    # cached object with an outdated docstring, under the previous version.
+    data = app1.env.domaindata["mat"]
+    (cached,) = (o for o in data["parse_cache"].values() if o.name == "up_blk")
+    cached.docstring = "STALE DOCSTRING"
+    if older:
+        data["version"] = DOCSTRING_CACHE_VERSION_BEFORE_HELP_FIX
+    with open(app1.doctreedir / "environment.pickle", "wb") as f:
+        pickle.dump(app1.env, f, pickle.HIGHEST_PROTOCOL)
+    rst = tmp_path / "index.rst"
+    future = os.stat(rst).st_mtime_ns + 10**10
+    os.utime(rst, ns=(future, future))
+
+    parsed.clear()
+    app2 = build(make_app, tmp_path)
+    html = (app2.outdir / "index.html").read_text()
+    if older:
+        assert "STALE DOCSTRING" not in html
+        assert parsed == [str(tmp_path / "up_blk.m")]
+        (fresh,) = (
+            o
+            for o in app2.env.domaindata["mat"]["parse_cache"].values()
+            if o.name == "up_blk"
+        )
+        assert fresh.docstring.strip() == "{"
+    else:
+        # Same version: the cache is trusted, so the control shows the test can
+        # see stale data.
+        assert "STALE DOCSTRING" in html
+        assert parsed == []
 
 
 def test_clear_doc_only_removes_that_doc(make_app, srcdir):

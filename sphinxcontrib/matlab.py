@@ -650,9 +650,9 @@ class MATLABDomain(Domain):
         "entities_table": {},  # path reference -> MatObject (files and folders)
         "matlab_names": {},  # MATLAB name -> path references
     }
-    # Bump when the layout of ``initial_data`` (the pickled domain data) changes
-    # so Sphinx invalidates stale cached environments.
-    data_version = 5
+    # Bump when the layout of ``initial_data`` (the pickled domain data) or the
+    # parsed objects it caches change, so Sphinx drops stale cached environments.
+    data_version = 6
     indices = [
         MATLABFolderIndex,
     ]
