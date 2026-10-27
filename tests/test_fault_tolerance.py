@@ -10,11 +10,13 @@ import os
 import re
 import sys
 import zipfile
+from unittest.mock import Mock
 
 import pytest
+from conftest import remove_build_tree
 from sphinx.errors import ConfigError
 
-from sphinxcontrib import mat_types
+from sphinxcontrib import mat_classify, mat_types
 from sphinxcontrib.mat_classify import decode_source
 
 CONF = (
@@ -38,6 +40,7 @@ mHist = zeros(nCol);
 """
 
 FUNCTION = "function y = {name}(x)\n% {help}\ny = x;\nend\n"
+FALLBACK_LABEL = "Windows ANSI" if sys.platform == "win32" else "ISO-8859-1"
 
 
 def write(root, files):
@@ -72,14 +75,56 @@ def test_decode_utf8_and_latin1_fallback():
     assert text == "x\n% café £"
     assert problem == (
         "is not valid UTF-8 (line 2: invalid continuation byte); decoded as "
-        "ISO-8859-1 like MATLAB.",
+        f"{FALLBACK_LABEL} like MATLAB.",
         1,
     )
-    # One bad byte decodes the whole file as ISO-8859-1: é shows as Ã©, 0x80
-    # is U+0080 (not €), as in MATLAB R2026a help.
     text, problem = decode_source("café\n".encode() + b"\x80\xff")
-    assert text == "cafÃ©\n\x80ÿ"
+    fallback = "mbcs" if sys.platform == "win32" else "latin-1"
+    assert text == ("café\n".encode() + b"\x80\xff").decode(fallback, errors="replace")
     assert problem[1] == 1
+
+
+@pytest.mark.parametrize(
+    ("fallback", "expected"),
+    [(("latin-1", "ISO-8859-1"), 128), (("cp1252", "Windows ANSI"), 8364)],
+)
+def test_decode_platform_fallback(monkeypatch, fallback, expected):
+    monkeypatch.setattr(mat_classify, "_FALLBACK", fallback)
+    text, problem = decode_source("café\n".encode() + b"\x80\xff")
+    assert [ord(char) for char in text if ord(char) > 127] == [195, 169, expected, 255]
+    assert problem == (
+        "is not valid UTF-8 (line 2: invalid start byte); decoded as "
+        f"{fallback[1]} like MATLAB.",
+        1,
+    )
+
+
+@pytest.mark.parametrize("winerror", [32, 33])
+def test_build_cleanup_retries_sharing_violation(monkeypatch, tmp_path, winerror):
+    error = PermissionError("locked")
+    error.winerror = winerror
+    remove = Mock(side_effect=[error, None])
+    pause = Mock()
+    monkeypatch.setattr("conftest.shutil.rmtree", remove)
+    monkeypatch.setattr("conftest.time.sleep", pause)
+    remove_build_tree(tmp_path)
+    assert remove.call_count == 2
+    pause.assert_called_once_with(0.05)
+
+
+@pytest.mark.parametrize(("winerror", "attempts"), [(5, 1), (32, 5)])
+def test_build_cleanup_propagates_errors(monkeypatch, tmp_path, winerror, attempts):
+    error = PermissionError("locked")
+    error.winerror = winerror
+    remove = Mock(side_effect=error)
+    pause = Mock()
+    monkeypatch.setattr("conftest.shutil.rmtree", remove)
+    monkeypatch.setattr("conftest.time.sleep", pause)
+    with pytest.raises(PermissionError) as raised:
+        remove_build_tree(tmp_path)
+    assert raised.value is error
+    assert remove.call_count == attempts
+    assert pause.call_count == attempts - 1
 
 
 @pytest.mark.parametrize(
@@ -370,7 +415,7 @@ def test_malformed_files_warn_and_the_build_completes(make_app, malformed, parse
     latin1 = srcdir / "ft_latin1.m"
     assert (
         f"{latin1}:2: WARNING: [sphinxcontrib-matlabdomain] ft_latin1.m is not "
-        "valid UTF-8 (line 2: invalid continuation byte); decoded as ISO-8859-1 "
+        f"valid UTF-8 (line 2: invalid continuation byte); decoded as {FALLBACK_LABEL} "
         "like MATLAB. [mat.encoding]"
     ) in warnings
     dotted = srcdir / "+ftpkg" / "ft_dotted.m"

@@ -68,7 +68,7 @@ def doctree_text(app, docname):
 
 
 def test_initial_data_layout():
-    assert MATLABDomain.data_version == 7
+    assert MATLABDomain.data_version == 8
     assert set(MATLABDomain.initial_data) == {
         "objects",
         "folders",
@@ -258,9 +258,11 @@ def test_older_domain_data_version_drops_cached_docstrings(
 CACHE_VERSION_BEFORE_ENCODING = 6
 
 
-@pytest.mark.parametrize("older", [True, False], ids=["older_version", "same_version"])
+@pytest.mark.parametrize(
+    "version", [CACHE_VERSION_BEFORE_ENCODING, 7, MATLABDomain.data_version]
+)
 def test_older_domain_data_version_drops_misdecoded_docstrings(
-    make_app, tmp_path, parsed, older
+    make_app, tmp_path, parsed, version
 ):
     (tmp_path / "conf.py").write_text(
         'extensions = ["sphinx.ext.autodoc", "sphinxcontrib.matlab"]\n'
@@ -280,8 +282,7 @@ def test_older_domain_data_version_drops_misdecoded_docstrings(
     (cached,) = (o for o in data["parse_cache"].values() if o.name == "up_lat")
     cached.docstring = "LATIN MISDECODED"
     del cached.source_warnings
-    if older:
-        data["version"] = CACHE_VERSION_BEFORE_ENCODING
+    data["version"] = version
     with open(app1.doctreedir / "environment.pickle", "wb") as f:
         pickle.dump(app1.env, f, pickle.HIGHEST_PROTOCOL)
     rst = tmp_path / "index.rst"
@@ -291,7 +292,7 @@ def test_older_domain_data_version_drops_misdecoded_docstrings(
     parsed.clear()
     app2 = build(make_app, tmp_path)
     html = (app2.outdir / "index.html").read_text(encoding="utf-8")
-    if older:
+    if version < MATLABDomain.data_version:
         assert parsed == [str(mfile)]
         assert "LATIN café" in html
         assert "[mat.encoding]" in app2.warning.getvalue()

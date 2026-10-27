@@ -216,13 +216,14 @@ Source files are read as MATLAB R2026a reads them. A byte-order mark selects
 UTF-8, UTF-16 or UTF-32. Otherwise ``matlab_src_encoding`` (default ``None``),
 a Python text codec, decodes every ``.m`` file; an unknown codec is a
 configuration error. Without it, files are read as UTF-8, and a file that is
-not valid UTF-8 is read as ISO-8859-1 (Latin-1), the whole file, with one
-``mat.encoding`` warning that gives the line of the first invalid byte: this is
-what MATLAB does on Linux, so a UTF-8 ``é`` elsewhere in such a file shows as
-``Ã©``. Bytes that the byte-order mark's or the configured codec cannot
-decode are shown as U+FFFD, with a ``mat.encoding`` warning (MATLAB rejects
-such a file). The behavior of MATLAB on Windows was not verified; the same
-rules are used on every platform.
+not valid UTF-8 is read using the Windows ANSI code page on Windows or
+ISO-8859-1 (Latin-1) elsewhere, the whole file, with one ``mat.encoding``
+warning that gives the line of the first invalid byte. These fallbacks were
+checked with MATLAB R2026a on Windows and Linux: on Windows with code page
+1252, byte ``0x80`` becomes ``€``; on Linux it becomes U+0080. A UTF-8 ``é``
+elsewhere in such a file shows as ``Ã©`` on either system. Bytes that the
+selected codec cannot decode are shown as U+FFFD, with a ``mat.encoding``
+warning (MATLAB rejects invalid bytes after a byte-order mark).
 
 MATLAB and Simulink read some files by name: ``Contents.m`` (folder help),
 ``slblocks.m``, ``sl_customization.m``, ``pathdef.m``, ``matlabrc.m`` and

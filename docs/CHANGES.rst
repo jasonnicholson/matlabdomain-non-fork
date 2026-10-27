@@ -80,9 +80,10 @@ Release notes
   superclasses, docstring and members.
 * **Breaking:** ``matlab_src_encoding`` is applied (it was ignored). A
   byte-order mark selects UTF-8/16/32; otherwise the configured codec, or by
-  default UTF-8, where a file that is not valid UTF-8 is read as ISO-8859-1
-  like MATLAB R2026a, with a suppressible ``mat.encoding`` warning (it used to
-  show backslash escapes). An unknown or non-text codec is a
+  default UTF-8, where a file that is not valid UTF-8 uses the Windows ANSI
+  code page on Windows or ISO-8859-1 elsewhere, like MATLAB R2026a, with a
+  suppressible ``mat.encoding`` warning (it used to show backslash escapes).
+  An unknown or non-text codec is a
   ``ConfigError``. Cached environments from earlier versions are rebuilt.
 
 .. _PR 232: https://github.com/sphinx-contrib/matlabdomain/pull/253

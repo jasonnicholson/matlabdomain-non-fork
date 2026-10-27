@@ -1,6 +1,7 @@
 """Fixtures common to all tests."""
 
 import shutil
+import time
 from pathlib import Path
 
 import pytest
@@ -9,6 +10,17 @@ import pytest
 # import once in the pytest config
 # so it does not need to be imported in every test file
 from sphinx.testing.fixtures import make_app, test_params  # noqa: F401
+
+
+def remove_build_tree(path):
+    for attempt in range(5):
+        try:
+            shutil.rmtree(path)
+            return
+        except PermissionError as error:
+            if getattr(error, "winerror", None) not in (32, 33) or attempt == 4:
+                raise
+            time.sleep(0.05 * 2**attempt)
 
 
 @pytest.fixture()
@@ -38,7 +50,7 @@ def app(make_app, srcdir: Path, confdict: dict):  # noqa: F811
     yield app
 
     if (srcdir / "_build").exists():
-        shutil.rmtree(srcdir / "_build")
+        remove_build_tree(srcdir / "_build")
 
 
 @pytest.fixture

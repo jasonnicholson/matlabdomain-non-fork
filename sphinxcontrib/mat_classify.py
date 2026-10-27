@@ -25,6 +25,7 @@ CLASS = "class"
 UNKNOWN = "unknown"
 
 _DECLARATION = re.compile(r"(function|classdef)\b")
+_FALLBACK = ("mbcs", "Windows ANSI") if os.name == "nt" else ("latin-1", "ISO-8859-1")
 
 # MATLAB and Simulink read these by file name (folder help, block libraries,
 # customizations, search path, startup, code generation); compared lowercase.
@@ -57,8 +58,8 @@ def decode_source(
 
     A byte-order mark selects UTF-8/16/32. Otherwise ``encoding``
     (``matlab_src_encoding``) decodes the file, or, without it, UTF-8; a file
-    that is not valid UTF-8 is then decoded as ISO-8859-1, as MATLAB does on
-    Linux. Bytes the selected codec cannot decode become U+FFFD. ``problem``
+    that is not valid UTF-8 uses the Windows ANSI code page on Windows or
+    ISO-8859-1 elsewhere. Undecodable bytes become U+FFFD. ``problem``
     is ``(message, row)`` for a fallback or replacement (``row`` of the first
     bad byte, from 0), else ``None``. A leading byte-order mark is removed.
     """
@@ -73,9 +74,10 @@ def decode_source(
         row = err.object[: err.start].decode(err.encoding, errors="replace").count("\n")
         where = f"line {row + 1}: {err.reason}"
         if codec is None:
-            text = data.decode("latin-1")
+            fallback, label = _FALLBACK
+            text = data.decode(fallback, errors="replace")
             message = (
-                f"is not valid UTF-8 ({where}); decoded as ISO-8859-1 like MATLAB."
+                f"is not valid UTF-8 ({where}); decoded as {label} like MATLAB."
             )
         else:
             text = data.decode(codec, errors="replace")
