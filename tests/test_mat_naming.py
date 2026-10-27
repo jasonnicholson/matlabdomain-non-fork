@@ -1,7 +1,9 @@
 """Tests for centralized MATLAB naming helpers."""
 
+import dataclasses
 import json
 import ntpath
+import os
 import posixpath
 import random
 import unicodedata
@@ -34,6 +36,13 @@ from sphinxcontrib.mat_naming import (
     validate_matlab_version,
     validate_namelengthmax,
 )
+
+
+def _native(name):
+    """Return ``name`` with ``parent_folder`` as a native file system path."""
+    if name is None:
+        return None
+    return dataclasses.replace(name, parent_folder=os.path.normpath(name.parent_folder))
 
 
 def test_form_matlab_name_reference_cases():
@@ -98,7 +107,7 @@ def test_form_matlab_name_reference_cases():
 
     for folder, name, is_class, expected in rows:
         out = form_matlab_name(folder, name, is_class, namelengthmax=63)
-        assert out == expected
+        assert out == _native(expected)
 
 
 def test_form_matlab_name_invalid_package_dropped():
@@ -122,7 +131,7 @@ def test_form_matlab_name_keyword_top_package_invalid():
 
 def test_form_matlab_name_keyword_nested_package_valid():
     out = form_matlab_name("/tmp/+pkg/+for", "demo.m", False, namelengthmax=63)
-    assert out == MatlabName("demo", "pkg.for", "pkg.for.demo", "/tmp")
+    assert out == _native(MatlabName("demo", "pkg.for", "pkg.for.demo", "/tmp"))
 
 
 def test_validate_namelengthmax_values():
@@ -201,7 +210,9 @@ def test_matlab_version_rules():
 )
 def test_class_subfolder_callable_before_r2026a(folder, name, is_class, expected):
     for version in ("R2025a", "R2025b"):
-        assert form_matlab_name(folder, name, is_class, 2048, version) == expected
+        assert (
+            form_matlab_name(folder, name, is_class, 2048, version) == _native(expected)
+        )
     assert form_matlab_name(folder, name, is_class, 2048, "R2026a") is None
 
 

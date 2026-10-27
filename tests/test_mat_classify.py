@@ -5,11 +5,14 @@ pass on MATLAB R2026a); their support files are copied unchanged to
 ``tests/_classify_cases`` (discovery skips ``_`` folders).
 """
 
+import io
 import json
+import os
 from pathlib import Path
 
 import pytest
 
+from sphinxcontrib import mat_classify
 from sphinxcontrib.mat_classify import classify, first_line_of_code, is_hidden
 
 SUPPORT = Path(__file__).parent / "_classify_cases"
@@ -88,10 +91,61 @@ def test_classify_extensions(tmp_path):
     assert classify("x.txt", "function f") == "unknown"
     assert classify("X.M", "function f") == "function"
     assert classify("x", "classdef x") == "class"
-    assert classify(tmp_path / "missing.m") == "unknown"
-    (tmp_path / "f.m").write_bytes(b"\xef\xbb\xbf% \xff\nfunction f\n")
-    assert classify(tmp_path / "f") == "function"
     assert classify("a.b/c", "function f") == "function"
+    assert classify(tmp_path / "missing.m") == "unknown"
+    assert classify(tmp_path / "missing") == "unknown"
+    assert classify(tmp_path / "x.txt") == "unknown"
+
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    [
+        (b"function f\n", "function"),
+        (b"\xef\xbb\xbf% \xff\nfunction f\n", "function"),  # BOM, invalid UTF-8
+        (b"% c\r\n\r\nfunction f\r\n", "function"),
+        (b"% c\rfunction f\r", "function"),
+        (b"% \xe9\xff\nclassdef C\n", "class"),
+        (b"x = 1;\n", "script"),
+    ],
+    ids=["plain", "bom_invalid_utf8", "crlf", "lone_cr", "latin1_bytes", "script"],
+)
+@pytest.mark.parametrize("name", ["f.m", "f"])
+def test_classify_reads_file_with_replacement(tmp_path, name, data, expected):
+    (tmp_path / "f.m").write_bytes(data)
+    assert classify(tmp_path / name) == expected
+
+
+def test_classify_opens_the_supplied_path(monkeypatch):
+    # ``.m`` is appended only without an extension, even on a case-insensitive
+    # file system where a wrong name would still open.
+    opened = []
+
+    def fake_open(file, *args, **kwargs):
+        opened.append(file)
+        return io.StringIO("classdef X\n")
+
+    monkeypatch.setattr(mat_classify, "open", fake_open, raising=False)
+    paths = [
+        os.path.join("dir", "X.M"),
+        os.path.join("dir", "x.m"),
+        os.path.join("dir", "x"),
+        Path("dir") / "Y.M",
+    ]
+    assert [classify(path) for path in paths] == ["class"] * 4
+    assert opened == [
+        os.path.join("dir", "X.M"),
+        os.path.join("dir", "x.m"),
+        os.path.join("dir", "x.m"),
+        os.path.join("dir", "Y.M"),
+    ]
+    opened.clear()
+    assert classify(os.path.join("dir", "Z.txt")) == "unknown"
+    assert opened == []
+
+
+def test_classify_uppercase_extension_file(tmp_path):
+    (tmp_path / "X.M").write_text("classdef X\n")
+    assert classify(tmp_path / "X.M") == "class"
 
 
 def test_first_line_of_code():

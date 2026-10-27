@@ -51,7 +51,8 @@ Release notes
   it, so licence and copyright headers become the docstring. Blank lines
   between a declaration and its block are allowed. Methods keep using the
   block after their ``function`` line. Files with CRLF line endings keep all
-  lines of a block.
+  lines of a block. Like MATLAB ``help``, the text is the first run of ``%``
+  lines, so a ``%{ ... %}`` block comment gives ``{``.
 * ``.m`` files are classified by their first line of code (whole-word
   ``function``/``classdef``, ``classify()``); a script
   with local functions is now a script, not a function. New suppressible

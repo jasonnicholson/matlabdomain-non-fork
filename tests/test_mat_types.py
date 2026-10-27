@@ -1,5 +1,7 @@
 """Test mat_types module functions and methods."""
 
+from pathlib import Path
+
 import pytest
 
 from sphinxcontrib.mat_types import (
@@ -1069,8 +1071,8 @@ def test_script(mod):
 
 def test_module(dir_test_data, mod, app):
     assert mod.getter("__name__") == "test_data"
-    assert mod.getter("__path__")[0] == str(dir_test_data)
-    assert mod.getter("__file__") == str(dir_test_data)
+    assert Path(mod.getter("__path__")[0]) == dir_test_data
+    assert Path(mod.getter("__file__")) == dir_test_data
     assert mod.getter("__package__") == "test_data/"
     assert not mod.getter("__module__")
     assert not mod.getter("__doc__")

@@ -67,12 +67,14 @@ def classify(path, text: str | None = None) -> str:
     ``text`` is the decoded file content; ``None`` reads the file as UTF-8
     (``path`` may omit the ``.m``).
     """
-    stem, ext = os.path.splitext(os.fspath(path))
+    path = os.fspath(path)
+    ext = os.path.splitext(path)[1]
     if ext.lower() not in (".m", ""):
         return UNKNOWN
     if text is None:
+        file = path if ext else path + ".m"
         try:
-            with open(stem + ".m", encoding="utf-8", errors="replace") as f:
+            with open(file, encoding="utf-8", errors="replace") as f:
                 text = f.read()
         except OSError:
             return UNKNOWN

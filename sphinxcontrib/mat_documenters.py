@@ -847,14 +847,15 @@ class MatFolderDocumenter(MatlabDocumenter, PyModuleDocumenter):
                 # documenting imported objects
                 return True, self.object.safe_getmembers()
             else:
-                # a file and a folder may share a name; special files are
-                # documented only when named
-                names = (
-                    name
-                    for name, obj in self.object.__all__
-                    if not is_hidden(getattr(obj, "ref", ""))
-                )
-                memberlist = list(dict.fromkeys(names))
+                # A file is listed before a folder with the same name; special
+                # files are documented only when named.
+                members = {}
+                for name, obj in self.object.__all__:
+                    if is_hidden(getattr(obj, "ref", "")):
+                        continue
+                    if name not in members or isinstance(members[name], MatModule):
+                        members[name] = obj
+                return False, list(members.items())
         else:
             memberlist = self.options.members or []
 

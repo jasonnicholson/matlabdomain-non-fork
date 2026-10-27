@@ -176,6 +176,9 @@ Docstrings follow MATLAB ``help`` (checked on R2026a):
 * Methods use only the block after their ``function`` line; a comment block
   before them is ignored.
 * A comment on the declaration line itself is not part of the docstring.
+* Help text is the first run of ``%`` lines, as in MATLAB: a ``%{ ... %}``
+  block comment gives only ``{``, because MATLAB stops at its first line
+  that does not start with ``%``.
 
 Each ``.m`` file is a script, function or class according to its first line
 of code (blank lines, ``%`` comments and ``%{``/``%}`` blocks are skipped);

@@ -41,7 +41,7 @@ def object_hrefs(text):
 def index_names(app):
     index = app.env.domaindata["mat"]["index"]
     return {
-        str(path.relative_to(app.srcdir)): entry
+        path.relative_to(app.srcdir).as_posix(): entry
         for path, entry in ((app.srcdir.joinpath(p), e) for p, e in index.items())
     }
 

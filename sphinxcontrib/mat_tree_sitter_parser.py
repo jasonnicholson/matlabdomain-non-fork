@@ -299,14 +299,31 @@ def trailing_docstring(node, prev, encoding):
     help; if nothing follows it in its block, the next comment block is
     (MATLAB R2026a ``help``).
     """
-    docstring = process_text_into_docstring(node.text, encoding)
+    docstring = help_text(node.text, encoding)
     if get_row(node.start_point) != get_row(prev.end_point):
         return docstring
-    docstring = "\n".join(docstring.split("\n")[1:])
+    docstring = help_text(node.text, encoding, skip_first_line=True)
     after = node.next_named_sibling
     if not docstring and after is not None and after.type == "comment":
-        return process_text_into_docstring(after.text, encoding)
+        return help_text(after.text, encoding)
     return docstring
+
+
+def help_text(text, encoding, skip_first_line=False):
+    """Return the help text of a function's or class's comment node.
+
+    Like MATLAB ``help`` (R2026a), it stops at the first line that is not a
+    ``%`` line, so a ``%{ ... %}`` block gives ``{``.
+    """
+    lines = text.decode(encoding, errors="backslashreplace").split("\n")
+    if skip_first_line:
+        lines = lines[1:]
+    kept = []
+    for line in lines:
+        if not line.lstrip().startswith("%"):
+            break
+        kept.append(line)
+    return re.sub(re_percent_remove, "", "\n".join(kept))
 
 
 def process_text_into_docstring(text, encoding):
@@ -406,7 +423,7 @@ class MatFunctionParser:
             )
         leading = leading_comment(root_node, fun_node)
         if leading is not None:
-            docstring = process_text_into_docstring(leading.text, self.encoding)
+            docstring = help_text(leading.text, self.encoding)
 
         if not docstring:
             docstring = None
@@ -648,11 +665,11 @@ class MatClassParser:
         docstring = ""
         if docstring_node is not None:
             docstring = trailing_docstring(
-                docstring_node, docstring_node.prev_sibling, self.encoding
+                docstring_node, docstring_node.prev_named_sibling, self.encoding
             )
         leading = leading_comment(root_node, self.cls)
         if leading is not None:
-            docstring = process_text_into_docstring(leading.text, self.encoding)
+            docstring = help_text(leading.text, self.encoding)
         self.docstring = docstring
 
         prop_matches = list(QueryCursor(q_properties).matches(self.cls))
