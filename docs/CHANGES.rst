@@ -66,6 +66,24 @@ Release notes
   ``.mlapp``), the extension point for Simulink and Simscape files.
 * Parsing is faster: tree-sitter queries are compiled once and the
   tree-sitter version is no longer looked up per file.
+* One bad source file no longer stops the build. A file that cannot be read
+  or parsed (permissions, a corrupt ``.mlapp``, a parser error) gets one
+  suppressible ``mat.parse_error`` warning (with the line of the first syntax
+  error when tree-sitter finds one) and is documented without content;
+  references to it still resolve. An unreadable folder or a file name that
+  is not valid UTF-8 warns the same way.
+* A ``function`` with a dotted name (``function y = vlt.plot.hist2d(...)``)
+  no longer crashes the build: it is documented under its file name, as
+  MATLAB names it, with a ``mat.invalid_matlab`` warning. ``arguments``
+  blocks with ``~`` entries no longer crash, and classes with ``...`` between
+  ``classdef``, the attributes, the name and the superclasses keep their
+  superclasses, docstring and members.
+* **Breaking:** ``matlab_src_encoding`` is applied (it was ignored). A
+  byte-order mark selects UTF-8/16/32; otherwise the configured codec, or by
+  default UTF-8, where a file that is not valid UTF-8 is read as ISO-8859-1
+  like MATLAB R2026a, with a suppressible ``mat.encoding`` warning (it used to
+  show backslash escapes). An unknown or non-text codec is a
+  ``ConfigError``. Cached environments from earlier versions are rebuilt.
 
 .. _PR 232: https://github.com/sphinx-contrib/matlabdomain/pull/253
 

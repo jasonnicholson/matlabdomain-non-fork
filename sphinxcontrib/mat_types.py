@@ -18,7 +18,7 @@ from sphinx.environment import CONFIG_OK
 from sphinx.util.logging import getLogger
 
 from . import mat_naming
-from .mat_classify import classify, first_line_of_code, is_hidden
+from .mat_classify import classify, decode_source, first_line_of_code, is_hidden
 from .mat_handlers import handler_for, handlers
 
 def get_node(match_dict, key):
@@ -32,6 +32,9 @@ from sphinxcontrib.mat_tree_sitter_parser import (
     MatClassParser,
     MatFunctionParser,
     MatScriptParser,
+    declaration,
+    first_error,
+    get_row,
     parsed_type,
 )
 from .mat_naming import (
@@ -326,9 +329,28 @@ def source_key(path):
     return (path, st.st_mtime_ns, st.st_size)
 
 
-def check_source(ref, obj):
-    """Warn if ``classify()`` and tree-sitter disagree, or the file has no code."""
-    if is_hidden(ref):
+# Warnings hidden files (``is_hidden``) do not get.
+_HIDDEN_QUIET = ("invalid_matlab", "no_code")
+
+
+def check_source(path, ref, obj):
+    """Warn about a parsed file: problems recorded while parsing it
+    (``source_warnings``), ``classify()`` and tree-sitter disagreeing, or no
+    code. Runs on every build, also when the parse is reused.
+    """
+    hidden = is_hidden(ref)
+    for subtype, message, row in obj.source_warnings:
+        if hidden and subtype in _HIDDEN_QUIET:
+            continue
+        logger.warning(
+            "[sphinxcontrib-matlabdomain] %s %s",
+            ref,
+            message,
+            type="mat",
+            subtype=subtype,
+            location=None if row is None else f"{path}:{row + 1}",
+        )
+    if hidden:
         return
     if obj.parsed_type is not None and obj.source_type != obj.parsed_type:
         logger.warning(
@@ -371,8 +393,10 @@ def _parse_cached(path, ref, parse):
         logger.debug("[sphinxcontrib-matlabdomain] reusing parsed %s", path)
     if obj is not None:
         obj.ref = ref
-        check_source(ref, obj)
-        dom.data["parse_cache"][key] = obj
+        check_source(path, ref, obj)
+        # A read failure may go away without changing the key (permissions).
+        if not obj.unreadable:
+            dom.data["parse_cache"][key] = obj
         dom.data["index"][path] = {
             "reference": ref,
             "type": obj.source_type,
@@ -427,6 +451,7 @@ def analyze(app):
             return
 
         MatObject.basedir = basedir  # set MatObject base directory
+        MatObject.encoding = app.env.config.matlab_src_encoding
         MatObject.sphinx_env = app.env  # pass env to MatObject cls
         MatObject.sphinx_app = app  # pass app to MatObject cls
 
@@ -604,6 +629,47 @@ def name_sources(dom, config):
 _TREE_SITTER_TYPES = (Node, Tree, Parser)
 
 
+def _undecodable(name):
+    """Return True for a file name ``os.listdir`` could not decode (POSIX bytes)."""
+    try:
+        name.encode("utf-8")
+    except UnicodeEncodeError:
+        return True
+    return False
+
+
+def placeholder(kind, name, folder):
+    """Empty object of the index type ``kind`` for a file that failed to parse."""
+    if kind == "application":
+        return MatApplication(name, folder, "")
+    cls = {"class": MatClass, "function": MatFunction}.get(kind, MatScript)
+    obj = cls.__new__(cls)
+    MatObject.__init__(obj, name)
+    obj.module = folder
+    obj.docstring = None
+    if cls is MatClass:
+        obj.attrs, obj.bases, obj.properties = {}, [], {}
+        obj.methods, obj.enumerations, obj.rem_tks = {}, {}, None
+    elif cls is MatFunction:
+        obj.retv, obj.args, obj.rem_tks = {}, {}, None
+    else:
+        obj.tokens = None
+    return obj
+
+
+def failure_message(err):
+    """Warning text for a file that could not be read or parsed."""
+    if isinstance(err, OSError):
+        return (
+            f"cannot be read ({err.strerror or err}); it is documented without "
+            "content."
+        )
+    return (
+        f"cannot be parsed ({type(err).__name__}: {err}); it is documented "
+        "without content."
+    )
+
+
 def _restore_matobject(class_name):
     cls = globals()[class_name]
     return cls.__new__(cls)
@@ -635,6 +701,11 @@ class MatObject(object):
     source_type = None
     parsed_type = None
     has_code = True
+    #: ``(subtype, message, row or None)`` found while parsing; warned by
+    #: ``check_source`` on every build
+    source_warnings = ()
+    #: the file could not be read (an empty placeholder that is not cached)
+    unreadable = False
 
     def __init__(self, name):
         #: name of MATLAB object
@@ -735,7 +806,12 @@ class MatObject(object):
         logger.debug(f"[sphinxcontrib-matlabdomain] matlabify parse {ref=}, {fullpath=}")
 
         def parse():
-            obj = handler.parse(fullpath, stem, folder, MatObject.encoding)
+            try:
+                obj = handler.parse(fullpath, stem, folder, MatObject.encoding)
+            except Exception as err:  # one bad file must not stop the build
+                obj = placeholder(handler.classify(fullpath), stem, folder)
+                obj.source_warnings = [("parse_error", failure_message(err), None)]
+                obj.unreadable = isinstance(err, OSError)
             if obj is not None and obj.source_type is None:
                 obj.source_type = handler.classify(fullpath)
             return obj
@@ -753,49 +829,76 @@ class MatObject(object):
         :type name: str
         :param path: Folder reference of the folder containing :class:`MatObject`.
         :type path: str
-        :param encoding: Encoding of the Matlab file to load (default = utf-8)
+        :param encoding: ``matlab_src_encoding``; ``None`` follows MATLAB
+            (see ``decode_source``).
         :type encoding: str
         :returns: :class:`MatObject` that represents the type of mfile.
 
         The type is ``classify()`` of the text (``source_type``). The object is
         built from what tree-sitter parsed (``parsed_type``); the two differ
-        only for invalid MATLAB (see ``check_source``).
-
-        File encoding can be set using sphinx config ``matlab_src_encoding``
-        Default behaviour : replaces parsing errors with ? chars
+        only for invalid MATLAB (see ``check_source``). If the parser fails,
+        the object is an empty ``placeholder`` of the ``classify()`` type.
+        Problems are recorded in ``source_warnings``.
         """
-        # read mfile code
-        if encoding is None:
-            encoding = "utf-8"
         with open(mfile, "rb") as code_f:
-            code = code_f.read()
-        text = code.decode(encoding, errors="replace")
+            text, problem = decode_source(code_f.read(), encoding)
+        warnings = [] if problem is None else [("encoding", *problem)]
+        source_type = classify(mfile, text)
 
-        # parse the file; tree-sitter-matlab splits comment blocks at CRLF
+        # tree-sitter reads UTF-8 and splits comment blocks at CRLF
+        code = text.encode("utf-8")
         tree = Parser(ML_LANG).parse(code.replace(b"\r\n", b"\n"))
 
         modname = path  # folder reference
 
         parsed = parsed_type(tree.root_node)
-        if parsed == "class":
-            logger.debug(
-                "[sphinxcontrib-matlabdomain] parsing classdef %s from %s.",
-                name,
-                modname,
-            )
-            obj = MatClass(name, modname, tree.root_node, encoding)
-        elif parsed == "function":
-            logger.debug(
-                "[sphinxcontrib-matlabdomain] parsing function %s from %s.",
-                name,
-                modname,
-            )
-            obj = MatFunction(name, modname, tree.root_node, encoding)
+        try:
+            if parsed == "class":
+                logger.debug(
+                    "[sphinxcontrib-matlabdomain] parsing classdef %s from %s.",
+                    name,
+                    modname,
+                )
+                obj = MatClass(name, modname, tree.root_node, "utf-8")
+            elif parsed == "function":
+                logger.debug(
+                    "[sphinxcontrib-matlabdomain] parsing function %s from %s.",
+                    name,
+                    modname,
+                )
+                obj = MatFunction(name, modname, tree.root_node, "utf-8")
+            else:
+                obj = MatScript(name, modname, tree.root_node, "utf-8")
+        except Exception as err:  # one bad file must not stop the build
+            obj = placeholder(source_type, name, modname)
+            error = first_error(tree.root_node)
+            message = failure_message(err)
+            row = None
+            if error is not None:
+                row, column = error
+                message += f" First syntax error: line {row + 1}, column {column + 1}."
+            warnings.append(("parse_error", message, row))
+            parsed = None
         else:
-            obj = MatScript(name, modname, tree.root_node, encoding)
-        obj.source_type = classify(mfile, text)
-        obj.parsed_type = parsed or "script"
-        obj.has_code = obj.source_type != "script" or bool(first_line_of_code(text))
+            decl_name = None
+            if parsed == "function":
+                decl_name = declaration(tree.root_node).child_by_field_name("name")
+            if decl_name is not None and decl_name.type == "property_name":
+                warnings.append(
+                    (
+                        "invalid_matlab",
+                        f"declares the dotted function name "
+                        f"{decl_name.text.decode('utf-8', errors='replace')}; MATLAB "
+                        "allows dotted names only in a classdef file. It is "
+                        "documented under its file name.",
+                        get_row(decl_name.start_point),
+                    )
+                )
+            parsed = parsed or "script"
+        obj.source_type = source_type
+        obj.parsed_type = parsed
+        obj.has_code = source_type != "script" or bool(first_line_of_code(text))
+        obj.source_warnings = warnings
         return obj
 
     @staticmethod
@@ -866,6 +969,9 @@ class MatModule(MatObject):
     :type package: str
     """
 
+    #: the folder was listed (it may be empty or unreadable)
+    listed = False
+
     def __init__(self, name, path, package):
         super(MatModule, self).__init__(name)
         #: Path to module on disk, path to package's __init__.py
@@ -884,11 +990,34 @@ class MatModule(MatObject):
         logger.debug(
             f"[sphinxcontrib-matlabdomain] MatModule.safe_getmembers {self.name=}, {self.path=}, {self.package=}"
         )
-        if self.entities:
+        if self.entities or self.listed:
             return self.entities
+        self.listed = True
 
         results = []
-        for key in os.listdir(self.path):
+        try:
+            keys = os.listdir(self.path)
+        except OSError as err:  # one bad folder must not stop the build
+            logger.warning(
+                "[sphinxcontrib-matlabdomain] %s cannot be read (%s); its "
+                "contents are not documented.",
+                self.ref,
+                err.strerror or err,
+                type="mat",
+                subtype="parse_error",
+            )
+            keys = []
+        for key in keys:
+            if _undecodable(key):
+                logger.warning(
+                    "[sphinxcontrib-matlabdomain] %s: the name %r is not valid "
+                    "UTF-8; it is not documented.",
+                    self.ref,
+                    os.fsencode(key),
+                    type="mat",
+                    subtype="parse_error",
+                )
+                continue
             # make full path
             path = os.path.join(self.path, key)
             # Do not visit directories starting with:

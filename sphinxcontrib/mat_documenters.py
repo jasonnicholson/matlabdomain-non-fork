@@ -946,7 +946,8 @@ class MatFunctionDocumenter(MatDocstringSignatureMixin, MatModuleLevelDocumenter
         return isinstance(member, MatFunction)
 
     def format_args(self):
-        if self.object.args:
+        # a placeholder for an unreadable file is a script without args
+        if getattr(self.object, "args", None):
             return "(" + ", ".join(self.object.args) + ")"
 
     def document_members(self, all_members=False):
@@ -955,7 +956,8 @@ class MatFunctionDocumenter(MatDocstringSignatureMixin, MatModuleLevelDocumenter
 
 def make_baseclass_links(env, obj):
     """Return list of base class links."""
-    obj_bases = obj.__bases__
+    # not a MatClass when the file failed to read or parse as a class
+    obj_bases = getattr(obj, "__bases__", None) or {}
     links = []
     if len(obj_bases):
         base_classes = obj_bases.items()

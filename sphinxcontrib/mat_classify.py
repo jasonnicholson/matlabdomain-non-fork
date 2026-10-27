@@ -15,6 +15,7 @@ word, so ``functions = 1;`` is a script, as MATLAB runs it.
 
 from __future__ import annotations
 
+import codecs
 import os
 import re
 
@@ -37,6 +38,53 @@ HIDDEN_FILES = frozenset(
         "rtwmakecfg.m",
     }
 )
+
+
+# UTF-32 before UTF-16: the UTF-32-LE mark starts with the UTF-16-LE one.
+_BOMS = (
+    (codecs.BOM_UTF32_LE, "utf-32-le"),
+    (codecs.BOM_UTF32_BE, "utf-32-be"),
+    (codecs.BOM_UTF8, "utf-8"),
+    (codecs.BOM_UTF16_LE, "utf-16-le"),
+    (codecs.BOM_UTF16_BE, "utf-16-be"),
+)
+
+
+def decode_source(
+    data: bytes, encoding: str | None = None
+) -> tuple[str, tuple[str, int] | None]:
+    """Decode a source file like MATLAB R2026a; return ``(text, problem)``.
+
+    A byte-order mark selects UTF-8/16/32. Otherwise ``encoding``
+    (``matlab_src_encoding``) decodes the file, or, without it, UTF-8; a file
+    that is not valid UTF-8 is then decoded as ISO-8859-1, as MATLAB does on
+    Linux. Bytes the selected codec cannot decode become U+FFFD. ``problem``
+    is ``(message, row)`` for a fallback or replacement (``row`` of the first
+    bad byte, from 0), else ``None``. A leading byte-order mark is removed.
+    """
+    codec = encoding
+    for bom, name in _BOMS:
+        if data.startswith(bom):
+            data, codec = data[len(bom) :], name
+            break
+    try:
+        text, problem = data.decode(codec or "utf-8"), None
+    except UnicodeDecodeError as err:
+        row = err.object[: err.start].decode(err.encoding, errors="replace").count("\n")
+        where = f"line {row + 1}: {err.reason}"
+        if codec is None:
+            text = data.decode("latin-1")
+            message = (
+                f"is not valid UTF-8 ({where}); decoded as ISO-8859-1 like MATLAB."
+            )
+        else:
+            text = data.decode(codec, errors="replace")
+            message = (
+                f"is not valid {codec} ({where}); undecodable bytes are shown "
+                "as U+FFFD."
+            )
+        problem = (message, row)
+    return text.removeprefix("\ufeff"), problem
 
 
 def is_hidden(path) -> bool:
@@ -64,8 +112,8 @@ def first_line_of_code(text: str) -> str:
 def classify(path, text: str | None = None) -> str:
     """Return ``script``, ``function``, ``class`` or ``unknown`` for ``path``.
 
-    ``text`` is the decoded file content; ``None`` reads the file as UTF-8
-    (``path`` may omit the ``.m``).
+    ``text`` is the decoded file content; ``None`` reads the file with
+    ``decode_source`` (``path`` may omit the ``.m``).
     """
     path = os.fspath(path)
     ext = os.path.splitext(path)[1]
@@ -74,8 +122,8 @@ def classify(path, text: str | None = None) -> str:
     if text is None:
         file = path if ext else path + ".m"
         try:
-            with open(file, encoding="utf-8", errors="replace") as f:
-                text = f.read()
+            with open(file, "rb") as f:
+                text, _ = decode_source(f.read())
         except OSError:
             return UNKNOWN
     match = _DECLARATION.match(first_line_of_code(text))

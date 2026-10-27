@@ -193,11 +193,43 @@ Two warnings, which ``suppress_warnings`` can turn off, flag files to check:
 * ``mat.no_code``: the file is empty or has only comments; it is documented
   as a script.
 
+A file that is hard to read never stops the build: it gets one warning with
+its path reference (and, where known, its source location), the build goes
+on, and every other file is documented as usual.
+
+* ``mat.parse_error``: the file cannot be read (for example no permission),
+  an ``.mlapp`` is not a valid App Designer file, or the parser fails. The
+  file is still indexed, with the type of its first line of code (an
+  unreadable file has type ``unknown``), and documented without content, so
+  references to it still resolve. An unreadable file is retried on every
+  build. A folder that cannot be listed, or a file name that is not valid
+  UTF-8, gets the same warning and is left out.
+* ``mat.encoding``: see below.
+* A ``function`` declared with a dotted name (``function y = pkg.f(x)``)
+  raises ``mat.invalid_matlab``. MATLAB (R2026a) names such a file by its
+  path, shows its help, and refuses to run it ("Dotted names can be used
+  only within a CLASS block"); it is documented the same way, under its
+  file name. Converter methods with dotted names inside a ``classdef`` are
+  valid MATLAB but are not documented, like ``set.``/``get.`` methods.
+
+Source files are read as MATLAB R2026a reads them. A byte-order mark selects
+UTF-8, UTF-16 or UTF-32. Otherwise ``matlab_src_encoding`` (default ``None``),
+a Python text codec, decodes every ``.m`` file; an unknown codec is a
+configuration error. Without it, files are read as UTF-8, and a file that is
+not valid UTF-8 is read as ISO-8859-1 (Latin-1), the whole file, with one
+``mat.encoding`` warning that gives the line of the first invalid byte: this is
+what MATLAB does on Linux, so a UTF-8 ``é`` elsewhere in such a file shows as
+``Ã©``. Bytes that the byte-order mark's or the configured codec cannot
+decode are shown as U+FFFD, with a ``mat.encoding`` warning (MATLAB rejects
+such a file). The behavior of MATLAB on Windows was not verified; the same
+rules are used on every platform.
+
 MATLAB and Simulink read some files by name: ``Contents.m`` (folder help),
 ``slblocks.m``, ``sl_customization.m``, ``pathdef.m``, ``matlabrc.m`` and
 ``rtwmakecfg.m`` (any letter case). They are indexed and can be documented
 with an explicit directive, but ``mat:autofolder`` with ``:members:`` leaves
-them out and they never raise the warnings above or ``mat.not_callable``.
+them out and they never raise ``mat.invalid_matlab``, ``mat.no_code`` or
+``mat.not_callable``.
 
 Source files are found by extension through a file-type registry. ``.m`` and
 ``.mlapp`` (App Designer) files are supported; Simulink (``.slx``, ``.mdl``,

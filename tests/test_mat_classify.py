@@ -122,7 +122,7 @@ def test_classify_opens_the_supplied_path(monkeypatch):
 
     def fake_open(file, *args, **kwargs):
         opened.append(file)
-        return io.StringIO("classdef X\n")
+        return io.BytesIO(b"classdef X\n")
 
     monkeypatch.setattr(mat_classify, "open", fake_open, raising=False)
     paths = [

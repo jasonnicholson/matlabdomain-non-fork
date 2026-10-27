@@ -652,7 +652,7 @@ class MATLABDomain(Domain):
     }
     # Bump when the layout of ``initial_data`` (the pickled domain data) or the
     # parsed objects it caches change, so Sphinx drops stale cached environments.
-    data_version = 6
+    data_version = 7
     indices = [
         MATLABFolderIndex,
     ]
@@ -905,6 +905,18 @@ def ensure_configuration(app, config):  # noqa: ARG001
         raise ConfigError(str(err)) from err
 
 
+def check_encoding(app, config):  # noqa: ARG001
+    if config.matlab_src_encoding is not None:
+        try:
+            # not b"".decode(): it skips the check for non-text codecs (rot13)
+            "a".encode(config.matlab_src_encoding)
+        except (LookupError, TypeError) as err:
+            raise ConfigError(
+                f"matlab_src_encoding {config.matlab_src_encoding!r} is not a "
+                "known text encoding."
+            ) from err
+
+
 def _get_version():
     try:
         from importlib.metadata import version
@@ -916,6 +928,7 @@ def _get_version():
 
 def setup(app):
     app.connect("config-inited", ensure_configuration)
+    app.connect("config-inited", check_encoding)
     app.connect("builder-inited", analyze)
 
     app.add_domain(MATLABDomain)
