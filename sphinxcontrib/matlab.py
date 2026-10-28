@@ -643,26 +643,48 @@ class MATLABDomain(Domain):
         # Per-document registrations (cleared/merged by docname).
         "objects": {},  # path reference -> docname, objtype, display name
         "folders": {},  # folder reference -> docname, synopsis, platform, deprecated
-        # Shared source state, rebuilt by ``mat_types.analyze`` each build.
-        # source path -> {reference, type, mtime, size, matlab_name, private, scope}
+        "doc_sources": {},  # docname -> {source path: (mtime_ns, size)} it used
+        # Shared source state, rebuilt by ``mat_types.analyze`` each build;
+        # files are parsed lazily (see ``mat_types``).
+        # source path -> {reference, type, mtime, size, warnings, unreadable,
+        #                 matlab_name, private, scope}
         "index": {},
         "parse_cache": {},  # (path, mtime_ns, size) -> parsed MatObject
+        "parse_warnings": {},  # (path, mtime_ns, size) -> parse-stage warnings
         "entities_table": {},  # path reference -> MatObject (files and folders)
         "matlab_names": {},  # MATLAB name -> path references
     }
     # Bump when the layout of ``initial_data`` (the pickled domain data) or the
     # parsed objects it caches change, so Sphinx drops stale cached environments.
-    data_version = 8
+    data_version = 9
     indices = [
         MATLABFolderIndex,
     ]
 
     def __init__(self, env):
         super().__init__(env)
-        # Previous build's parse cache, consumed by ``mat_types.analyze``.
-        self.previous_parse_cache = {}
         # display name -> references of documented objects (built lazily)
         self._displays = None
+        # Documents read in this build (``env-before-read-docs``).
+        self.read_docnames = ()
+        self.reset_sources()
+
+    def reset_sources(self):
+        """Forget the in-process state of the previous index stage."""
+        # path reference -> source path (built lazily from the index)
+        self._sources = None
+        # (path, mtime_ns, size) -> decoded text read by the index stage
+        self.text_cache = {}
+        # files or folders were added, removed or changed type
+        self.index_changed = False
+
+    def source_paths(self):
+        """Path reference -> source path of every indexed file."""
+        if self._sources is None:
+            self._sources = {
+                record["reference"]: path for path, record in self.data["index"].items()
+            }
+        return self._sources
 
     @property
     def entities_table(self):
@@ -692,18 +714,30 @@ class MATLABDomain(Domain):
         for ref, (fn, _, _, _) in list(self.data["folders"].items()):
             if fn == docname:
                 del self.data["folders"][ref]
+        self.data["doc_sources"].pop(docname, None)
         self._displays = None
 
     def merge_domaindata(self, docnames, otherdata):
-        # Merge per-document registrations from a parallel-read worker. Shared
-        # source state (index, parse cache, entities) is built in the main
-        # process and is not merged (parallel read stays disabled; Phase 6).
+        # Merge per-document registrations from a parallel-read worker, and
+        # the files it parsed, so the next build need not parse them again.
+        # The index and the entities are built in the main process.
         for ref, data in otherdata["objects"].items():
             if data[0] in docnames:
                 self.data["objects"][ref] = data
         for ref, data in otherdata["folders"].items():
             if data[0] in docnames:
                 self.data["folders"][ref] = data
+        for docname, used in otherdata["doc_sources"].items():
+            if docname in docnames:
+                self.data["doc_sources"][docname] = used
+        index = self.data["index"]
+        for name in ("parse_cache", "parse_warnings"):
+            ours = self.data[name]
+            for key, value in otherdata[name].items():
+                record = index.get(key[0])
+                if record is None or (record["mtime"], record["size"]) != key[1:]:
+                    continue
+                ours.setdefault(key, value)
         self._displays = None
 
     def _by_display(self, name):
@@ -715,11 +749,7 @@ class MATLABDomain(Domain):
 
     def _scope(self, reference):
         # Folder a documented object's MATLAB name is visible from.
-        file, _ = mat_naming.parse_reference(reference)
-        entity = self.entities_table.get(reference if file is None else file)
-        if entity is None:
-            return mat_naming.folder_of(reference)
-        return getattr(entity, "scope", None)
+        return mat_types.source_scope(self, reference)
 
     def find_obj(self, folder, cls, name, type, searchmode=0):
         """Find documented objects for ``name`` (plan.md Section 2.3).
@@ -868,6 +898,11 @@ def analyze(app):
 
 
 _REMOVED_OPTIONS = {
+    "matlab_src_dir": (
+        "use matlab_src_code_project_root (relative to the Sphinx source "
+        "directory) and, to select files, matlab_src_include_patterns and "
+        "matlab_src_exclusion_patterns"
+    ),
     "matlab_keep_package_prefix": (
         "objects are referenced by path (which keeps '+') and signatures show "
         "MATLAB names (without '+')"
@@ -876,25 +911,17 @@ _REMOVED_OPTIONS = {
 }
 
 
-def ensure_configuration(app, config):  # noqa: ARG001
+def ensure_configuration(app, config):
     for name, reason in _REMOVED_OPTIONS.items():
         if getattr(config, name) is not None:
             raise ConfigError(
                 f"{name} was removed: {reason}. Remove it from conf.py."
             )
 
-    if config.matlab_src_dir is not None:
-        if config.matlab_src_code_project_root is None:
-            action = "it is used as matlab_src_code_project_root"
-        else:
-            action = "it is ignored because matlab_src_code_project_root is set"
-        logger.warning(
-            "[sphinxcontrib-matlabdomain] matlab_src_dir is deprecated; %s. "
-            "Use matlab_src_code_project_root instead.",
-            action,
-            type="mat",
-            subtype="deprecated",
-        )
+    sources = mat_types.source_filter(config)
+    if config.matlab_src_code_project_root is not None:
+        root = mat_types.project_root(config, app.srcdir)
+        mat_types.check_pattern_folders(sources, root)
 
     # Explicit matlab_namelengthmax wins; None derives it from matlab_version.
     try:
@@ -930,12 +957,25 @@ def setup(app):
     app.connect("config-inited", ensure_configuration)
     app.connect("config-inited", check_encoding)
     app.connect("builder-inited", analyze)
+    app.connect("env-get-outdated", mat_types.outdated_docs)
+    app.connect("env-before-read-docs", mat_types.note_read_docs)
+    app.connect("env-updated", mat_types.warn_parsed_sources)
 
     app.add_domain(MATLABDomain)
     # autodoc
     # Relative paths are relative to the Sphinx source directory.
     app.add_config_value("matlab_src_code_project_root", None, "env")
-    # Deprecated: fallback for matlab_src_code_project_root.
+    # Globs relative to matlab_src_code_project_root; [] selects no files.
+    app.add_config_value(
+        "matlab_src_include_patterns",
+        list(mat_types.DEFAULT_INCLUDE_PATTERNS),
+        "env",
+        [list, tuple],
+    )
+    app.add_config_value("matlab_src_exclusion_patterns", [], "env", [list, tuple])
+    # Keep the text read by the index stage for the parse (this process only).
+    app.add_config_value("matlab_src_cache_text", True, "", bool)
+    # Removed: setting it raises ConfigError.
     app.add_config_value("matlab_src_dir", None, "env")
     app.add_config_value("matlab_src_encoding", None, "env")
     # Removed: setting it raises ConfigError.
@@ -1005,9 +1045,7 @@ def setup(app):
 
     return {
         "version": _get_version(),
-        # Parallel builds are not yet safe: the parsed-source model is transient
-        # and built only in the main process on ``builder-inited``. Flip these on
-        # once the picklable lazy index lands (plan.md Phase 6).
-        "parallel_read_safe": False,
-        "parallel_write_safe": False,
+        # Workers parse lazily; merge_domaindata collects what they parsed.
+        "parallel_read_safe": True,
+        "parallel_write_safe": True,
     }

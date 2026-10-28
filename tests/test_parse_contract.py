@@ -4,6 +4,7 @@ plan.md Phase 4, Sections 2.5-2.7.
 """
 
 import os
+import time
 from pathlib import Path
 
 import pytest
@@ -71,7 +72,8 @@ def test_index_type_comes_from_classify(make_app, tmp_path):
     # is_class comes from classify(): the broken class keeps its class name.
     assert index["@PcBox/PcBox.m"]["matlab_name"] == "PcBox"
 
-    table = app.env.get_domain("mat").entities_table
+    dom = app.env.get_domain("mat")
+    table = {ref: mat_types.resolve(dom, ref) for ref in index}
     assert isinstance(table["pc_local.m"], mat_types.MatScript)
     assert isinstance(table["@PcBox/PcBox.m"], mat_types.MatScript)
     assert isinstance(table["pc_functions.m"], mat_types.MatScript)
@@ -84,8 +86,15 @@ def test_index_type_comes_from_classify(make_app, tmp_path):
     assert 'id="mat-&#64;PcBox/PcBox.m"' in html
 
 
+# Pages that use the divergent files (and a script that does not diverge).
+USE_SOURCES = (
+    "Index\n=====\n\n.. mat:autoscript:: pc_bad.m\n\n"
+    ".. mat:autoscript:: @PcBox/PcBox.m\n\n.. mat:autoscript:: pc_functions.m\n"
+)
+
+
 def test_divergence_and_no_code_warnings(make_app, tmp_path, monkeypatch):
-    write_project(tmp_path, SOURCES)
+    write_project(tmp_path, SOURCES, USE_SOURCES)
     app = make_app(srcdir=tmp_path)
     app.build()
 
@@ -107,20 +116,39 @@ def test_divergence_and_no_code_warnings(make_app, tmp_path, monkeypatch):
     )
     assert "pc_comment.m has no code" in warnings
 
-    # Rebuilding from the pickled environment reuses the parse and warns again.
+    # Re-reading the page from the pickled environment reuses the parse and
+    # warns again.
     def no_parse(*args, **kwargs):
         raise AssertionError("file parsed again")
 
     monkeypatch.setattr(mat_types.MatObject, "parse_mfile", staticmethod(no_parse))
+    rst = tmp_path / "index.rst"
+    now = time.time_ns()
+    os.utime(rst, ns=(now, now))
     app2 = make_app(srcdir=tmp_path)
     app2.build()
     assert app2.warning.getvalue().count("may be invalid MATLAB") == 2
     assert app2.warning.getvalue().count("has no code") == 2
 
+    # Nothing re-read: index-stage warnings only.
+    app3 = make_app(srcdir=tmp_path)
+    app3.build()
+    assert app3.warning.getvalue().count("may be invalid MATLAB") == 0
+    assert app3.warning.getvalue().count("has no code") == 2
+
+
+def test_divergence_of_an_unused_file_is_not_reported(make_app, tmp_path):
+    # Only a parse finds it, and nothing uses the files (plan.md Section 2.10).
+    write_project(tmp_path, SOURCES, "Index\n=====\n")
+    app = make_app(srcdir=tmp_path)
+    app.build()
+    assert "may be invalid MATLAB" not in app.warning.getvalue()
+    assert app.warning.getvalue().count("has no code") == 2
+
 
 @pytest.mark.parametrize("subtype", ["invalid_matlab", "no_code"])
 def test_warnings_are_suppressible(make_app, tmp_path, subtype):
-    write_project(tmp_path, SOURCES)
+    write_project(tmp_path, SOURCES, USE_SOURCES)
     app = make_app(
         srcdir=tmp_path, confoverrides={"suppress_warnings": [f"mat.{subtype}"]}
     )

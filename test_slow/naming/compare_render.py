@@ -99,14 +99,15 @@ def snapshot(out_path):
                 proc = subprocess.run(cmd, capture_output=True, text=True)
                 warnings = []
                 if warnfile.exists():
-                    text = warnfile.read_text().replace(str(tmp), "<TMP>")
+                    text = warnfile.read_text(encoding="utf-8")
+                    text = text.replace(str(tmp), "<TMP>")
                     warnings = sorted(set(text.splitlines()))
                 pages = {}
                 for html in sorted(outdir.glob("**/*.html")):
                     rel = str(html.relative_to(outdir))
                     if rel in ("genindex.html", "search.html"):
                         continue
-                    text = html.read_text()
+                    text = html.read_text(encoding="utf-8")
                     m = BODY_RE.search(text)
                     body = m.group(1) if m else text
                     pages[rel] = {

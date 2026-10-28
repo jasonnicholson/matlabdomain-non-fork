@@ -443,6 +443,8 @@ def _config(version="R2026a", namelengthmax=None):
         matlab_keep_package_prefix=None,
         matlab_src_dir=None,
         matlab_src_code_project_root=None,
+        matlab_src_include_patterns=["**/*"],
+        matlab_src_exclusion_patterns=[],
         matlab_version=version,
         matlab_namelengthmax=namelengthmax,
     )

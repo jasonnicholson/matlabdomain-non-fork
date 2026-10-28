@@ -197,21 +197,6 @@ def test_root(app):
     )
 
 
-@pytest.mark.parametrize(
-    "confdict",
-    [{"matlab_src_code_project_root": None, "matlab_src_dir": "."}],
-)
-def test_root_relative_matlab_src_dir(app, confdict):
-    # Deprecated fallback root, relative to the source directory.
-    assert "matlab_src_dir is deprecated" in app.warning.getvalue()
-    content = pickle.loads((app.doctreedir / "index_root.doctree").read_bytes())
-    assert len(content) == 1
-    assert (
-        content[0].astext()
-        == "root\n\n\n\nclass BaseClass\n\nA class in the very root of the directory\n\nBaseClass Methods:\n\nBaseClass - the constructor, whose description extends\n\nto the next line\n\nDoBase - another BaseClass method\n\nSee Also\n\ntarget/ClassExample.m, baseFunction, ClassExample\n\nConstructor Summary\n\n\n\n\n\nBaseClass(obj, args)\n\nThe constructor\n\nMethod Summary\n\n\n\n\n\nDoBase()\n\nDo the Base thing\n\n\n\nbaseFunction(x)\n\nReturn the base of x\n\nSee Also:\n\ntarget/submodule/ClassMeow.m\ntarget/+package/ClassBar.m\nClassMeow\npackage.ClassBar"
-    )
-
-
 @pytest.mark.parametrize("confdict", [{"matlab_show_property_default_value": True}])
 def test_root_show_default_value(app, confdict):
     content = pickle.loads((app.doctreedir / "index_root.doctree").read_bytes())

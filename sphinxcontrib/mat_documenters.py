@@ -55,7 +55,10 @@ from .mat_types import (
     MatScript,
     display_name,
     find_source,
+    is_folder_object,
+    is_source_object,
     lookup_reference,
+    resolve,
 )
 
 mat_ext_sig_re = re.compile(
@@ -163,9 +166,8 @@ class MatlabDocumenter(PyDocumenter):
         self.object = self._resolved
         return True
 
-    def accepts(self, obj):
-        """Return True if this documenter documents ``obj`` (folders or not)."""
-        return not isinstance(obj, MatModule)
+    #: True for the objects this documenter documents (folders or not)
+    accepts = staticmethod(is_source_object)
 
     def format_name(self):
         return self.display
@@ -338,6 +340,9 @@ class MatlabDocumenter(PyDocumenter):
         look_ahead = r"\b(?!(`|\*| |\sProperties:|\sMethods:|\.\w|/))"
         look_ahead2 = r"\b(?!(`|\*| |\sProperties:|\sMethods:|/))"
         for nn in list(dom.data["matlab_names"]):
+            # Only names in the text can link; resolving parses their files.
+            if not any(nn in line for lines in docstrings for line in lines):
+                continue
             found = find_source(dom, nn, folder)
             if not found:
                 continue
@@ -433,10 +438,7 @@ class MatlabDocumenter(PyDocumenter):
         analyzed_member_names = set()
         if self.analyzer:
             attr_docs = self.analyzer.find_attr_docs()
-            namespace = ".".join(self.objpath)
-            for item in attr_docs.items():
-                if item[0][0] == namespace:
-                    analyzed_member_names.add(item[0][1])
+            analyzed_member_names.update(attr_docs.names(".".join(self.objpath)))
 
         if not want_all:
             if not self.options.members:
@@ -773,11 +775,7 @@ class MatlabDocumenter(PyDocumenter):
             )
             # no source file -- e.g. for builtin and C modules
             self.analyzer = None
-            # at least add the module.__file__ as a dependency
-            if hasattr(self.module, "__file__") and self.module.__file__:
-                self.directive.record_dependencies.add(self.module.__file__)
-        else:
-            self.directive.record_dependencies.add(self.analyzer.srcname)
+        # Source files are dependencies through the domain (doc_sources).
 
         # check __module__ of object (for members not given explicitly)
         if check_module and not self.check_module():
@@ -807,9 +805,7 @@ class MatlabDocumenter(PyDocumenter):
 
 class MatFolderDocumenter(MatlabDocumenter, PyModuleDocumenter):
     objtype = "folder"
-
-    def accepts(self, obj):
-        return isinstance(obj, MatModule)
+    accepts = staticmethod(is_folder_object)
 
     def parse_name(self):
         ret = MatlabDocumenter.parse_name(self)
@@ -848,14 +844,15 @@ class MatFolderDocumenter(MatlabDocumenter, PyModuleDocumenter):
                 return True, self.object.safe_getmembers()
             else:
                 # A file is listed before a folder with the same name; special
-                # files are documented only when named.
+                # files are documented only when named (and not parsed here).
                 members = {}
-                for name, obj in self.object.__all__:
-                    if is_hidden(getattr(obj, "ref", "")):
+                for name, ref in self.object.member_refs():
+                    if is_hidden(ref):
                         continue
-                    if name not in members or isinstance(members[name], MatModule):
-                        members[name] = obj
-                return False, list(members.items())
+                    if name not in members or members[name][-1:] == "/":
+                        members[name] = ref
+                dom = self.env.get_domain("mat")
+                return False, [(n, resolve(dom, r)) for n, r in members.items()]
         else:
             memberlist = self.options.members or []
 

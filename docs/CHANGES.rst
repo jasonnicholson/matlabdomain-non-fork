@@ -35,8 +35,8 @@ Release notes
     folders are documented through their class. The module index is now the
     folder index (``mat-folderindex.html``).
   * New configuration ``matlab_src_code_project_root`` (relative to the Sphinx
-    source directory). ``matlab_src_dir`` is deprecated: it is still used as
-    the project root and warns (``mat.deprecated``).
+    source directory). ``matlab_src_dir`` was removed: setting it raises a
+    ``ConfigError``.
   * Setting ``matlab_keep_package_prefix`` or ``matlab_short_links`` raises a
     ``ConfigError``; MATLAB names are always displayed.
   * Files MATLAB cannot call for ``matlab_version`` (keyword namespaces,
@@ -85,6 +85,25 @@ Release notes
   suppressible ``mat.encoding`` warning (it used to show backslash escapes).
   An unknown or non-text codec is a
   ``ConfigError``. Cached environments from earlier versions are rebuilt.
+* Large projects build fast: each build indexes the source files (reads and
+  classifies each file once) and parses a file with tree-sitter only when a
+  page needs it. Parses are cached by path, modification time and size;
+  only pages that used a changed file are read again (when files are added,
+  removed or change type, every page that looks up sources). Parallel builds
+  (``-j``) are supported. New ``matlab_src_cache_text`` (default ``True``)
+  keeps the text read by the index for the parse during a build.
+* New configuration ``matlab_src_include_patterns`` (default ``["**/*"]``;
+  ``[]`` selects no files) and ``matlab_src_exclusion_patterns`` (default
+  ``[]``): globs relative to ``matlab_src_code_project_root``, matched like
+  ``exclude_patterns``, case-sensitive. Patterns must stay below the root
+  (``ConfigError`` otherwise) and need ``matlab_src_code_project_root``. A
+  link below the root that leaves it is skipped with a ``mat.outside_root``
+  warning.
+* **Breaking:** ``mat.invalid_matlab`` and parse failures
+  (``mat.parse_error``) are reported for the files that pages read in the
+  build use, once per build; a file no page uses is not parsed. Index
+  warnings (``mat.encoding``, ``mat.no_code``, ``mat.not_callable``,
+  unreadable files and folders) still appear on every build.
 
 .. _PR 232: https://github.com/sphinx-contrib/matlabdomain/pull/253
 

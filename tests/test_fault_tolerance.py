@@ -339,7 +339,6 @@ EXPECTED = [
     ("invalid_matlab", "ft_trunc_class.m"),
     ("no_code", "ft_empty.m"),
     ("parse_error", "ft_corrupt.mlapp"),
-    ("parse_error", "ft_nometa.mlapp"),
 ]
 RST = """Index
 =====
@@ -454,15 +453,23 @@ def test_malformed_files_warn_and_the_build_completes(make_app, malformed, parse
     if CAN_MAKE_UNREADABLE:
         assert index["ft_unreadable.m"]["type"] == "unknown"
 
-    # A rebuild reuses every parse but a read failure, and warns again.
-    assert len(parsed) == len(index)
+    # Only the files the page uses are parsed: ft_nometa.mlapp is just linked
+    # (no parse, no parse-stage warning) and the index stage reported the
+    # unreadable file.
+    unused = {"ft_nometa.mlapp", "ft_unreadable.m"}
+    assert sorted(parsed) == sorted(
+        str(srcdir.joinpath(*ref.split("/"))) for ref in index if ref not in unused
+    )
+
+    # A rebuild that re-reads the page reuses every parse and warns again; the
+    # index stage reads the unreadable file again.
     parsed.clear()
     rst = srcdir / "index.rst"
     future = os.stat(rst).st_mtime_ns + 10**10
     os.utime(rst, ns=(future, future))
     app2 = make_app(srcdir=srcdir)
     app2.build()
-    assert parsed == ([str(srcdir / "ft_unreadable.m")] if CAN_MAKE_UNREADABLE else [])
+    assert parsed == []
     assert warnings_of(app2) == expected
     assert (
         f"{latin1}:2: WARNING: [sphinxcontrib-matlabdomain] ft_latin1.m is not "
@@ -560,11 +567,13 @@ def test_unreadable_class_and_function_render(make_app, tmp_path, parsed):
     try:
         app = make_app(srcdir=tmp_path)
         app.build()
-        # A read failure is not cached: it is retried on the next build.
+        # A read failure is not cached: the index stage reads the file again
+        # and the page is read again; nothing can be parsed.
         parsed.clear()
         app2 = make_app(srcdir=tmp_path)
         app2.build()
-        assert sorted(parsed) == sorted(str(p) for p in locked)
+        assert parsed == []
+        assert app2.env.get_domain("mat").read_docnames == ["index"]
     finally:
         for path in locked:
             os.chmod(path, 0o644)

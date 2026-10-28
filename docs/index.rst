@@ -26,8 +26,10 @@ Install **sphinxcontrib-matlabdomain** with
 In order for the Sphinx MATLAB domain to auto-document MATLAB source code, set
 the config value of ``matlab_src_code_project_root`` to the root folder of the
 MATLAB sources. A relative path is relative to the Sphinx source directory
-(the folder with ``index.rst``). All subfolders of the root are searched.
-``matlab_src_dir`` is deprecated: it still works as the root, with a warning.
+(the folder with ``index.rst``). All subfolders of the root are searched,
+unless patterns select the files (see `Source files and builds`_).
+``matlab_src_dir`` was removed: setting it is an error; use
+``matlab_src_code_project_root``.
 
 For convenience the `primary domain <http://sphinx-doc.org/config.html#confval-primary_domain>`_
 can be set to ``mat``.
@@ -195,7 +197,8 @@ Two warnings, which ``suppress_warnings`` can turn off, flag files to check:
 
 A file that is hard to read never stops the build: it gets one warning with
 its path reference (and, where known, its source location), the build goes
-on, and every other file is documented as usual.
+on, and every other file is documented as usual (when each warning appears:
+see `Source files and builds`_).
 
 * ``mat.parse_error``: the file cannot be read (for example no permission),
   an ``.mlapp`` is not a valid App Designer file, or the parser fails. The
@@ -235,6 +238,54 @@ them out and they never raise ``mat.invalid_matlab``, ``mat.no_code`` or
 Source files are found by extension through a file-type registry. ``.m`` and
 ``.mlapp`` (App Designer) files are supported; Simulink (``.slx``, ``.mdl``,
 ``.xml``) and Simscape (``.ssc``) files are planned.
+
+Source files and builds
+-----------------------
+
+Two glob lists select the source files below
+``matlab_src_code_project_root``:
+
+* ``matlab_src_include_patterns`` (default ``["**/*"]``, every file): a file
+  is documented if its path reference matches one of them. ``[]`` selects no
+  files.
+* ``matlab_src_exclusion_patterns`` (default ``[]``): files and folders that
+  match one of them are left out, e.g. ``["**/tests/**"]`` or
+  ``["**/tests"]``.
+
+Patterns are matched like Sphinx's ``exclude_patterns``, against path
+references: ``**`` matches across folders, ``*`` and ``?`` within one, and
+``**/x`` also matches ``x``. Matching is case-sensitive on every operating
+system. A pattern is relative to the project root and uses ``/``; an
+absolute path, a drive, a ``\``, or ``..`` that leaves the root (or follows
+a wildcard) is a configuration error, and so is setting either list without
+``matlab_src_code_project_root``, or a pattern whose leading folders lead
+out of the root through a link. Folders whose names start with ``.`` or
+``_`` are never searched. A link (or Windows junction) found below the root
+that points outside it is left out with one ``mat.outside_root`` warning.
+
+Each build first *indexes* the selected files: it reads each file once,
+decodes it and finds its type from its first line of code. A file is parsed
+with tree-sitter only when a page needs it, for example to document it, to
+show its base classes, or to link a name in a docstring. Parses are kept in
+the environment while a file's path, modification time and size do not
+change, so the next build neither reads nor parses an unchanged file again.
+With
+``matlab_src_cache_text`` (default ``True``), the text the index read is
+kept in memory for the parse, during that build only.
+
+Only pages that used a changed file are read again. When files or folders
+are added, removed, or change type, every page that looks up MATLAB sources
+is read again. Parallel builds (``-j``) are supported.
+
+Warnings about the source files appear at two times:
+
+* On every build, for every indexed file: ``mat.encoding``, ``mat.no_code``,
+  ``mat.not_callable``, ``mat.outside_root``, and ``mat.parse_error`` for a
+  file or folder that cannot be read.
+* When a page read in this build uses the file, once per build:
+  ``mat.invalid_matlab`` and ``mat.parse_error`` for a file that cannot be
+  parsed. A file that no page uses is not parsed, so these do not appear
+  for it.
 
 Directives
 ----------

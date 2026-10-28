@@ -1,8 +1,9 @@
 """Sphinx config for the SCM profiling harness (Phase 1 "before" profile).
 
-Points `matlab_src_dir` at a large real MATLAB tree (~1700 .m files) so a build
-reproduces the current lock-up: on `builder-inited`, `analyze()` eagerly walks
-AND tree-sitter-parses every file before any doc is rendered.
+Points `matlab_src_code_project_root` at a large real MATLAB tree (~1700 .m
+files). Before Phase 6, `analyze()` eagerly walked AND tree-sitter-parsed every
+file on `builder-inited`; since Phase 6 it only indexes them (read and
+classify), and nothing is documented here, so nothing is parsed.
 """
 
 import os
@@ -14,7 +15,7 @@ author = "SCM"
 extensions = ["sphinx.ext.autodoc", "sphinxcontrib.matlab"]
 
 # Largest bundled fixture: vhlab-toolbox-matlab (~1726 .m files).
-matlab_src_dir = os.path.normpath(
+matlab_src_code_project_root = os.path.normpath(
     os.path.join(_here, "..", "artifacts", "vhlab-toolbox-matlab", "repo")
 )
 

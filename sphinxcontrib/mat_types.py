@@ -8,18 +8,31 @@ Types for MATLAB.
 :license: BSD, see LICENSE for details.
 """
 
+import ntpath
 import os
+import stat
+import sys
 import unicodedata
 import xml.etree.ElementTree as ET
+from collections.abc import Mapping
 from io import open  # for opening files with encoding in Python 2
 from zipfile import ZipFile
 
 from sphinx.environment import CONFIG_OK
+from sphinx.errors import ConfigError
+from sphinx.util.build_phase import BuildPhase
 from sphinx.util.logging import getLogger
+from sphinx.util.matching import Matcher
 
 from . import mat_naming
-from .mat_classify import classify, decode_source, first_line_of_code, is_hidden
-from .mat_handlers import handler_for, handlers
+from .mat_classify import (
+    UNKNOWN,
+    classify,
+    decode_source,
+    first_line_of_code,
+    is_hidden,
+)
+from .mat_handlers import handler_by_extension, handler_for, handlers
 
 def get_node(match_dict, key):
     res = match_dict.get(key)
@@ -43,7 +56,6 @@ from .mat_naming import (
     is_private_reference,
     join_reference,
     parse_reference,
-    path_reference,
 )
 
 logger = getLogger("matlab-domain")
@@ -122,27 +134,51 @@ MATLAB_METHOD_ATTRIBUTE_TYPES = {
     "TestTags": list,
 }
 
-# The parsed-source entity model is stored in ``env.domaindata['mat']`` and
-# pickled with the environment. It is rebuilt each build by ``analyze()``;
-# unchanged files reuse their parsed ``MatObject`` from ``parse_cache``.
-# Tree-sitter objects are never pickled (see ``MatObject.__reduce_ex__``).
-# Access the current build's model through ``_domain()``.
+# The parsed-source model lives in ``env.domaindata['mat']`` and is pickled
+# with the environment (plan.md Sections 2.1 and 2.2):
 #
-#   entities_table: path reference -> MatObject, for every discovered file and
-#     folder (the project root is ``./``).
+#   index: source path -> index-stage record (reference, type, mtime, size,
+#     warnings, unreadable; matlab_name, private, scope from naming).
+#   entities_table: path reference -> object. The index stage creates the
+#     folders (the project root is ``./``); files are parsed on first use
+#     (``resolve``).
+#   parse_cache / parse_warnings: (path, mtime_ns, size) -> parsed object /
+#     its parse-stage warnings, kept while the key is unchanged.
 #   matlab_names: MATLAB name -> path references of the files and namespace
 #     folders with that name (class-folder methods are reached through their
 #     class).
+#   doc_sources: docname -> {path: (mtime_ns, size)} of the files a document
+#     used while it was read (incremental builds, parse-stage warnings).
+#
+# Tree-sitter objects are never pickled (see ``MatObject.__reduce_ex__``).
 
 
 class _DetachedEntityStore:
-    """Fallback entity model for detached (non-Sphinx) parsing, e.g. unit tests
-    that call ``MatObject.matlabify`` outside a build. Real builds always own the
-    model on the live domain, so this is not used during a Sphinx build."""
+    """Fallback for parsing outside a Sphinx build (unit tests that call
+    ``MatObject.matlabify``): no index; files are parsed on every lookup.
+    """
 
     def __init__(self):
         self.entities_table = {}
-        self.data = {"matlab_names": {}}
+        self.data = {"matlab_names": {}, "index": {}}
+
+    def source_paths(self):
+        return {}
+
+    def resolve(self, ref):
+        parts = [] if ref == ROOT_REFERENCE else ref.rstrip("/").split("/")
+        path = os.path.join(MatObject.basedir, *parts)
+        if ref.endswith("/"):
+            if not os.path.isdir(path) or (parts and parts[0][:1] in ("_", ".")):
+                return None
+            return MatModule(os.path.basename(path), path, ref)
+        handler = handler_for(path)
+        if handler is None:
+            return None
+        stem = os.path.splitext(parts[-1])[0]
+        obj = _parse(handler, path, stem, folder_of(ref), handler.classify(path))
+        obj.ref = ref
+        return obj
 
 
 _detached_store = _DetachedEntityStore()
@@ -150,66 +186,197 @@ _detached_store = _DetachedEntityStore()
 
 def _domain(env=None):
     """Return the owner of the transient entity model: the live ``mat`` domain
-    when a Sphinx build is active, else a detached fallback store."""
+    when a Sphinx build is active, else a detached fallback store.
+    """
     env = env or MatObject.sphinx_env
     if env is None:
         return _detached_store
     return env.get_domain("mat")
 
 
-def recursive_find_all(obj):
-    # Recursively finds all entities in all "modules" aka directories.
-    # Bug fix: Check if obj.entities exists and is not None
-    if not hasattr(obj, "entities") or obj.entities is None:
+def _is_class_folder(folder):
+    return folder.rstrip("/").rpartition("/")[2].startswith("@")
+
+
+def _reading_docname(dom):
+    """Return the document being read, or None outside the read phase."""
+    if isinstance(dom, _DetachedEntityStore):
+        return None
+    builder = getattr(MatObject.sphinx_app, "builder", None)
+    if getattr(builder, "phase", None) != BuildPhase.READING:
+        return None
+    return dom.env.docname or None
+
+
+def _note_lookup(dom):
+    """Mark the document being read as depending on the index; return its
+    used files (``{path: (mtime_ns, size)}``) or None.
+    """
+    docname = _reading_docname(dom)
+    if docname is None:
+        return None
+    return dom.data["doc_sources"].setdefault(docname, {})
+
+
+def _note_use(dom, ref):
+    """Record a file (with its class-folder siblings) as used by the document
+    being read. A file that could not be read makes it re-read every build.
+    """
+    used = _note_lookup(dom)
+    if used is None:
         return
+    folder = folder_of(ref)
+    refs = [ref]
+    if _is_class_folder(folder):
+        refs = [r for _, r in dom.entities_table[folder].members if r[-1:] != "/"]
+    for r in refs:
+        path = dom.source_paths()[r]
+        record = dom.data["index"][path]
+        used[path] = (record["mtime"], record["size"])
+        if getattr(dom.entities_table.get(r), "unreadable", False):
+            dom.env.note_reread()
 
-    for _, o in obj.entities:
-        if isinstance(o, MatModule):
-            o.safe_getmembers()
-            if o.entities:
-                recursive_find_all(o)
+
+def resolve(dom, ref):
+    """Object of a file or folder reference (without members), or None.
+
+    Folders come from the index stage. A file is parsed on first use in this
+    process, or taken from the parse cache, and recorded as used by the
+    document being read.
+    """
+    if isinstance(dom, _DetachedEntityStore):
+        return dom.resolve(ref)
+    if ref[-1:] == "/":
+        return dom.entities_table.get(ref)
+    obj = dom.entities_table.get(ref)
+    if obj is None:
+        if ref not in dom.source_paths():
+            return None
+        folder = folder_of(ref)
+        if _is_class_folder(folder):
+            _load_class_folder(dom, folder)
+        else:
+            _load(dom, ref)
+        obj = dom.entities_table[ref]
+    _note_use(dom, ref)
+    return obj
 
 
-def recursive_log_debug(obj, indent=""):
-    # Traverse the object hierarchy and log to debug
-    # Bug fix: Check if obj.entities exists and is not None
-    if not hasattr(obj, "entities") or obj.entities is None:
+def _resolve_path(dom, rel):
+    """Object for a path below the root, given without its extension or the
+    trailing ``/`` of a folder (``.m`` before ``.mlapp``), or None.
+    """
+    for ref in (f"{rel}/", rel, *(rel + h.extension for h in handlers())):
+        obj = resolve(dom, ref)
+        if obj is not None:
+            return obj
+    return None
+
+
+def _parse(handler, path, stem, folder, kind, text=None):
+    """Parse one file; a failure gives an empty placeholder of the type ``kind``."""
+    try:
+        if text is None:
+            obj = handler.parse(path, stem, folder, MatObject.encoding)
+        else:
+            obj = handler.parse(path, stem, folder, MatObject.encoding, text=text)
+    except Exception as err:  # one bad file must not stop the build
+        obj = placeholder(kind, stem, folder)
+        obj.source_warnings = [("parse_error", failure_message(err), None)]
+        obj.unreadable = isinstance(err, OSError)
+    if obj is None:
+        obj = placeholder(kind, stem, folder)
+    if obj.source_type is None:
+        obj.source_type = kind
+    return obj
+
+
+def _load(dom, ref):
+    """Parse (or reuse) the file ``ref`` and add it to the entities table."""
+    data = dom.data
+    path = dom.source_paths()[ref]
+    record = data["index"][path]
+    key = (path, record["mtime"], record["size"])
+    obj = data["parse_cache"].get(key)
+    if obj is None:
+        stem = os.path.splitext(os.path.basename(path))[0]
+        if record["unreadable"]:
+            # The index stage warned already.
+            obj = placeholder(record["type"], stem, folder_of(ref))
+            obj.source_type, obj.unreadable = record["type"], True
+        else:
+            handler = handler_by_extension(path)
+            text = dom.text_cache.pop(key, None)
+            obj = _parse(handler, path, stem, folder_of(ref), record["type"], text)
+            if warnings := parse_warnings(path, ref, obj):
+                data["parse_warnings"][key] = warnings
+            # A read failure may go away without changing the key (permissions).
+            if not obj.unreadable:
+                data["parse_cache"][key] = obj
+    else:
+        logger.debug("[sphinxcontrib-matlabdomain] reusing parsed %s", path)
+    obj.ref = ref
+    obj.matlab_name = record["matlab_name"]
+    obj.private, obj.scope = record["private"], record["scope"]
+    dom.entities_table[ref] = obj
+    return obj
+
+
+def _load_class_folder(dom, folder):
+    """Load the files of the class folder ``folder`` and attach its functions
+    to its class as methods.
+    """
+    cf_entity = dom.entities_table[folder]
+    entities = [
+        (name, _load(dom, ref)) for name, ref in cf_entity.members if ref[-1:] != "/"
+    ]
+    class_entities = [e for e in entities if isinstance(e[1], MatClass)]
+    func_entities = [e for e in entities if isinstance(e[1], MatFunction)]
+    if len(class_entities) > 1:
+        # Other classdef files in a class folder are not its class.
+        class_entities = [e for e in class_entities if e[1].name == cf_entity.name[1:]]
+    if len(class_entities) != 1:
         return
+    cls = class_entities[0][1]
+    # Drop folder methods attached to a class reused from the parse cache.
+    cls.methods = {
+        n: m
+        for n, m in cls.methods.items()
+        if not getattr(m, "from_class_folder", False)
+    }
+    for _, func in func_entities:
+        func.__class__ = MatMethod
+        func.cls = cls
+        # TODO: Find the method attributes defined in classfolder class definition.
+        func.attrs = {}
+        func.from_class_folder = True
+        cls.methods[func.name] = func
 
-    for n, o in obj.entities:
-        logger.debug(
-            "[sphinxcontrib-matlabdomain] %s Name=%s, Entity=%s", indent, n, str(o)
+
+def _attrs(dom, ref):
+    """``(matlab_name, private, scope)`` of a discovered file or folder
+    reference, without parsing; None if it is not discovered.
+    """
+    if ref[-1:] == "/":
+        entity = dom.entities_table.get(ref)
+        if entity is None:
+            return None
+        return (
+            getattr(entity, "matlab_name", None),
+            getattr(entity, "private", False),
+            getattr(entity, "scope", None),
         )
-        if isinstance(o, MatModule):
-            if o.entities:
-                indent = indent + " "
-                names = [n_ for n_, o_ in o.entities]
-                logger.debug(
-                    "[sphinxcontrib-matlabdomain] %s Names=%s", indent, str(names)
-                )
-                # print(indent + f"{names=}")
-                recursive_log_debug(o, indent)
-                indent = indent[:-1]
-        if isinstance(o, MatClass):
-            logger.debug(
-                "[sphinxcontrib-matlabdomain] %s -> name=%s, methods=%s",
-                indent,
-                str(o.name),
-                str(o.methods),
-            )
+    record = dom.data["index"].get(dom.source_paths().get(ref))
+    if record is None:
+        return None
+    return record.get("matlab_name"), record.get("private", False), record.get("scope")
 
 
-def populate_entities_table(obj):
-    # Recursively scan the hierarchy of entities and populate the domain's table.
-    if not hasattr(obj, "entities") or obj.entities is None:
-        return
-
-    dom = _domain()
-    for _, o in obj.entities:
-        dom.entities_table[o.ref] = o
-        if isinstance(o, MatModule):
-            if o.entities:
-                populate_entities_table(o)
+def source_scope(dom, reference):
+    """Folder from which the MATLAB name of ``reference`` is visible."""
+    file, _ = parse_reference(reference)
+    attrs = _attrs(dom, reference if file is None else file)
+    return folder_of(reference) if attrs is None else attrs[2]
 
 
 def _member(entity, members):
@@ -226,11 +393,11 @@ def lookup_reference(dom, reference):
     file, members = parse_reference(reference)
     if file is None:
         return None
-    return _member(dom.entities_table.get(file), members)
+    return _member(resolve(dom, file), members)
 
 
 def _named(dom, name):
-    """``(reference, object, source entity)`` for a MATLAB name.
+    """Return ``(reference, file or folder reference)`` for a MATLAB name.
 
     The longest known prefix of ``name`` is the file or folder; the rest are
     members (``pkg.Cls.method``).
@@ -239,20 +406,47 @@ def _named(dom, name):
     for i in range(len(parts), 0, -1):
         refs = dom.data["matlab_names"].get(".".join(parts[:i]))
         if refs:
-            rest = parts[i:]
-            found = []
-            for ref in refs:
-                entity = dom.entities_table.get(ref)
-                obj = _member(entity, rest)
-                if obj is not None:
-                    found.append((".".join([ref, *rest]), obj, entity))
-            return found
+            return [(".".join([ref, *parts[i:]]), ref) for ref in refs]
     return []
 
 
 def is_source_object(obj):
-    """True for anything but a folder."""
+    """Return True for anything but a folder."""
     return not isinstance(obj, MatModule)
+
+
+def is_folder_object(obj):
+    """Return True for a folder."""
+    return isinstance(obj, MatModule)
+
+
+# ``find_source`` tests these on the reference, so it need not parse files.
+is_source_object.folders = False
+is_folder_object.folders = True
+
+
+def _match(dom, ref, accept):
+    """``(ref, object)`` if ``ref`` names an accepted object, else None.
+
+    The object is None (resolved later) when ``accept`` only asks for a file
+    or a folder.
+    """
+    file, members = parse_reference(ref)
+    if file is None:
+        return None
+    folders = getattr(accept, "folders", None)
+    if folders is not None and not members:
+        if file[-1:] == "/":
+            exists = file in dom.entities_table
+        else:
+            exists = file in dom.source_paths()
+        return (ref, None) if exists and (file[-1:] == "/") == folders else None
+    obj = _member(resolve(dom, file), members)
+    return (ref, obj) if obj is not None and accept(obj) else None
+
+
+def _resolved(dom, matches):
+    return [(ref, resolve(dom, ref) if obj is None else obj) for ref, obj in matches]
 
 
 def find_source(dom, target, folder=None, accept=is_source_object):
@@ -263,8 +457,10 @@ def find_source(dom, target, folder=None, accept=is_source_object):
     excluding private files. Only objects for which ``accept(obj)`` is true
     count. A folder path without its trailing ``/`` is tried last, so it
     never shadows a MATLAB name. Returns ``[(reference, object)]``: empty if
-    nothing matches, several if the MATLAB name is ambiguous.
+    nothing matches, several if the MATLAB name is ambiguous. Only the files
+    of the returned objects (and of members looked up) are parsed.
     """
+    _note_lookup(dom)
     target = unicodedata.normalize("NFC", target.strip())
     if target == ".":
         target = ROOT_REFERENCE
@@ -272,23 +468,25 @@ def find_source(dom, target, folder=None, accept=is_source_object):
     if folder:
         exact.append(join_reference(folder, target))
     for ref in exact:
-        obj = lookup_reference(dom, ref)
-        if obj is not None and accept(obj):
-            return [(ref, obj)]
+        if match := _match(dom, ref, accept):
+            return _resolved(dom, [match])
 
-    named = [(r, o, e) for r, o, e in _named(dom, target) if accept(o)]
+    named = [
+        (match, _attrs(dom, base))
+        for ref, base in _named(dom, target)
+        if (match := _match(dom, ref, accept))
+    ]
     if folder:
-        local = [(r, o) for r, o, e in named if getattr(e, "scope", None) == folder]
+        local = [match for match, attrs in named if attrs[2] == folder]
         if local:
-            return local
-    public = [(r, o) for r, o, e in named if not getattr(e, "private", False)]
+            return _resolved(dom, local)
+    public = [match for match, attrs in named if not attrs[1]]
     if public:
-        return public
+        return _resolved(dom, public)
 
     for ref in (f"{r}/" for r in exact if not r.endswith("/")):
-        obj = dom.entities_table.get(ref)
-        if obj is not None and accept(obj):
-            return [(ref, obj)]
+        if match := _match(dom, ref, accept):
+            return _resolved(dom, [match])
     return []
 
 
@@ -297,7 +495,7 @@ def folder_reference(dom, target, location=None):
     target = target.strip()
     if target in (".", ROOT_REFERENCE):
         return ROOT_REFERENCE
-    found = find_source(dom, target, accept=lambda obj: isinstance(obj, MatModule))
+    found = find_source(dom, target, accept=is_folder_object)
     if len(found) == 1:
         return found[0][0]
     if found:
@@ -316,233 +514,422 @@ def folder_reference(dom, target, location=None):
 def display_name(dom, reference):
     """MATLAB name of a reference, or the reference if it has none."""
     file, members = parse_reference(reference)
-    entity = dom.entities_table.get(file if file is not None else reference)
-    base = getattr(entity, "matlab_name", None)
-    if base is None:
+    attrs = _attrs(dom, file if file is not None else reference)
+    if attrs is None or attrs[0] is None:
         return reference
-    return ".".join([base, *members])
-
-
-def source_key(path):
-    """Cache key for a source file: ``(path, mtime_ns, size)``."""
-    st = os.stat(path)
-    return (path, st.st_mtime_ns, st.st_size)
+    return ".".join([attrs[0], *members])
 
 
 # Warnings hidden files (``is_hidden``) do not get.
 _HIDDEN_QUIET = ("invalid_matlab", "no_code")
+# Warnings the index stage reports; a parse does not repeat them.
+_INDEX_SUBTYPES = ("encoding",)
 
 
-def check_source(path, ref, obj):
-    """Warn about a parsed file: problems recorded while parsing it
-    (``source_warnings``), ``classify()`` and tree-sitter disagreeing, or no
-    code. Runs on every build, also when the parse is reused.
+def _warn(subtype, message, location=None):
+    logger.warning(
+        "[sphinxcontrib-matlabdomain] %s",
+        message,
+        type="mat",
+        subtype=subtype,
+        location=location,
+    )
+
+
+def _warn_file(ref, path, subtype, message, row):
+    if not (is_hidden(ref) and subtype in _HIDDEN_QUIET):
+        _warn(subtype, f"{ref} {message}", None if row is None else f"{path}:{row + 1}")
+
+
+def parse_warnings(path, ref, obj):
+    """Parse-stage warnings of a parsed file, ``[(subtype, message, location)]``:
+    problems recorded while parsing it (``source_warnings``) and
+    ``classify()`` disagreeing with tree-sitter.
     """
     hidden = is_hidden(ref)
-    for subtype, message, row in obj.source_warnings:
-        if hidden and subtype in _HIDDEN_QUIET:
-            continue
-        logger.warning(
-            "[sphinxcontrib-matlabdomain] %s %s",
-            ref,
-            message,
-            type="mat",
-            subtype=subtype,
-            location=None if row is None else f"{path}:{row + 1}",
+    out = [
+        (subtype, f"{ref} {message}", None if row is None else f"{path}:{row + 1}")
+        for subtype, message, row in obj.source_warnings
+        if subtype not in _INDEX_SUBTYPES and not (hidden and subtype in _HIDDEN_QUIET)
+    ]
+    if (
+        not hidden
+        and obj.parsed_type is not None
+        and obj.source_type != obj.parsed_type
+    ):
+        out.append(
+            (
+                "invalid_matlab",
+                f"{ref}: its first line of code makes it a {obj.source_type}, but "
+                f"tree-sitter parsed a {obj.parsed_type}; the file may be invalid "
+                "MATLAB.",
+                None,
+            )
         )
-    if hidden:
-        return
-    if obj.parsed_type is not None and obj.source_type != obj.parsed_type:
-        logger.warning(
-            "[sphinxcontrib-matlabdomain] %s: its first line of code makes it a "
-            "%s, but tree-sitter parsed a %s; the file may be invalid MATLAB.",
-            ref,
-            obj.source_type,
-            obj.parsed_type,
-            type="mat",
-            subtype="invalid_matlab",
-        )
-    if not obj.has_code:
-        logger.warning(
-            "[sphinxcontrib-matlabdomain] %s has no code; it is documented as a "
-            "script.",
-            ref,
-            type="mat",
-            subtype="no_code",
-        )
-
-
-def _parse_cached(path, ref, parse):
-    """Run ``parse()`` unless the previous build parsed the same key.
-
-    Records the result in the domain's ``index`` and ``parse_cache``; the
-    index ``type`` is the handler's ``classify()`` (``obj.source_type``).
-    Detached parses (no Sphinx build) record nothing and do not warn.
-    """
-    dom = _domain()
-    if isinstance(dom, _DetachedEntityStore):
-        obj = parse()
-        if obj is not None:
-            obj.ref = ref
-        return obj
-    key = source_key(path)
-    obj = dom.previous_parse_cache.pop(key, None)
-    if obj is None:
-        obj = parse()
-    else:
-        logger.debug("[sphinxcontrib-matlabdomain] reusing parsed %s", path)
-    if obj is not None:
-        obj.ref = ref
-        check_source(path, ref, obj)
-        # A read failure may go away without changing the key (permissions).
-        if not obj.unreadable:
-            dom.data["parse_cache"][key] = obj
-        dom.data["index"][path] = {
-            "reference": ref,
-            "type": obj.source_type,
-            "mtime": key[1],
-            "size": key[2],
-        }
-    return obj
+    return out
 
 
 def project_root(config, srcdir):
     """Absolute project root, or ``None`` if none is configured.
 
-    ``matlab_src_code_project_root`` wins over the deprecated
-    ``matlab_src_dir``; relative values are relative to ``srcdir`` (keeps
-    sphinx-multiversion working).
+    A relative ``matlab_src_code_project_root`` is relative to ``srcdir``
+    (keeps sphinx-multiversion working).
     """
     root = config.matlab_src_code_project_root
-    if root is None:
-        root = config.matlab_src_dir
     if root is None:
         return None
     return os.path.normpath(os.path.join(srcdir, root))
 
 
-def analyze(app):
-    # Using the "MatObject.matlabify" and "MatModule.safe_getmembers" the
-    # project root is recursively scanned for MATLAB objects only once.
-    # All entities found are stored in the domain's `entities_table`.
+DEFAULT_INCLUDE_PATTERNS = ["**/*"]
+_GLOB_CHARS = frozenset("*?[")
 
+
+def _normalize_pattern(pattern, option):
+    """``pattern`` relative to the project root, ``..`` resolved; a
+    ConfigError for a pattern that is not relative or leaves the root.
+    """
+    if not isinstance(pattern, str) or not pattern:
+        raise ConfigError(f"{option}: {pattern!r} is not a glob pattern.")
+    if "\\" in pattern:
+        raise ConfigError(f"{option}: {pattern!r} must use '/' as the separator.")
+    if pattern.startswith("/") or ntpath.splitdrive(pattern)[0]:
+        raise ConfigError(
+            f"{option}: {pattern!r} must be relative to matlab_src_code_project_root."
+        )
+    parts, wildcard = [], False
+    for part in pattern.split("/"):
+        if part in ("", "."):
+            continue
+        if part == "..":
+            # ``..`` after a wildcard cannot be resolved.
+            if wildcard or not parts:
+                raise ConfigError(
+                    f"{option}: {pattern!r} leaves matlab_src_code_project_root."
+                )
+            parts.pop()
+            continue
+        wildcard = wildcard or not _GLOB_CHARS.isdisjoint(part)
+        parts.append(part)
+    if not parts:
+        raise ConfigError(
+            f"{option}: {pattern!r} names nothing below matlab_src_code_project_root."
+        )
+    return "/".join(parts) + ("/" if pattern.endswith("/") else "")
+
+
+def _literal_folder(pattern):
+    """``(folder, deep)``: the literal folders a pattern starts with (``''``
+    for none), and whether it can match files in folders below them.
+    """
+    parts = pattern.rstrip("/").split("/")
+    out = ""
+    for part in parts[:-1]:
+        if not _GLOB_CHARS.isdisjoint(part):
+            return out, True
+        out += f"{part}/"
+    return out, "**" in parts[-1]
+
+
+class SourceFilter:
+    """Include and exclusion patterns below the project root (plan.md Section
+    2.4), matched like Sphinx's ``exclude_patterns`` against path references
+    (case-sensitive on every OS).
+    """
+
+    def __init__(self, include, exclude):
+        self.include = Matcher(include)
+        self.exclude = Matcher(exclude)
+        #: ``(folder, deep)`` the include patterns can reach
+        self.reach = sorted({_literal_folder(p) for p in include})
+        self.prefixes = sorted({folder for folder, _ in self.reach})
+
+    def includes(self, ref):
+        """Return True for a file reference to index."""
+        return self.include(ref) and not self.exclude(ref)
+
+    def walks(self, folder):
+        """Return True for a folder reference (``a/b/``) to list."""
+        if self.exclude(folder) or self.exclude(folder[:-1]):
+            return False
+        return any(
+            prefix.startswith(folder) or (deep and folder.startswith(prefix))
+            for prefix, deep in self.reach
+        )
+
+
+def source_filter(config):
+    """Return the validated ``SourceFilter`` of the config (or ConfigError)."""
+    values = {}
+    for option in ("matlab_src_include_patterns", "matlab_src_exclusion_patterns"):
+        value = getattr(config, option)
+        if isinstance(value, str) or not isinstance(value, (list, tuple)):
+            raise ConfigError(f"{option} must be a list of glob patterns.")
+        values[option] = [_normalize_pattern(p, option) for p in value]
+    include = values["matlab_src_include_patterns"]
+    exclude = values["matlab_src_exclusion_patterns"]
+    customized = list(config.matlab_src_include_patterns) != DEFAULT_INCLUDE_PATTERNS
+    if (customized or exclude) and config.matlab_src_code_project_root is None:
+        raise ConfigError(
+            "matlab_src_include_patterns and matlab_src_exclusion_patterns need "
+            "matlab_src_code_project_root."
+        )
+    return SourceFilter(include, exclude)
+
+
+def _within(path, root, pathmod=os.path):
+    """Return True if the (resolved) ``path`` is ``root`` or below it."""
     try:
-        # Shared source state lives in env.domaindata and is rebuilt here each
-        # build. Parsed results from the previous build are reused for
-        # unchanged files unless the config changed.
-        dom = app.env.get_domain("mat")
-        entities_table = dom.entities_table
-        parse_cache = dom.data["parse_cache"]
-        if app.env.config_status == CONFIG_OK:
-            dom.previous_parse_cache = dict(parse_cache)
-        else:
-            dom.previous_parse_cache = {}
-        parse_cache.clear()
-        dom.data["index"].clear()
-        dom.data["matlab_names"].clear()
-        entities_table.clear()
-        MatModuleAnalyzer.cache.clear()
+        common = pathmod.commonpath([path, root])
+    except ValueError:  # another drive
+        return False
+    return pathmod.normcase(common) == pathmod.normcase(root)
 
-        basedir = project_root(app.env.config, app.env.srcdir)
-        if basedir is None:
-            logger.debug(
-                "[sphinxcontrib-matlabdomain] no project root, skipping parsing."
+
+def check_pattern_folders(sources, root):
+    """ConfigError if a literal folder of an include pattern resolves (through
+    a link or junction) outside the project root.
+    """
+    real_root = os.path.realpath(root)
+    for prefix in sources.prefixes:
+        path = os.path.join(root, *prefix.split("/"))
+        if prefix and os.path.exists(path):
+            real = os.path.realpath(path)
+            if not _within(real, real_root):
+                raise ConfigError(
+                    f"matlab_src_include_patterns: {prefix} resolves to {real}, "
+                    "outside matlab_src_code_project_root."
+                )
+
+
+def _is_link(path):
+    """Return True for a symbolic link or a Windows junction."""
+    try:
+        st = os.lstat(path)
+    except OSError:
+        return False
+    junction = getattr(stat, "IO_REPARSE_TAG_MOUNT_POINT", None)
+    return stat.S_ISLNK(st.st_mode) or (
+        junction is not None and getattr(st, "st_reparse_tag", None) == junction
+    )
+
+
+class _Indexer:
+    """The index stage (plan.md Section 2.1): walk the project root and read,
+    decode and classify each source file once. Records of files whose
+    ``(path, mtime, size)`` did not change are reused without reading.
+    """
+
+    def __init__(self, dom, basedir, config, old_index):
+        self.dom = dom
+        self.basedir = basedir
+        self.old_index = old_index
+        self.sources = source_filter(config)
+        self.real_root = os.path.realpath(basedir)
+        self.cache_text = config.matlab_src_cache_text
+        self.pending = {}
+
+    def run(self):
+        root = MatModule(os.path.basename(self.basedir), self.basedir, ROOT_REFERENCE)
+        self.dom.entities_table[ROOT_REFERENCE] = root
+        self.list(root)
+        self.descend(root)
+
+    def descend(self, mod):
+        for _, ref in mod.members:
+            if ref[-1:] == "/":
+                child = self.pending.pop(ref)
+                self.dom.entities_table[ref] = child
+                self.list(child)
+                self.descend(child)
+
+    def outside(self, path, ref):
+        real = os.path.realpath(path)
+        if _within(real, self.real_root):
+            return False
+        _warn(
+            "outside_root",
+            f"{ref} links to {real}, outside matlab_src_code_project_root; it is "
+            "not documented.",
+        )
+        return True
+
+    def list(self, mod):
+        mod.members = []
+        try:
+            keys = os.listdir(mod.path)
+        except OSError as err:  # one bad folder must not stop the build
+            _warn(
+                "parse_error",
+                f"{mod.ref} cannot be read ({err.strerror or err}); its contents "
+                "are not documented.",
             )
             return
+        for key in keys:
+            if _undecodable(key):
+                _warn(
+                    "parse_error",
+                    f"{mod.ref}: the name {os.fsencode(key)!r} is not valid UTF-8; "
+                    "it is not documented.",
+                )
+                continue
+            path = os.path.join(mod.path, key)
+            ref = join_reference(mod.ref, unicodedata.normalize("NFC", key))
+            if os.path.isdir(path):
+                # "." (VCS and editors) and "_" (Sphinx build/temp folders)
+                if key.startswith((".", "_")):
+                    continue
+                ref += "/"
+                if not self.sources.walks(ref):
+                    continue
+                if _is_link(path) and self.outside(path, ref):
+                    continue
+                self.pending[ref] = MatModule(key, path, ref)
+                mod.members.append((key, ref))
+                continue
+            handler = handler_for(path)
+            if handler is None or not self.sources.includes(ref):
+                continue
+            if _is_link(path) and self.outside(path, ref):
+                continue
+            if self.index_file(handler, path, ref):
+                mod.members.append((os.path.splitext(key)[0], ref))
 
-        MatObject.basedir = basedir  # set MatObject base directory
-        MatObject.encoding = app.env.config.matlab_src_encoding
-        MatObject.sphinx_env = app.env  # pass env to MatObject cls
-        MatObject.sphinx_app = app  # pass app to MatObject cls
-
-        # Set the root object and get root members.
-        logger.debug("[sphinxcontrib-matlabdomain] Starting matlabify")
-        root = MatObject.matlabify("")
-        if not root:
-            logger.debug("[sphinxcontrib-matlabdomain] root is None, returning")
-            return
-
-        logger.debug(
-            f"[sphinxcontrib-matlabdomain] root={root}, root.entities={getattr(root, 'entities', 'NO ENTITIES ATTR')}"
-        )
-        root.safe_getmembers()
-        logger.debug(
-            f"[sphinxcontrib-matlabdomain] After safe_getmembers, root.entities={getattr(root, 'entities', 'NO ENTITIES ATTR')}"
-        )
-
-        logger.debug("[sphinxcontrib-matlabdomain] Starting recursive_find_all")
-        recursive_find_all(root)
-        logger.debug("[sphinxcontrib-matlabdomain] Finished recursive_find_all")
-
-        # Print the hierarchy of entities to the log.
-        logger.debug("[sphinxcontrib-matlabdomain] Found the following entities:")
-        recursive_log_debug(root)
-
-        logger.debug("[sphinxcontrib-matlabdomain] Starting populate_entities_table")
-        entities_table[ROOT_REFERENCE] = root
-        populate_entities_table(root)
-        logger.debug("[sphinxcontrib-matlabdomain] Finished populate_entities_table")
-        dom.previous_parse_cache = {}
-    except Exception as e:
-        import traceback
-
-        logger.error(f"[sphinxcontrib-matlabdomain] ERROR in analyze: {e}")
-        logger.error(
-            f"[sphinxcontrib-matlabdomain] Traceback: {traceback.format_exc()}"
-        )
-        raise
-
-    # Transform Class Folders classes from
-    #
-    # @ClassFolder (Module)
-    #     ClassFolder (Class)
-    #     method1 (Function)
-    #     method2 (Function)
-    #
-    # To
-    #
-    # ClassFolder (Class) with the method1 and method2 add to the ClassFolder Class.
-
-    class_folder_modules = [
-        v
-        for v in entities_table.values()
-        if isinstance(v, MatModule) and v.name.startswith("@")
-    ]
-    # For each Class Folder module
-    for cf_entity in class_folder_modules:
-        # Bug fix: Check if cf_entity has entities and they're not None
-        if not hasattr(cf_entity, "entities") or cf_entity.entities is None:
-            continue
-
-        # Find the class entity class.
-        class_entities = [e for e in cf_entity.entities if isinstance(e[1], MatClass)]
-        func_entities = [e for e in cf_entity.entities if isinstance(e[1], MatFunction)]
-
-        if len(class_entities) > 1:
-            # Other classdef files in a class folder are not its class.
-            class_entities = [
-                e for e in class_entities if e[1].name == cf_entity.name[1:]
-            ]
-        if len(class_entities) != 1:
-            continue
-        cls = class_entities[0][1]
-        # Drop folder methods attached to a class reused from the parse cache.
-        cls.methods = {
-            n: m
-            for n, m in cls.methods.items()
-            if not getattr(m, "from_class_folder", False)
+    def index_file(self, handler, path, ref):
+        try:
+            st = os.stat(path)
+        except OSError:
+            return False
+        key = (path, st.st_mtime_ns, st.st_size)
+        old = self.old_index.get(path)
+        if (
+            old is not None
+            and (old["mtime"], old["size"]) == key[1:]
+            and not old["unreadable"]
+        ):
+            kind, problems, unreadable = old["type"], old["warnings"], False
+        else:
+            text = None
+            try:
+                kind, text, problems = handler.read(path, MatObject.encoding)
+                unreadable = False
+            except OSError as err:
+                kind, unreadable = UNKNOWN, True
+                problems = [("parse_error", failure_message(err), None)]
+            if self.cache_text and text is not None:
+                self.dom.text_cache[key] = text
+        self.dom.data["index"][path] = {
+            "reference": ref,
+            "type": kind,
+            "mtime": key[1],
+            "size": key[2],
+            "warnings": problems,
+            "unreadable": unreadable,
         }
+        for subtype, message, row in problems:
+            _warn_file(ref, path, subtype, message, row)
+        return True
 
-        # Add functions to class
-        for func_name, func in func_entities:
-            func.__class__ = MatMethod
-            func.cls = cls
-            # TODO: Find the method attributes defined in classfolder class definition.
-            func.attrs = {}
-            func.from_class_folder = True
-            cls.methods[func.name] = func
 
-    name_sources(dom, app.env.config)
+def _index_shape(data):
+    """Return what names and lookups depend on: the folders, and each file's
+    reference and type.
+    """
+    files = {path: (r["reference"], r["type"]) for path, r in data["index"].items()}
+    return files, frozenset(r for r in data["entities_table"] if r[-1:] == "/")
+
+
+def analyze(app):
+    """Index stage (``builder-inited``): find, read and classify the sources.
+
+    Files are parsed later, when a document needs them (``resolve``).
+    """
+    env = app.env
+    dom = env.get_domain("mat")
+    data = dom.data
+    # Records and parses of the previous build are reused for unchanged files
+    # unless the config changed.
+    reuse = env.config_status == CONFIG_OK
+    old_index = dict(data["index"]) if reuse else {}
+    old_shape = _index_shape(data) if reuse else None
+    if not reuse:
+        data["parse_cache"].clear()
+        data["parse_warnings"].clear()
+    data["index"].clear()
+    data["matlab_names"].clear()
+    dom.entities_table.clear()
+    dom.reset_sources()
+    MatModuleAnalyzer.cache.clear()
+    MatObject.encoding = env.config.matlab_src_encoding
+    MatObject.sphinx_env = env
+    MatObject.sphinx_app = app
+
+    basedir = project_root(env.config, env.srcdir)
+    if basedir is None:
+        logger.debug("[sphinxcontrib-matlabdomain] no project root, skipping parsing.")
+    else:
+        MatObject.basedir = basedir
+        if os.path.isdir(basedir):
+            try:
+                _Indexer(dom, basedir, env.config, old_index).run()
+            except Exception as e:
+                import traceback
+
+                logger.error(f"[sphinxcontrib-matlabdomain] ERROR in analyze: {e}")
+                logger.error(
+                    f"[sphinxcontrib-matlabdomain] Traceback: {traceback.format_exc()}"
+                )
+                raise
+        name_sources(dom, env.config)
+
+    keys = {(path, r["mtime"], r["size"]) for path, r in data["index"].items()}
+    for cache in (data["parse_cache"], data["parse_warnings"]):
+        for key in [k for k in cache if k not in keys]:
+            del cache[key]
+    dom.index_changed = old_shape is not None and old_shape != _index_shape(data)
+
+
+def outdated_docs(app, env, added, changed, removed):  # noqa: ARG001
+    """``env-get-outdated``: documents that used a source file that changed,
+    and, when files or folders were added, removed or changed type, every
+    document that looked up sources.
+    """
+    dom = env.get_domain("mat")
+    index = dom.data["index"]
+
+    def stale(used):
+        return any(
+            (record := index.get(path)) is None
+            or (record["mtime"], record["size"]) != key
+            for path, key in used.items()
+        )
+
+    return [
+        docname
+        for docname, used in dom.data["doc_sources"].items()
+        if dom.index_changed or stale(used)
+    ]
+
+
+def note_read_docs(app, env, docnames):  # noqa: ARG001
+    """``env-before-read-docs``: remember the documents this build reads."""
+    env.get_domain("mat").read_docnames = list(docnames)
+
+
+def warn_parsed_sources(app, env):  # noqa: ARG001
+    """``env-updated``: parse-stage warnings, once per file that a document
+    read in this build used, in index order (serial and parallel builds).
+    """
+    dom = env.get_domain("mat")
+    data = dom.data
+    used = set()
+    for docname in dom.read_docnames:
+        used.update(data["doc_sources"].get(docname, ()))
+    for path, record in data["index"].items():
+        if path in used:
+            key = (path, record["mtime"], record["size"])
+            for warning in data["parse_warnings"].get(key, ()):
+                _warn(*warning)
 
 
 def _scope(folder):
@@ -701,8 +1088,8 @@ class MatObject(object):
     source_type = None
     parsed_type = None
     has_code = True
-    #: ``(subtype, message, row or None)`` found while parsing; warned by
-    #: ``check_source`` on every build
+    #: ``(subtype, message, row or None)`` found while parsing; the build
+    #: warns them through ``parse_warnings``
     source_warnings = ()
     #: the file could not be read (an empty placeholder that is not cached)
     unreadable = False
@@ -759,67 +1146,18 @@ class MatObject(object):
             ``.mlapp``). ``""`` is the project root.
         :type objname: str
 
-        Every object gets its path reference as ``ref``.
+        Every object gets its path reference as ``ref``. In a build, only
+        discovered objects are found; files are parsed on first use.
         """
-        # no object name given
-        logger.debug(f"[sphinxcontrib-matlabdomain] enter matlabify {objname=}.")
-
         if objname is None:
             return None
-        rel = objname.strip("/")
+        rel = unicodedata.normalize("NFC", objname.strip("/"))
         if rel in ("", "."):
-            rel = ""
-            fullpath = MatObject.basedir
-            name = os.path.basename(fullpath)
-        else:
-            parts = rel.split("/")
-            name = parts[-1]
-            fullpath = os.path.join(MatObject.basedir, *parts)
-
-        logger.debug(f"[sphinxcontrib-matlabdomain] matlabify {rel=}, {fullpath=}")
-        if os.path.isdir(fullpath):
-            if rel.startswith(("_", ".")):
-                return None
-            ref = path_reference(MatObject.basedir, fullpath, is_folder=True)
-            mod = _domain().entities_table.get(ref)
-            if isinstance(mod, MatModule):
-                logger.debug("[sphinxcontrib-matlabdomain] Module %s already loaded.", ref)
-                return mod
-            logger.debug(
-                f"[sphinxcontrib-matlabdomain] matlabify MatModule {ref=}, {fullpath=}"
-            )
-            return MatModule(name, fullpath, ref)
-
-        handler = handler_for(fullpath)
-        if handler is not None:
-            stem = os.path.splitext(name)[0]
-        else:
-            stem = name
-            handler = next(
-                (h for h in handlers() if h.discover(fullpath + h.extension)), None
-            )
-            if handler is None:
-                return None
-            fullpath += handler.extension
-        ref = path_reference(MatObject.basedir, fullpath, is_folder=False)
-        folder = folder_of(ref)
-        logger.debug(f"[sphinxcontrib-matlabdomain] matlabify parse {ref=}, {fullpath=}")
-
-        def parse():
-            try:
-                obj = handler.parse(fullpath, stem, folder, MatObject.encoding)
-            except Exception as err:  # one bad file must not stop the build
-                obj = placeholder(handler.classify(fullpath), stem, folder)
-                obj.source_warnings = [("parse_error", failure_message(err), None)]
-                obj.unreadable = isinstance(err, OSError)
-            if obj is not None and obj.source_type is None:
-                obj.source_type = handler.classify(fullpath)
-            return obj
-
-        return _parse_cached(fullpath, ref, parse)
+            return resolve(_domain(), ROOT_REFERENCE)
+        return _resolve_path(_domain(), rel)
 
     @staticmethod
-    def parse_mfile(mfile, name, path, encoding=None):
+    def parse_mfile(mfile, name, path, encoding=None, text=None):
         """
         Parse an ``.m`` file with tree-sitter.
 
@@ -832,16 +1170,21 @@ class MatObject(object):
         :param encoding: ``matlab_src_encoding``; ``None`` follows MATLAB
             (see ``decode_source``).
         :type encoding: str
+        :param text: The decoded file content, if already read (the index
+            stage reported its decoding problems); ``None`` reads the file.
+        :type text: str
         :returns: :class:`MatObject` that represents the type of mfile.
 
         The type is ``classify()`` of the text (``source_type``). The object is
         built from what tree-sitter parsed (``parsed_type``); the two differ
-        only for invalid MATLAB (see ``check_source``). If the parser fails,
+        only for invalid MATLAB (see ``parse_warnings``). If the parser fails,
         the object is an empty ``placeholder`` of the ``classify()`` type.
         Problems are recorded in ``source_warnings``.
         """
-        with open(mfile, "rb") as code_f:
-            text, problem = decode_source(code_f.read(), encoding)
+        problem = None
+        if text is None:
+            with open(mfile, "rb") as code_f:
+                text, problem = decode_source(code_f.read(), encoding)
         warnings = [] if problem is None else [("encoding", *problem)]
         source_type = classify(mfile, text)
 
@@ -969,9 +1312,6 @@ class MatModule(MatObject):
     :type package: str
     """
 
-    #: the folder was listed (it may be empty or unreadable)
-    listed = False
-
     def __init__(self, name, path, package):
         super(MatModule, self).__init__(name)
         #: Path to module on disk, path to package's __init__.py
@@ -979,66 +1319,38 @@ class MatModule(MatObject):
         #: folder reference
         self.package = package
         self.ref = package
-        #: entities found in the module: class, function, module (subpath and +package)
-        self.entities = []
+        #: ``(name, reference)`` of its files (name without extension) and
+        #: folders in listing order, set by the index stage
+        self.members = None
 
     def ref_role(self):
         """Returns role to use for references to this object (e.g. when generating auto-links)"""
         return "folder"
 
-    def safe_getmembers(self):
-        logger.debug(
-            f"[sphinxcontrib-matlabdomain] MatModule.safe_getmembers {self.name=}, {self.path=}, {self.package=}"
-        )
-        if self.entities or self.listed:
-            return self.entities
-        self.listed = True
+    def member_refs(self):
+        """``(name, reference)`` of the files and folders in the folder."""
+        if self.members is None:  # detached use: no index stage
+            self.members = []
+            try:
+                keys = os.listdir(self.path)
+            except OSError:
+                keys = []
+            for key in keys:
+                path = os.path.join(self.path, key)
+                ref = join_reference(self.ref, unicodedata.normalize("NFC", key))
+                if os.path.isdir(path):
+                    if not key.startswith((".", "_")):
+                        self.members.append((key, f"{ref}/"))
+                elif handler_for(path) is not None:
+                    self.members.append((os.path.splitext(key)[0], ref))
+        return self.members
 
-        results = []
-        try:
-            keys = os.listdir(self.path)
-        except OSError as err:  # one bad folder must not stop the build
-            logger.warning(
-                "[sphinxcontrib-matlabdomain] %s cannot be read (%s); its "
-                "contents are not documented.",
-                self.ref,
-                err.strerror or err,
-                type="mat",
-                subtype="parse_error",
-            )
-            keys = []
-        for key in keys:
-            if _undecodable(key):
-                logger.warning(
-                    "[sphinxcontrib-matlabdomain] %s: the name %r is not valid "
-                    "UTF-8; it is not documented.",
-                    self.ref,
-                    os.fsencode(key),
-                    type="mat",
-                    subtype="parse_error",
-                )
-                continue
-            # make full path
-            path = os.path.join(self.path, key)
-            # Do not visit directories starting with:
-            # - "." (VCS and Editors)
-            # - "_" (build/temp folders in Sphinx)
-            if os.path.isdir(path):
-                if key.startswith(".") or key.startswith("_"):
-                    continue
-                name = key
-            # Only visit source files with a handler
-            elif handler_for(path) is not None:
-                name = os.path.splitext(key)[0]
-            else:
-                continue
-            # A file and a folder with the same name are separate objects.
-            value = MatObject.matlabify(join_reference(self.ref, key))
-            if value:
-                results.append((name, value))
-        self.entities = results
-        # results.sort()
-        return results
+    def safe_getmembers(self):
+        """``(name, object)`` of the files and folders in the folder; every
+        file is parsed (or taken from the parse cache).
+        """
+        dom = _domain()
+        return [(name, resolve(dom, ref)) for name, ref in self.member_refs()]
 
     @property
     def __doc__(self):
@@ -1046,11 +1358,7 @@ class MatModule(MatObject):
 
     @property
     def __all__(self):
-        return self.entities
-        # results = self.safe_getmembers()
-        # if results:
-        #     results = list(zip(*self.safe_getmembers()))[0]
-        # return results
+        return self.safe_getmembers()
 
     @property
     def __path__(self):
@@ -1087,25 +1395,13 @@ class MatModule(MatObject):
             )
             return None
         else:
-            # Search if we already has this entity (a file before a same-named folder)
-            matches = [e for n, e in self.entities if n == name]
-            if matches:
-                logger.debug(
-                    "[sphinxcontrib-matlabdomain] mod %s already has entity %s.",
-                    self,
-                    name,
-                )
-                return next(
-                    (e for e in matches if not isinstance(e, MatModule)), matches[0]
-                )
-            # If not - try to MATLABIFY it.
-            entity = MatObject.matlabify(join_reference(self.ref, name))
-            if entity:
-                self.entities.append((name, entity))
-                logger.debug(
-                    f"[sphinxcontrib-matlabdomain] entity {name=} imported from {self=}"
-                )
-                return entity
+            # A file before a same-named folder.
+            refs = [ref for n, ref in self.member_refs() if n == name]
+            dom = _domain()
+            if refs:
+                return resolve(dom, next((r for r in refs if r[-1:] != "/"), refs[0]))
+            # A path below the folder, e.g. with its extension (``f.m``).
+            return _resolve_path(dom, join_reference(self.ref, name))
 
 
 class MatFunction(MatObject):
@@ -1413,7 +1709,7 @@ class MatModuleAnalyzer(object):
             if isinstance(entry, MatcodeError):
                 raise entry
             return entry
-        mod = _domain().entities_table.get(modname)
+        mod = resolve(_domain(), modname)
         if isinstance(mod, MatModule):
             obj = cls.for_folder(mod.path, modname)
         elif isinstance(mod, MatClass):
@@ -1447,29 +1743,90 @@ class MatModuleAnalyzer(object):
 
     def find_attr_docs(self, scope=""):
         """Find class and module-level attributes and their documentation."""
-        if self.attr_docs is not None:
-            return self.attr_docs
-        attr_visitor_collected = {}
-        attr_visitor_tagorder = {}
-        tagnumber = 0
-        mod = _domain().entities_table.get(self.modname)
-        # Documenter namespaces are ".".join(objpath); only root members match.
-        package = "" if mod.package == ROOT_REFERENCE else mod.package
+        if self.attr_docs is None:
+            self.attr_docs = _AttrDocs(_domain().entities_table.get(self.modname))
+            self.tagorder = _TagOrder(self.attr_docs)
+        return self.attr_docs
 
-        # walk package tree
-        for k, v in mod.safe_getmembers():
-            if hasattr(v, "docstring"):
-                attr_visitor_collected[package, k] = v.docstring
-                attr_visitor_tagorder[k] = tagnumber
-                tagnumber += 1
-            if isinstance(v, MatClass):
-                for mk, mv in v.getter("__dict__").items():
-                    namespace = f"{package}{k}"
-                    tagname = "%s.%s" % (k, mk)
-                    tagname = tagname.lstrip(".")
-                    attr_visitor_collected[namespace, mk] = mv.docstring
-                    attr_visitor_tagorder[tagname] = tagnumber
-                    tagnumber += 1
-        self.attr_docs = attr_visitor_collected
-        self.tagorder = attr_visitor_tagorder
-        return attr_visitor_collected
+
+class _AttrDocs(Mapping):
+    """``(namespace, name) -> docstring`` of a folder's files and of its
+    classes' members. Documenter namespaces are ``".".join(objpath)``, so
+    only the project root's entries can match. A class is parsed only when
+    its namespace is asked for.
+    """
+
+    def __init__(self, mod):
+        # Documenter namespaces are ".".join(objpath); only root members match.
+        members = mod.member_refs() if isinstance(mod, MatModule) else []
+        self.package = "" if mod is None or mod.ref == ROOT_REFERENCE else mod.ref
+        self.files = [(name, ref) for name, ref in members if ref[-1:] != "/"]
+        #: file name -> position (the last file with that name)
+        self.order = {name: i for i, (name, _) in enumerate(self.files)}
+        self._classes = {}
+
+    def class_members(self, stem):
+        """Members (``__dict__``) of the classes in the files named ``stem``."""
+        if stem not in self._classes:
+            members = {}
+            for name, ref in self.files:
+                if name == stem:
+                    obj = resolve(_domain(), ref)
+                    if isinstance(obj, MatClass):
+                        members.update(obj.getter("__dict__"))
+            self._classes[stem] = members
+        return self._classes[stem]
+
+    def names(self, namespace):
+        """Member names in ``namespace``, in source order."""
+        if namespace == self.package:
+            return list(dict.fromkeys(name for name, _ in self.files))
+        if namespace.startswith(self.package):
+            return list(self.class_members(namespace[len(self.package) :]))
+        return []
+
+    def __contains__(self, key):
+        return key[1] in self.names(key[0])
+
+    def __getitem__(self, key):
+        namespace, name = key
+        if namespace == self.package:
+            refs = [ref for n, ref in self.files if n == name]
+            if refs:
+                return resolve(_domain(), refs[-1]).docstring
+        elif namespace.startswith(self.package):
+            members = self.class_members(namespace[len(self.package) :])
+            if name in members:
+                return members[name].docstring
+        raise KeyError(key)
+
+    def __iter__(self):
+        for name in self.names(self.package):
+            yield self.package, name
+        for stem in self.names(self.package):
+            for name in self.class_members(stem):
+                yield f"{self.package}{stem}", name
+
+    def __len__(self):
+        return sum(1 for _ in self)
+
+
+class _TagOrder:
+    """Source order of a folder's files (``name``) and of a class's members
+    (``Class.member``), for ``:member-order: bysource``.
+    """
+
+    def __init__(self, attr_docs):
+        self.attr_docs = attr_docs
+
+    def get(self, tag, default=None):
+        order = self.attr_docs.order
+        if tag in order:
+            return order[tag]
+        stem, dot, member = tag.partition(".")
+        names = list(self.attr_docs.class_members(stem)) if dot else []
+        return names.index(member) if member in names else default
+
+    def __len__(self):
+        # The default position for members without one: after all others.
+        return sys.maxsize

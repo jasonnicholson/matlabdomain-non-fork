@@ -13,7 +13,11 @@ handler provides:
   source file of this type (the base class checks that it is a file);
 - ``classify(path, text=None)``: the index type of the file (``unknown`` if
   it is not one); used when ``parse`` does not set ``source_type``;
-- ``parse(path, stem, folder, encoding)``: the parsed ``MatObject``;
+- ``read(path, encoding)``: the index stage (plan.md Section 2.1):
+  ``(type, text, problems)`` with the decoded text (``None`` for binary
+  formats) and ``(subtype, message, row)`` warnings; raises ``OSError``;
+- ``parse(path, stem, folder, encoding)``: the parsed ``MatObject``; a
+  handler whose ``read`` returns text also accepts it as ``text=``;
 - ``document(kind)``: the autodoc directive that documents a ``kind``.
 
 Registration order is lookup order: a name without extension tries ``.m``
@@ -50,6 +54,9 @@ class Handler:
     def classify(self, path, text: str | None = None) -> str:
         raise NotImplementedError
 
+    def read(self, path, encoding=None):  # noqa: ARG002
+        return self.classify(path), None, []
+
     def parse(self, path, stem, folder, encoding=None):
         raise NotImplementedError
 
@@ -66,10 +73,21 @@ class MFileHandler(Handler):
     def classify(self, path, text=None):
         return mat_classify.classify(path, text)
 
-    def parse(self, path, stem, folder, encoding=None):
+    def read(self, path, encoding=None):
+        with open(path, "rb") as f:
+            text, problem = mat_classify.decode_source(f.read(), encoding)
+        kind = mat_classify.classify(path, text)
+        problems = [] if problem is None else [("encoding", *problem)]
+        if kind == mat_classify.SCRIPT and not mat_classify.first_line_of_code(text):
+            problems.append(
+                ("no_code", "has no code; it is documented as a script.", None)
+            )
+        return kind, text, problems
+
+    def parse(self, path, stem, folder, encoding=None, text=None):
         from .mat_types import MatObject
 
-        return MatObject.parse_mfile(path, stem, folder, encoding)
+        return MatObject.parse_mfile(path, stem, folder, encoding, text)
 
 
 class MlappHandler(Handler):
@@ -107,9 +125,14 @@ def handlers() -> tuple[Handler, ...]:
     return tuple(_HANDLERS.values())
 
 
+def handler_by_extension(path) -> Handler | None:
+    """Return the handler registered for the extension of ``path``."""
+    return _HANDLERS.get(os.path.splitext(os.fspath(path))[1])
+
+
 def handler_for(path) -> Handler | None:
     """Return the handler of the file ``path`` (by extension and ``discover``)."""
-    handler = _HANDLERS.get(os.path.splitext(os.fspath(path))[1])
+    handler = handler_by_extension(path)
     if handler is None or not handler.discover(path):
         return None
     return handler

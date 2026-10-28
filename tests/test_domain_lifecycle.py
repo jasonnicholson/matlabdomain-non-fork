@@ -11,6 +11,7 @@ import io
 import os
 import pickle
 import shutil
+import time
 
 import pytest
 from sphinx.environment import CONFIG_OK
@@ -67,13 +68,34 @@ def doctree_text(app, docname):
     return pickle.loads((app.doctreedir / f"{docname}.doctree").read_bytes()).astext()
 
 
+def read_docs(app):
+    return sorted(app.env.get_domain("mat").read_docnames)
+
+
+# The files the three pages use: each class folder, as a unit.
+USED = [
+    "@First/First.m",
+    "@First/method_in_folder.m",
+    "src/+pkg/@Third/Third.m",
+    "src/+pkg/@Third/method_in_folder.m",
+    "src/@Second/Second.m",
+    "src/@Second/method_in_folder.m",
+]
+
+
+def used_paths(srcdir, refs=USED):
+    return sorted(str(srcdir.joinpath(*ref.split("/"))) for ref in refs)
+
+
 def test_initial_data_layout():
-    assert MATLABDomain.data_version == 8
+    assert MATLABDomain.data_version == 9
     assert set(MATLABDomain.initial_data) == {
         "objects",
         "folders",
+        "doc_sources",
         "index",
         "parse_cache",
+        "parse_warnings",
         "entities_table",
         "matlab_names",
     }
@@ -86,24 +108,38 @@ def test_source_state_is_env_owned(make_app, srcdir):
 
     assert dom.entities_table is data["entities_table"]
 
+    # Every file is indexed; only the files the pages use are parsed.
     m_files = sorted(str(p) for p in srcdir.rglob("*.m"))
     assert sorted(data["index"]) == m_files
-    assert {key[0] for key in data["parse_cache"]} == set(m_files)
+    assert sorted(key[0] for key in data["parse_cache"]) == used_paths(srcdir)
     for path, entry in data["index"].items():
         st = os.stat(path)
         assert (entry["mtime"], entry["size"]) == (st.st_mtime_ns, st.st_size)
-        assert data["parse_cache"][path, st.st_mtime_ns, st.st_size] is not None
-    assert data["index"][str(srcdir / "src" / "@Second" / "Second.m")] == {
+        if path in used_paths(srcdir):
+            assert data["parse_cache"][path, st.st_mtime_ns, st.st_size] is not None
+    second = srcdir / "src" / "@Second" / "Second.m"
+    assert data["index"][str(second)] == {
         "reference": "src/@Second/Second.m",
         "type": "class",
-        "mtime": os.stat(srcdir / "src" / "@Second" / "Second.m").st_mtime_ns,
-        "size": os.stat(srcdir / "src" / "@Second" / "Second.m").st_size,
+        "mtime": os.stat(second).st_mtime_ns,
+        "size": os.stat(second).st_size,
+        "warnings": [],
+        "unreadable": False,
         "matlab_name": "Second",
         "private": False,
         "scope": "src/",
     }
     method_file = str(srcdir / "src" / "@Second" / "method_in_folder.m")
     assert data["index"][method_file]["type"] == "function"
+    assert data["doc_sources"]["index_second"] == {
+        path: (data["index"][path]["mtime"], data["index"][path]["size"])
+        for path in used_paths(srcdir, USED[4:])
+    }
+
+
+def test_lazy_build_parses_only_used_files(make_app, srcdir, parsed):
+    build(make_app, srcdir)
+    assert sorted(parsed) == used_paths(srcdir)
 
 
 def test_env_pickle_has_no_tree_sitter_objects(make_app, srcdir):
@@ -136,25 +172,29 @@ def test_env_pickle_has_no_tree_sitter_objects(make_app, srcdir):
 
 def test_rebuild_without_changes_does_not_reparse(make_app, srcdir, parsed):
     app1 = build(make_app, srcdir)
-    assert len(parsed) == len(list(srcdir.rglob("*.m")))
+    assert sorted(parsed) == used_paths(srcdir)
     first_text = doctree_text(app1, "index_second")
-    first_keys = sorted(app1.env.get_domain("mat").entities_table)
     first_index = dict(app1.env.domaindata["mat"]["index"])
+
+    # Unchanged sources: no page is read again.
+    parsed.clear()
+    app2 = build(make_app, srcdir)
+    assert read_docs(app2) == []
+    assert parsed == []
 
     # Touch only the .rst so Sphinx re-reads it with the reloaded environment.
     rst = srcdir / "index_second.rst"
-    future = os.stat(rst).st_mtime_ns + 10**10
-    os.utime(rst, ns=(future, future))
+    now = time.time_ns()
+    os.utime(rst, ns=(now, now))
 
-    parsed.clear()
-    app2 = build(make_app, srcdir)
+    app3 = build(make_app, srcdir)
+    assert read_docs(app3) == ["index_second"]
     assert parsed == []
-    assert app2.env.config_status == CONFIG_OK  # reloaded from pickle
-    dom2 = app2.env.get_domain("mat")
-    assert sorted(dom2.entities_table) == first_keys
-    assert app2.env.domaindata["mat"]["index"] == first_index
-    assert doctree_text(app2, "index_second") == first_text
-    assert sorted(find_class(dom2.entities_table, "Second").methods) == [
+    assert app3.env.config_status == CONFIG_OK  # reloaded from pickle
+    dom3 = app3.env.get_domain("mat")
+    assert app3.env.domaindata["mat"]["index"] == first_index
+    assert doctree_text(app3, "index_second") == first_text
+    assert sorted(find_class(dom3.entities_table, "Second").methods) == [
         "Second",
         "method_in_folder",
         "method_inside_classdef",
@@ -174,7 +214,10 @@ def test_size_change_with_preserved_mtime_reparses(make_app, srcdir, parsed):
 
     parsed.clear()
     app2 = build(make_app, srcdir)
+    # Only the page that uses the file is read again; only the file is parsed.
+    assert read_docs(app2) == ["index_second"]
     assert parsed == [str(mfile)]
+    assert "The changed second class" in doctree_text(app2, "index_second")
     second = find_class(app2.env.get_domain("mat").entities_table, "Second")
     assert "The changed second class" in second.docstring
     # The class was reparsed; folder methods are re-attached exactly once.
@@ -185,6 +228,29 @@ def test_size_change_with_preserved_mtime_reparses(make_app, srcdir, parsed):
     ]
 
 
+def test_editing_an_unused_file_reads_nothing(make_app, srcdir, parsed):
+    build(make_app, srcdir)
+    unused = srcdir / "@First" / "private" / "method_in_private.m"
+    unused.write_text(unused.read_text() + "\n% edited\n")
+
+    parsed.clear()
+    app2 = build(make_app, srcdir)
+    assert read_docs(app2) == []
+    assert parsed == []
+
+
+def test_added_file_rereads_pages_without_parsing(make_app, srcdir, parsed):
+    build(make_app, srcdir)
+    (srcdir / "src" / "added.m").write_text("function added\nend\n")
+
+    parsed.clear()
+    app2 = build(make_app, srcdir)
+    # New names may change what the pages resolve: every page is read again,
+    # with the parsed files reused.
+    assert read_docs(app2) == ["index_first", "index_second", "index_third"]
+    assert parsed == []
+
+
 def test_removed_folder_method_not_kept_on_reused_class(make_app, srcdir, parsed):
     build(make_app, srcdir)
     (srcdir / "src" / "@Second" / "method_in_folder.m").unlink()
@@ -192,6 +258,7 @@ def test_removed_folder_method_not_kept_on_reused_class(make_app, srcdir, parsed
     parsed.clear()
     app2 = build(make_app, srcdir)
     assert parsed == []
+    assert "index_second" in read_docs(app2)
     second = find_class(app2.env.get_domain("mat").entities_table, "Second")
     assert sorted(second.methods) == ["Second", "method_inside_classdef"]
 
@@ -200,7 +267,7 @@ def test_config_change_invalidates_parse_cache(make_app, srcdir, parsed):
     build(make_app, srcdir)
     parsed.clear()
     build(make_app, srcdir, matlab_show_property_default_value=True)
-    assert len(parsed) == len(list(srcdir.rglob("*.m")))
+    assert sorted(parsed) == used_paths(srcdir)
 
 
 # data_version of the commits that cached block-comment docstrings (59016b1).
@@ -282,6 +349,7 @@ def test_older_domain_data_version_drops_misdecoded_docstrings(
     (cached,) = (o for o in data["parse_cache"].values() if o.name == "up_lat")
     cached.docstring = "LATIN MISDECODED"
     del cached.source_warnings
+    data["index"][str(mfile)]["warnings"] = []
     data["version"] = version
     with open(app1.doctreedir / "environment.pickle", "wb") as f:
         pickle.dump(app1.env, f, pickle.HIGHEST_PROTOCOL)
@@ -303,21 +371,30 @@ def test_older_domain_data_version_drops_misdecoded_docstrings(
         assert "[mat.encoding]" not in app2.warning.getvalue()
 
 
+SOURCE_STATE = (
+    "index",
+    "parse_cache",
+    "parse_warnings",
+    "entities_table",
+    "matlab_names",
+)
+
+
 def test_clear_doc_only_removes_that_doc(make_app, srcdir):
     app = build(make_app, srcdir)
     dom = app.env.get_domain("mat")
     data = dom.data
-    source_state = {
-        k: dict(data[k])
-        for k in ("index", "parse_cache", "entities_table", "matlab_names")
-    }
+    source_state = {k: dict(data[k]) for k in SOURCE_STATE}
     docs = {fn for fn, _, _ in data["objects"].values()}
     assert {"index_first", "index_second", "index_third"} <= docs
     kept = {k: v for k, v in data["objects"].items() if v[0] != "index_second"}
+    kept_sources = {k: v for k, v in data["doc_sources"].items() if k != "index_second"}
+    assert set(kept_sources) == {"index_first", "index_third"}
 
     dom.clear_doc("index_second")
 
     assert data["objects"] == kept
+    assert data["doc_sources"] == kept_sources
     assert all(fn != "index_second" for fn, _, _, _ in data["folders"].values())
     for k, v in source_state.items():
         assert data[k] == v
@@ -326,11 +403,23 @@ def test_clear_doc_only_removes_that_doc(make_app, srcdir):
 def test_merge_domaindata_filters_by_docnames(make_app, srcdir):
     app = build(make_app, srcdir)
     dom = app.env.get_domain("mat")
-    source_state = {
-        k: dict(dom.data[k])
-        for k in ("index", "parse_cache", "entities_table", "matlab_names")
+    data = dom.data
+    unchanged = {k: dict(data[k]) for k in ("index", "entities_table", "matlab_names")}
+    before = dict(data["objects"])
+    ours = dict(data["parse_cache"])
+    current, stale, unused = (
+        str(srcdir.joinpath(*ref.split("/")))
+        for ref in (
+            "src/@Second/Second.m",
+            "@First/First.m",
+            "@First/dlls/mexfunction.m",
+        )
+    )
+    key = {
+        p: (p, data["index"][p]["mtime"], data["index"][p]["size"])
+        for p in (current, stale, unused)
     }
-    before = dict(dom.data["objects"])
+    worker_object, warning = object(), [("invalid_matlab", "x", None)]
     otherdata = {
         "objects": {
             "a/Obj.m": ("doc_a", "class", "Obj"),
@@ -340,19 +429,32 @@ def test_merge_domaindata_filters_by_docnames(make_app, srcdir):
             "a/": ("doc_a", "", "", False),
             "b/": ("doc_b", "", "", False),
         },
+        "doc_sources": {"doc_a": {unused: key[unused][1:]}, "doc_b": {}},
         "index": {"/elsewhere/x.m": {}},
-        "parse_cache": {("/elsewhere/x.m", 0, 0): object()},
+        "parse_cache": {
+            key[current]: worker_object,  # we have it already
+            (stale, 0, 0): worker_object,  # not the current file
+            key[unused]: worker_object,  # new
+            ("/elsewhere/x.m", 0, 0): worker_object,  # not indexed
+        },
+        "parse_warnings": {key[unused]: warning, (stale, 0, 0): warning},
         "entities_table": {"x.m": object()},
         "matlab_names": {"x": ["x.m"]},
     }
 
     dom.merge_domaindata({"doc_a"}, otherdata)
 
-    assert dom.data["objects"] == {**before, "a/Obj.m": ("doc_a", "class", "Obj")}
-    assert dom.data["folders"]["a/"] == ("doc_a", "", "", False)
-    assert "b/" not in dom.data["folders"]
-    for k, v in source_state.items():
-        assert dom.data[k] == v
+    assert data["objects"] == {**before, "a/Obj.m": ("doc_a", "class", "Obj")}
+    assert data["folders"]["a/"] == ("doc_a", "", "", False)
+    assert "b/" not in data["folders"]
+    assert data["doc_sources"]["doc_a"] == {unused: key[unused][1:]}
+    assert "doc_b" not in data["doc_sources"]
+    # Parses of current files that we lack are adopted; ours are kept.
+    assert data["parse_cache"] == {**ours, key[unused]: worker_object}
+    assert data["parse_warnings"][key[unused]] == warning
+    assert (stale, 0, 0) not in data["parse_warnings"]
+    for k, v in unchanged.items():
+        assert data[k] == v
 
 
 def test_note_object(make_app, srcdir):

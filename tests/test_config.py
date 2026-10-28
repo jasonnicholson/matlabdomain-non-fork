@@ -1,4 +1,4 @@
-"""Project root configuration, deprecated and removed options."""
+"""Project root, source patterns and removed options."""
 
 import pytest
 from sphinx.errors import ConfigError
@@ -26,41 +26,25 @@ def test_project_root_is_relative_to_srcdir(make_app, project, monkeypatch, tmp_
     assert "WARNING" not in app.warning.getvalue()
 
 
-def test_matlab_src_dir_is_a_deprecated_fallback(make_app, project):
-    app = make_app(srcdir=project, confoverrides={"matlab_src_dir": "code"})
-    app.build()
-    assert "F doc" in (app.outdir / "index.html").read_text()
-    warnings = app.warning.getvalue()
-    assert "matlab_src_dir is deprecated; it is used as" in warnings
-    assert "[mat.deprecated]" in warnings
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"matlab_src_dir": "code"},
+        {"matlab_src_dir": "code", "matlab_src_code_project_root": "code"},
+    ],
+)
+def test_matlab_src_dir_raises(make_app, project, overrides):
+    with pytest.raises(ConfigError, match="matlab_src_dir was removed: use "):
+        make_app(srcdir=project, confoverrides=overrides)
 
 
-def test_project_root_wins_over_matlab_src_dir(make_app, project):
-    app = make_app(
-        srcdir=project,
-        confoverrides={
-            "matlab_src_code_project_root": "code",
-            "matlab_src_dir": "elsewhere",
-        },
-    )
-    app.build()
-    assert "F doc" in (app.outdir / "index.html").read_text()
-    assert "it is ignored because" in app.warning.getvalue()
-
-
-def test_deprecation_warning_can_be_suppressed(make_app, project):
-    app = make_app(
-        srcdir=project,
-        confoverrides={
-            "matlab_src_dir": "code",
-            "suppress_warnings": ["mat.deprecated"],
-        },
-    )
-    app.build()
-    assert "deprecated" not in app.warning.getvalue()
-
-
-@pytest.mark.parametrize("name", ["matlab_keep_package_prefix", "matlab_short_links"])
+@pytest.mark.parametrize(
+    "name",
+    [
+        "matlab_keep_package_prefix",
+        "matlab_short_links",
+    ],
+)
 @pytest.mark.parametrize("value", [True, False])
 def test_removed_options_raise(make_app, project, name, value):
     with pytest.raises(ConfigError, match=f"{name} was removed"):
