@@ -123,6 +123,15 @@ Release notes
   other ``sphinxcontrib-*`` packages: ``sphinxcontrib/__init__.py`` is no
   longer shipped. It imported ``pkg_resources``, so without setuptools the
   package, and Sphinx's own ``sphinxcontrib`` extensions, failed to import.
+* **Breaking:** Python-domain features that do not apply to MATLAB are
+  removed: the ``mat:decorator``, ``mat:decoratormethod``, ``mat:exception``
+  and ``mat:autoexception`` directives, the ``:mat:exc:`` role, and the
+  ``:special-members:`` and ``:inherited-members:`` options of
+  ``mat:autoclass`` (``:inherited-members:`` crashed the build). Names in
+  ``:raises:`` fields link to classes.
+* ``sphinxcontrib.matlab`` sets up ``sphinx.ext.autodoc`` itself; the
+  ``mat:auto*`` directives failed when it was not in ``extensions``. An
+  invalid option of a ``mat:auto*`` directive is reported at the right file.
 
 .. _PR 232: https://github.com/sphinx-contrib/matlabdomain/pull/253
 

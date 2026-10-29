@@ -35,10 +35,6 @@ from .mat_classify import (
 )
 from .mat_handlers import handler_by_extension, handler_for, handlers
 
-def get_node(match_dict, key):
-    res = match_dict.get(key)
-    return res[0] if res else None
-
 from tree_sitter import Node, Parser, Tree
 
 from sphinxcontrib.mat_tree_sitter_parser import (
@@ -65,7 +61,6 @@ __all__ = [
     "MatApplication",
     "MatClass",
     "MatEnumeration",
-    "MatException",
     "MatFunction",
     "MatMethod",
     "MatModule",
@@ -1754,18 +1749,6 @@ class MatApplication(MatObject):
     @property
     def __module__(self):
         return self.module
-
-
-class MatException(MatObject):
-    def __init__(self, name, path, tks):
-        super(MatException, self).__init__(name)
-        self.path = path
-        self.tks = tks
-        self.docstring = ""
-
-    @property
-    def __doc__(self):
-        return self.docstring
 
 
 class MatcodeError(Exception):

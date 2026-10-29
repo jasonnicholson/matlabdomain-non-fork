@@ -1,5 +1,7 @@
 """Project root, source patterns and removed options."""
 
+import importlib.metadata
+
 import pytest
 from sphinx.errors import ConfigError
 
@@ -24,6 +26,15 @@ def test_project_root_is_relative_to_srcdir(make_app, project, monkeypatch, tmp_
     app.build()
     assert "F doc" in (app.outdir / "index.html").read_text()
     assert "WARNING" not in app.warning.getvalue()
+
+
+def test_extension_version_without_package_metadata(make_app, project, monkeypatch):
+    def missing(name):
+        raise importlib.metadata.PackageNotFoundError(name)
+
+    monkeypatch.setattr(importlib.metadata, "version", missing)
+    app = make_app(srcdir=project)
+    assert app.extensions["sphinxcontrib.matlab"].version == "0.0.0"
 
 
 @pytest.mark.parametrize(

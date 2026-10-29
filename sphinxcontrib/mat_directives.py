@@ -39,11 +39,7 @@ class MatlabAutodocDirective(AutodocDirective):
 
     def run(self):
         reporter = self.state.document.reporter
-
-        try:
-            source, lineno = reporter.get_source_and_line(self.lineno)  # type: ignore
-        except AttributeError:
-            source, lineno = (None, None)
+        source, lineno = self.get_source_info()
         logger.debug(
             "[sphinxcontrib-matlabdomain] Input at %s:%s\n\n%s\n",
             source,
@@ -70,7 +66,7 @@ class MatlabAutodocDirective(AutodocDirective):
                 ),
                 self.name,
                 exc,
-                location=(source, lineno),
+                location=(self.env.docname, lineno),
             )
             return []
 
@@ -91,10 +87,6 @@ class MatlabAutodocDirective(AutodocDirective):
             lines,
         )
 
-        # record all filenames as dependencies -- this will at least
-        # partially make automatic invalidation possible
-        for fn in params.record_dependencies:
-            self.state.document.settings.record_dependencies.add(fn)
-
+        # Source files are not dependencies; the domain tracks them (doc_sources).
         result = parse_generated_content(self.state, params.result, documenter)
         return result

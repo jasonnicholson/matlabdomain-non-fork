@@ -7,10 +7,8 @@ Extend autodoc directives to matlabdomain.
 :license: BSD, see LICENSE for details.
 """
 
-import inspect
 import re
 
-from docutils.statemachine import ViewList
 from sphinx.ext.autodoc import (
     ALL,
     EMPTY,
@@ -29,9 +27,6 @@ from sphinx.ext.autodoc import (
     Documenter as PyDocumenter,
 )
 from sphinx.ext.autodoc import (
-    ExceptionDocumenter as PyExceptionDocumenter,
-)
-from sphinx.ext.autodoc import (
     ModuleDocumenter as PyModuleDocumenter,
 )
 from sphinx.locale import _
@@ -46,7 +41,6 @@ from .mat_types import (
     MatApplication,
     MatClass,
     MatEnumeration,
-    MatException,
     MatFunction,
     MatMethod,
     MatModule,
@@ -458,10 +452,6 @@ class MatlabDocumenter(PyDocumenter):
                         mname,
                         self.fullname,
                     )
-        elif self.options.inherited_members:
-            # safe_getmembers() uses dir() which pulls in members from all
-            # base classes
-            members = inspect.get_members(self.object, attr_getter=self.get_attr)
         else:
             # __dict__ contains only the members directly defined in
             # the class (but get them via getattr anyway, to e.g. get
@@ -489,8 +479,6 @@ class MatlabDocumenter(PyDocumenter):
 
         Members are skipped if
 
-        - they are special methods (except if given explicitly or the
-          special-members option is set)
         - they are private (except if given explicitly or the private-members
           option is set)
         - they are protected (except if given explicitly or the protected-members
@@ -505,10 +493,6 @@ class MatlabDocumenter(PyDocumenter):
         The user can override the skipping decision by connecting to the
         ``autodoc-skip-member`` event.
         """
-
-        def member_is_special():
-            # TODO implement special matlab methods: disp, subsref, etc.
-            return False
 
         def member_is_private(member):
             attrs = self.get_attr(member, "attrs", None)
@@ -600,15 +584,7 @@ class MatlabDocumenter(PyDocumenter):
             has_doc = bool(doc)
 
             keep = False
-            if want_all and member_is_special():
-                # special methods
-                if self.options.special_members is ALL or (
-                    self.options.special_members
-                    and self.options.special_members is not ALL
-                    and membername in self.options.special_members
-                ):
-                    keep = has_doc or self.options.undoc_members
-            elif want_all and member_is_private(member):
+            if want_all and member_is_private(member):
                 # ignore private members
                 if self.options.private_members is ALL or (
                     self.options.private_members
@@ -671,9 +647,7 @@ class MatlabDocumenter(PyDocumenter):
         If *all_members* is True, do all members, else those given by
         *self.options.members*.
         """
-        want_all = (
-            all_members or self.options.inherited_members or self.options.members is ALL
-        )
+        want_all = all_members or self.options.members is ALL
         # find out which members are documentable
         members_check_module, members = self.get_object_members(want_all)
 
@@ -974,11 +948,9 @@ class MatClassDocumenter(MatModuleLevelDocumenter):
         "members": members_option,
         "undoc-members": bool_option,
         "noindex": bool_option,
-        "inherited-members": bool_option,
         "show-inheritance": bool_option,
         "member-order": identity,
         "exclude-members": exclude_members_option,
-        "special-members": members_option,
         "private-members": members_option,
         "protected-members": members_option,
         "hidden-members": members_option,
@@ -988,17 +960,6 @@ class MatClassDocumenter(MatModuleLevelDocumenter):
     @classmethod
     def can_document_member(cls, member, membername, isattr, parent):  # noqa: ARG003 - required by Sphinx API
         return isinstance(member, MatClass)
-
-    def import_object(self):
-        ret = MatModuleLevelDocumenter.import_object(self)
-        # if the class is documented under another name, document it
-        # as data/attribute
-        if ret:
-            if hasattr(self.object, "__name__"):
-                self.doc_as_attr = self.objpath[-1] != self.object.__name__
-            else:
-                self.doc_as_attr = True
-        return ret
 
     def format_args(self):
         """Format arguments.
@@ -1017,9 +978,6 @@ class MatClassDocumenter(MatModuleLevelDocumenter):
             return "(" + ", ".join(ctor.args) + ")"
 
     def format_signature(self):
-        if self.doc_as_attr:
-            return ""
-
         # get constructor method signature from docstring
         if self.env.config.autodoc_docstring_signature:
             # only act if the feature is enabled
@@ -1034,12 +992,10 @@ class MatClassDocumenter(MatModuleLevelDocumenter):
         return MatModuleLevelDocumenter.format_signature(self)
 
     def add_directive_header(self, sig):
-        if self.doc_as_attr:
-            self.directivetype = "attribute"
         MatlabDocumenter.add_directive_header(self, sig)
 
         # add inheritance info, if wanted
-        if not self.doc_as_attr and self.options.show_inheritance:
+        if self.options.show_inheritance:
             self.add_line("", "<autodoc>")
             if base_class_links := make_baseclass_links(self.env, self.object):
                 self.add_line(
@@ -1082,14 +1038,6 @@ class MatClassDocumenter(MatModuleLevelDocumenter):
         doc = [prepare_docstring(x) for x in docstrings]
 
         return doc
-
-    def add_content(self, more_content):
-        if self.doc_as_attr:
-            if classname := safe_getattr(self.object, "__name__", None):
-                content = ViewList([_("alias of :class:`%s`") % classname], source="")
-                MatModuleLevelDocumenter.add_content(self, content, no_docstring=True)
-        else:
-            MatModuleLevelDocumenter.add_content(self, more_content)
 
     def class_object(self):
         # the associated MatClass object
@@ -1143,12 +1091,7 @@ class MatClassDocumenter(MatModuleLevelDocumenter):
         return MatlabDocumenter.auto_link_all(self, docstrings)
 
     def document_members(self, all_members=False):
-        if self.doc_as_attr:
-            return
-
-        want_all = (
-            all_members or self.options.inherited_members or self.options.members is ALL
-        )
+        want_all = all_members or self.options.members is ALL
         # find out which members are documentable
         _, members = self.get_object_members(want_all)
 
@@ -1277,12 +1220,6 @@ class MatClassDocumenter(MatModuleLevelDocumenter):
         # restore original indent and exclude_members
         self.indent = indent
         self.options.exclude_members = exclude_members
-
-
-class MatExceptionDocumenter(MatlabDocumenter, PyExceptionDocumenter):
-    @classmethod
-    def can_document_member(cls, member, membername, isattr, parent):  # noqa: ARG003 - required by Sphinx API
-        return isinstance(member, MatException)
 
 
 class MatDataDocumenter(MatModuleLevelDocumenter, PyDataDocumenter):

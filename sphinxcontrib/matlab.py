@@ -125,7 +125,8 @@ class MatObject(ObjectDescription):
         GroupedField(
             "exceptions",
             label=translation("Raises"),
-            rolename="exc",
+            # MATLAB errors are MException classes.
+            rolename="class",
             names=("raises", "raise", "exception", "except"),
             can_collapse=True,
         ),
@@ -163,7 +164,7 @@ class MatObject(ObjectDescription):
         and the member is registered below the class reference.
         """
         m = mat_sig_re.match(sig)
-        if m is None:
+        if m is None:  # pragma: no cover - mat_sig_re matches any non-empty line
             raise ValueError
         name, arglist, retann = m.groups()
 
@@ -235,7 +236,7 @@ class MatObject(ObjectDescription):
             )
         return (mat_naming.join_reference(folder, name) if folder else name), name
 
-    def get_index_text(self, folder, name_cls):
+    def get_index_text(self, folder, name_cls):  # pragma: no cover - abstract
         """Return the text for the index entry of the object."""
         raise NotImplementedError("must be implemented in subclasses")
 
@@ -305,7 +306,7 @@ class MatModulelevel(MatObject):
 
 
 class MatClasslike(MatObject):
-    """Description of a class-like object (classes, interfaces, exceptions)."""
+    """Description of a class."""
 
     def _object_hierarchy_parts(self, sig):
         """Return a tuple of strings, one entry for each part of the object's \
@@ -327,16 +328,12 @@ class MatClasslike(MatObject):
         return f"{self.objtype} "
 
     def get_index_text(self, folder, name_cls):
-        if self.objtype == "class":
-            return translation("%s (class in %s)") % (name_cls[1], folder)
-        elif self.objtype == "exception":
-            return name_cls[1]
-        else:
-            return ""
+        return translation("%s (class in %s)") % (name_cls[1], folder)
 
     def before_content(self):
         MatObject.before_content(self)
-        if self.names:
+        # A class signature always parses (mat_sig_re matches any line).
+        if self.names:  # pragma: no branch
             self.env.temp_data["mat:class"] = self.names[0]
             self.clsname_set = True
 
@@ -361,9 +358,7 @@ class MatClassmember(MatObject):
             "staticmethod": translation("%s() (%s static method)"),
             "classmethod": translation("%s() (%s class method)"),
             "attribute": translation("%s (%s attribute)"),
-        }.get(self.objtype)
-        if kind is None:
-            return ""
+        }[self.objtype]
         clsname, _, member = name.rpartition(".")
         if not clsname:
             return f"{name}()" if self.objtype.endswith("method") else name
@@ -377,35 +372,6 @@ class MatClassmember(MatObject):
                 cls = (ref.rpartition(".")[0], display.rpartition(".")[0])
                 self.env.temp_data["mat:class"] = cls
                 self.clsname_set = True
-
-
-class MatDecoratorMixin:
-    """Mixin for decorator directives."""
-
-    def handle_signature(self, sig, signode):
-        ret = super().handle_signature(sig, signode)
-        signode.insert(0, addnodes.desc_addname("@", "@"))
-        return ret
-
-    def needs_arglist(self):
-        return False
-
-
-class MatDecoratorFunction(MatDecoratorMixin, MatModulelevel):
-    """Directive to mark functions meant to be used as decorators."""
-
-    def run(self):
-        # a decorator function is a function after all
-        self.name = "mat:function"
-        return MatModulelevel.run(self)
-
-
-class MatDecoratorMethod(MatDecoratorMixin, MatClassmember):
-    """Directive to mark methods meant to be used as decorators."""
-
-    def run(self):
-        self.name = "mat:method"
-        return MatClassmember.run(self)
 
 
 class MatFolder(MatObject):
@@ -599,7 +565,6 @@ class MATLABDomain(Domain):
         "function": ObjType(translation("function"), "func", "obj"),
         "data": ObjType(translation("data"), "data", "obj"),
         "class": ObjType(translation("class"), "class", "obj"),
-        "exception": ObjType(translation("exception"), "exc", "obj"),
         "method": ObjType(translation("method"), "meth", "obj"),
         "classmethod": ObjType(translation("class method"), "meth", "obj"),
         "staticmethod": ObjType(translation("static method"), "meth", "obj"),
@@ -613,21 +578,17 @@ class MATLABDomain(Domain):
         "function": MatModulelevel,
         "data": MatModulelevel,
         "class": MatClasslike,
-        "exception": MatClasslike,
         "method": MatClassmember,
         "classmethod": MatClassmember,
         "staticmethod": MatClassmember,
         "attribute": MatClassmember,
         "folder": MatFolder,
         "currentfolder": MatCurrentFolder,
-        "decorator": MatDecoratorFunction,
-        "decoratormethod": MatDecoratorMethod,
         "script": MatModulelevel,
         "application": MatModulelevel,
     }
     roles = {
         "data": MatXRefRole(),
-        "exc": MatXRefRole(),
         "func": MatXRefRole(fix_parens=True),
         "class": MatXRefRole(),
         "const": MatXRefRole(),
@@ -954,6 +915,8 @@ def _get_version():
 
 
 def setup(app):
+    # The mat:auto* directives read autodoc's config values.
+    app.setup_extension("sphinx.ext.autodoc")
     app.connect("config-inited", ensure_configuration)
     app.connect("config-inited", check_encoding)
     app.connect("builder-inited", analyze)
@@ -1013,11 +976,6 @@ def setup(app):
     app.registry.add_documenter("mat:script", doc.MatScriptDocumenter)
     app.add_directive_to_domain(
         "mat", "autoscript", mat_directives.MatlabAutodocDirective
-    )
-
-    app.registry.add_documenter("mat:exception", doc.MatExceptionDocumenter)
-    app.add_directive_to_domain(
-        "mat", "autoexception", mat_directives.MatlabAutodocDirective
     )
 
     app.registry.add_documenter("mat:attribute", doc.MatAttributeDocumenter)

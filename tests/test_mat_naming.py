@@ -124,6 +124,26 @@ def test_form_matlab_name_class_folder_under_invalid_package_dropped():
     )
 
 
+@pytest.mark.parametrize(
+    ("folder", "name", "is_class"),
+    [
+        ("", "f.m", False),
+        ("/tmp/+", "f.m", False),
+        ("/tmp/@", "f.m", False),
+        ("/tmp/@Outer/@Inner", "Inner.m", True),
+        ("/tmp/@C/+pkg/@D", "D.m", True),
+        ("/tmp/@C", "bad-name.m", False),
+    ],
+)
+def test_form_matlab_name_not_callable(folder, name, is_class):
+    assert form_matlab_name(folder, name, is_class, namelengthmax=2048) is None
+
+
+def test_form_matlab_name_of_a_relative_package_folder():
+    out = form_matlab_name("+pkg", "f.m", False, namelengthmax=2048)
+    assert (out.pseudo_fullname, out.parent_folder) == ("pkg.f", "")
+
+
 def test_form_matlab_name_keyword_top_package_invalid():
     out = form_matlab_name("/tmp/+for/+nested", "demo.m", False, namelengthmax=63)
     assert out is None
@@ -569,6 +589,11 @@ def test_path_reference_is_nfc():
 )
 def test_parse_reference(reference, expected):
     assert parse_reference(reference) == expected
+
+
+def test_parse_reference_with_given_extensions():
+    assert parse_reference("a/M.slx.x", extensions=(".slx",)) == ("a/M.slx", ["x"])
+    assert parse_reference("a/F.m", extensions=(".slx",)) == (None, [])
 
 
 @pytest.mark.parametrize(

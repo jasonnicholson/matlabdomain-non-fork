@@ -257,6 +257,28 @@ def test_section_and_object_ids_do_not_clash(make_app, tmp_path):
     assert {"first", "mat-first", "mat-second"} <= set(ids(html(app)))
 
 
+def test_auto_directives_without_listing_autodoc(make_app, tmp_path):
+    write_files(
+        tmp_path,
+        {
+            "f.m": "function f\n% F\nend\n",
+            "g.m": "function g\n% G\nend\n",
+            "conf.py": CONF,
+        },
+    )
+    (tmp_path / "index.rst").write_text(
+        "Index\n=====\n\n"
+        ".. mat:autofunction:: f\n\n"
+        ".. mat:autofunction:: g\n   :bogus:\n"
+    )
+    app = make_app(srcdir=tmp_path)
+    app.build()
+    warnings = app.warning.getvalue()
+    assert f"{tmp_path / 'index.rst'}:6:" in warnings
+    assert "An option to mat:autofunction is either unknown" in warnings
+    assert set(app.env.domaindata["mat"]["objects"]) == {"f.m"}
+
+
 def test_auto_directive_resolution_order(make_app, tmp_path):
     for path, text in {
         "a/f.m": "function f\n% A f\nend\n",

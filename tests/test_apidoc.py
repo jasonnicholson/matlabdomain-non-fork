@@ -2,7 +2,9 @@
 builds of its output (plan.md Section 2.8, Phase 7).
 """
 
+import importlib.metadata
 import os
+import runpy
 import shutil
 import subprocess
 import sys
@@ -12,7 +14,7 @@ from pathlib import Path
 import pytest
 from sphinx.util.inventory import InventoryFile
 
-from sphinxcontrib import mat_types
+from sphinxcontrib import mat_handlers, mat_types
 from sphinxcontrib.mat_classify import is_hidden
 from sphinxcontrib.mat_types import IndexSettings, build_index
 from sphinxcontrib.matlab_apidoc import ApidocOptions, _generate, _names, generate, main
@@ -456,6 +458,17 @@ def test_remove_old_deletes_only_stale_marked_files(tmp_path):
     assert len(result.unchanged) == len(FOLDER_PAGES)
 
 
+def test_remove_old_keeps_a_dangling_link(tmp_path):
+    run(ROOT, tmp_path)
+    try:
+        os.symlink(tmp_path / "missing.rst", tmp_path / "stale.rst")
+    except OSError:
+        pytest.skip("cannot create symbolic links")
+    result = run(ROOT, tmp_path, ("remove_old", True))
+    assert result.removed == []
+    assert os.path.islink(tmp_path / "stale.rst")
+
+
 def _case_insensitive(folder):
     probe = folder / "case_probe"
     probe.write_text("")
@@ -477,6 +490,16 @@ def test_case_only_renames_reach_the_output(tmp_path):
         assert result.removed == []
     else:
         assert sorted(result.removed) == ["ALPHA/NM_shared.m.rst", "ALPHA/index.rst"]
+
+
+def test_dry_run_does_not_rename(tmp_path):
+    if not _case_insensitive(tmp_path):
+        pytest.skip("needs a case-insensitive file system")
+    out = tmp_path / "out"
+    run(ROOT, out)
+    (out / "alpha").rename(out / "ALPHA")
+    run(ROOT, out, ("force", True), ("dry_run", True))
+    assert "ALPHA" in os.listdir(out)
 
 
 def test_case_variant_without_the_marker_is_kept(tmp_path, caplog_sphinx):
@@ -596,6 +619,24 @@ def test_usage_errors_exit_2(argv, capsys, monkeypatch):
 def test_version(capsys):
     with pytest.raises(SystemExit) as exc:
         main(["--version"])
+    assert exc.value.code == 0
+    assert capsys.readouterr().out.startswith("sphinx-matlab-apidoc ")
+
+
+def test_version_without_package_metadata(capsys, monkeypatch):
+    def missing(name):
+        raise importlib.metadata.PackageNotFoundError(name)
+
+    monkeypatch.setattr(importlib.metadata, "version", missing)
+    with pytest.raises(SystemExit):
+        main(["--version"])
+    assert capsys.readouterr().out == "sphinx-matlab-apidoc 0.0.0\n"
+
+
+def test_python_m_runs_main(capsys, monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["sphinx-matlab-apidoc", "--version"])
+    with pytest.raises(SystemExit) as exc:
+        runpy.run_module("sphinxcontrib.matlab_apidoc", run_name="__main__")
     assert exc.value.code == 0
     assert capsys.readouterr().out.startswith("sphinx-matlab-apidoc ")
 
@@ -722,6 +763,25 @@ def test_unreadable_file_is_left_out(tmp_path, caplog_sphinx):
     listed = [e["ref"] for _, entries in page.context["sections"] for e in entries]
     assert listed == ["ok.m"]
     assert any("locked.m could not be read" in m for _, m in caplog_sphinx)
+
+
+class ComponentHandler(mat_handlers.Handler):
+    """A file type without an autodoc directive."""
+
+    extension = ".ssc"
+
+    def classify(self, path, text=None):
+        return "component"
+
+
+def test_kind_without_a_directive_is_left_out(tmp_path, monkeypatch, caplog_sphinx):
+    monkeypatch.setattr(mat_handlers, "_HANDLERS", dict(mat_handlers._HANDLERS))
+    mat_handlers.register(ComponentHandler())
+    write(tmp_path, {"ok.m": FUNCTION.format(name="ok"), "valve.ssc": "x\n"})
+    (page,) = pages_of(tmp_path)
+    listed = [e["ref"] for _, entries in page.context["sections"] for e in entries]
+    assert listed == ["ok.m"]
+    assert any("no directive documents a component" in m for _, m in caplog_sphinx)
 
 
 # --- builds of the generated pages ------------------------------------------

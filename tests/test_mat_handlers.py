@@ -44,6 +44,14 @@ def test_extension_has_one_handler():
         mat_handlers.register(mat_handlers.MFileHandler())
 
 
+def test_base_handler_needs_classify_and_parse(tmp_path):
+    handler = mat_handlers.Handler()
+    with pytest.raises(NotImplementedError):
+        handler.read(tmp_path / "x.ext")
+    with pytest.raises(NotImplementedError):
+        handler.parse(tmp_path / "x.ext", "x", "./")
+
+
 def test_naming_does_not_import_the_parser():
     code = (
         "import sys, sphinxcontrib.mat_naming\n"
