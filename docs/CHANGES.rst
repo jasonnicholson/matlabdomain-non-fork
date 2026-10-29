@@ -104,6 +104,10 @@ Release notes
   build use, once per build; a file no page uses is not parsed. Index
   warnings (``mat.encoding``, ``mat.no_code``, ``mat.not_callable``,
   unreadable files and folders) still appear on every build.
+* ``sphinxcontrib`` is a native (PEP 420) namespace package, like in the
+  other ``sphinxcontrib-*`` packages: ``sphinxcontrib/__init__.py`` is no
+  longer shipped. It imported ``pkg_resources``, so without setuptools the
+  package, and Sphinx's own ``sphinxcontrib`` extensions, failed to import.
 
 .. _PR 232: https://github.com/sphinx-contrib/matlabdomain/pull/253
 
