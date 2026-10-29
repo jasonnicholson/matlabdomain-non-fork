@@ -212,8 +212,8 @@ def _reading_docname(dom):
     """Return the document being read, or None outside the read phase."""
     if isinstance(dom, _DetachedEntityStore):
         return None
-    builder = getattr(MatObject.sphinx_app, "builder", None)
-    if getattr(builder, "phase", None) != BuildPhase.READING:
+    # ``app.phase``, not ``builder.phase``: the latter exists from Sphinx 9.0 only.
+    if getattr(MatObject.sphinx_app, "phase", None) != BuildPhase.READING:
         return None
     return dom.env.docname or None
 
