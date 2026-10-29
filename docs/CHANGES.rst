@@ -104,6 +104,17 @@ Release notes
   build use, once per build; a file no page uses is not parsed. Index
   warnings (``mat.encoding``, ``mat.no_code``, ``mat.not_callable``,
   unreadable files and folders) still appear on every build.
+* New command ``sphinx-matlab-apidoc`` (also ``python -m
+  sphinxcontrib.matlab_apidoc``): writes reST pages with ``mat:auto*``
+  directives for the MATLAB files of a project, one page per folder,
+  mirroring the folder tree, from Jinja templates that can be replaced
+  (``-t``). Its template context is a public interface: renaming or removing
+  a key is a breaking change. See ``examples/apidoc``.
+* The function files of a class folder ``@X/`` are methods only if ``X.m`` is
+  a classdef. In any other ``@`` folder (an old-style class, a classdef named
+  differently, no class file) they are documented as functions; before, the
+  folder's only classdef took them as methods, whatever its name. Cached
+  environments from earlier versions are rebuilt.
 * ``sphinxcontrib`` is a native (PEP 420) namespace package, like in the
   other ``sphinxcontrib-*`` packages: ``sphinxcontrib/__init__.py`` is no
   longer shipped. It imported ``pkg_resources``, so without setuptools the

@@ -9,6 +9,7 @@
 *.rst text eol=lf
 *.md text eol=lf
 *.txt text eol=lf
+*.jinja text eol=lf
 
 # Configuration files
 *.yml text eol=lf

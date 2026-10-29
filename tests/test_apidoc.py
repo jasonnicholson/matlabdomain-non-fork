@@ -1,0 +1,808 @@
+"""sphinx-matlab-apidoc: output names, pages, templates, writing, the CLI and
+builds of its output (plan.md Section 2.8, Phase 7).
+"""
+
+import os
+import shutil
+import subprocess
+import sys
+import sysconfig
+from pathlib import Path
+
+import pytest
+from sphinx.util.inventory import InventoryFile
+
+from sphinxcontrib import mat_types
+from sphinxcontrib.mat_classify import is_hidden
+from sphinxcontrib.mat_types import IndexSettings, build_index
+from sphinxcontrib.matlab_apidoc import ApidocOptions, _generate, _names, generate, main
+from sphinxcontrib.matlab_apidoc._generate import MARKER, build_pages
+
+TESTS = Path(__file__).parent
+ROOT = TESTS / "roots" / "test_apidoc_basics"
+GOLDEN = TESTS / "apidoc_golden"
+EXAMPLE = TESTS.parent / "examples" / "apidoc"
+NOT_CALLABLE = [
+    "+for/nm_kw.m",
+    "@Bad/Other.m",
+    "@NmBox/sub/nm_legacy.m",
+    "bad-name.m",
+]
+FOLDER_PAGES = [
+    "+a/+b/index",
+    "+a/index",
+    "+for/index",
+    "+nmpkg/index",
+    "+nmpkg/private/index",
+    "alpha/index",
+    "beta/index",
+    "donn~C3~A9es/index",
+    "index",
+    "my~20folder/index",
+    "private/index",
+]
+PAGE_KEYS = {
+    "docname",
+    "ref",
+    "title",
+    "kind",
+    "is_root",
+    "sections",
+    "subfolders",
+    "separate",
+    "maxdepth",
+}
+ENTRY_KEYS = {
+    "ref",
+    "kind",
+    "directive",
+    "options",
+    "title",
+    "display",
+    "matlab_name",
+    "callable",
+    "private",
+    "docname",
+}
+FUNCTION = "function {name}()\n% {name} help.\nend\n"
+
+
+def tree(folder):
+    """``{relative path: bytes}`` of the files below ``folder``."""
+    folder = Path(folder)
+    return {
+        p.relative_to(folder).as_posix(): p.read_bytes()
+        for p in sorted(folder.rglob("*"))
+        if p.is_file()
+    }
+
+
+def write(root, files):
+    for path, content in files.items():
+        target = root / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content)
+
+
+def pages_of(root, **options):
+    source_index = build_index(IndexSettings(str(root)))
+    return build_pages(source_index, ApidocOptions("out", **options))
+
+
+def run(root, out, *flags):
+    return generate(
+        build_index(IndexSettings(str(root))), ApidocOptions(str(out), **dict(flags))
+    )
+
+
+@pytest.fixture
+def project(tmp_path):
+    """Copy the fixture (a Sphinx project whose root is the MATLAB root)."""
+    dst = tmp_path / "project"
+    shutil.copytree(ROOT, dst)
+    return dst
+
+
+# --- output names (_names.py), the same on every OS --------------------------
+
+
+@pytest.mark.parametrize(
+    ("segment", "expected"),
+    [
+        ("+pkg", "+pkg"),
+        ("@Cls", "@Cls"),
+        ("Cls.m", "Cls.m"),
+        ("a_b-c.d", "a_b-c.d"),
+        ("my folder", "my~20folder"),
+        ("donn\u00e9es", "donn~C3~A9es"),
+        ("~x", "~7Ex"),
+        ("50%#", "50~25~23"),
+        ("aux", "~61ux"),
+        ("AUX.m", "~41UX.m"),
+        ("com1.m.rst", "~63om1.m.rst"),
+        ("Lpt9", "~4Cpt9"),
+        ("COM10", "COM10"),
+        ("auxiliary", "auxiliary"),
+        ("x.", "x~2E"),
+        ("nul.", "~6Eul~2E"),
+    ],
+)
+def test_escape_segment(segment, expected):
+    assert _names.escape_segment(segment) == expected
+
+
+def test_escape_upper_and_long_paths():
+    assert _names.escape_upper("Utils~20B") == "~55tils~20~42"
+    assert not _names.too_long("x" * 259)
+    assert _names.too_long("x" * 260)
+
+
+def test_docnames_mirror_the_folder_tree():
+    refs = ["./", "a/", "a/+p/", "a/+p/Cls.m", "Top.m", "a/@C/sub/f.m"]
+    names, collisions = _names.docnames(refs, suffix="txt", tocfile="api")
+    assert names == {
+        "./": "api",
+        "a/": "a/index",
+        "a/+p/": "a/+p/index",
+        "a/+p/Cls.m": "a/+p/Cls.m",
+        "Top.m": "Top.m",
+        "a/@C/sub/f.m": "a/@C/sub/f.m",
+    }
+    assert collisions == []
+
+
+def test_docnames_escape_case_collisions():
+    refs = ["./", "Utils/", "utils/", "Utils/A.m", "Utils/a.m", "Foo.m", "foo.m", "x/"]
+    names, collisions = _names.docnames(refs)
+    assert names == {
+        "./": "index",
+        "Utils/": "~55tils/index",
+        "utils/": "utils/index",
+        "Utils/A.m": "~55tils/~41.m",
+        "Utils/a.m": "~55tils/a.m",
+        "Foo.m": "~46oo.m",
+        "foo.m": "foo.m",
+        "x/": "x/index",
+    }
+    assert collisions == [
+        ("", ["Foo.m", "foo.m"]),
+        ("", ["Utils/", "utils/"]),
+        ("~55tils", ["A.m", "a.m"]),
+    ]
+
+
+def test_docnames_avoid_the_page_name():
+    names, collisions = _names.docnames(["./", "INDEX.RST/"])
+    assert names["INDEX.RST/"] == "~49~4E~44~45~58.~52~53~54/index"
+    assert collisions == [("", ["INDEX.RST/"])]
+    names, collisions = _names.docnames(
+        ["./", "a/", "a/index.rst/", "api.m"], tocfile="api.m"
+    )
+    assert names["a/index.rst/"] == "a/~69ndex.rst/index"
+    assert names["api.m"] == "~61pi.m"
+    assert collisions == [("", ["api.m"]), ("a", ["index.rst/"])]
+
+
+def test_docnames_are_injective_and_case_insensitive_unique():
+    segments = [
+        "a b", "a~20b", "a%20b", "~", "~7E", "aux", "~61ux", "AUX", "Aux",
+        "x.", "x~2E", "\u00dc", "\u00fc", "~C3~9C", "Utils", "utils", "UTILS",
+    ]  # fmt: skip
+    refs = ["./", *(f"{s}/" for s in segments), *(f"{s}.m" for s in segments)]
+    names, _ = _names.docnames(refs)
+    values = list(names.values())
+    assert len(set(values)) == len(values)
+    assert len({v.lower() for v in values}) == len(values)
+    assert all(v.isascii() for v in values)
+
+
+# --- page model -------------------------------------------------------------
+
+
+def test_pages_of_the_fixture():
+    pages = {p.docname: p for p in pages_of(ROOT)}
+    assert sorted(pages) == FOLDER_PAGES
+    for page in pages.values():
+        assert set(page.context) == PAGE_KEYS
+        for _, entries in page.context["sections"]:
+            assert all(set(entry) == ENTRY_KEYS for entry in entries)
+
+    root = pages["index"].context
+    assert (root["kind"], root["title"], root["is_root"]) == ("root", "folder ./", True)
+    sections = {
+        title: [e["ref"] for e in entries] for title, entries in root["sections"]
+    }
+    assert list(sections) == ["Classes", "Functions", "Scripts", "Apps"]
+    # @ folders go on the page above them; sorted by casefold(title), ref
+    assert sections["Classes"] == ["@Bad/Other.m", "@ApCls/ApCls.m", "@NmBox/NmBox.m"]
+    # An @ folder that is not a class (old style, or no @X/X.m classdef)
+    # lists its functions; files that are not callable are listed by path.
+    assert sections["Functions"] == [
+        "@NmBox/sub/nm_legacy.m",
+        "@ApCls/private/ap_cls_helper.m",
+        "bad-name.m",
+        "@Bad/bad_fn.m",
+        "@OldStyle/OldStyle.m",
+        "@OldStyle/display.m",
+    ]
+    assert sections["Apps"] == ["Application.mlapp"]
+    assert root["subfolders"] == [
+        "+a/index",
+        "+nmpkg/index",
+        "+for/index",
+        "alpha/index",
+        "beta/index",
+        "donn~C3~A9es/index",
+        "my~20folder/index",
+        "private/index",
+    ]
+    listed = {
+        e["ref"]: e
+        for page in pages.values()
+        for _, entries in page.context["sections"]
+        for e in entries
+    }
+    # Class folder methods and hidden files are not listed.
+    for ref in ("@ApCls/ap_method.m", "+nmpkg/@NmCls/nm_helper.m"):
+        assert ref not in listed
+    assert not any(is_hidden(ref) for ref in listed)
+    assert listed["+nmpkg/@NmCls/NmCls.m"]["options"] == {
+        "members": "",
+        "undoc-members": "",
+        "show-inheritance": "",
+    }
+    assert listed["+nmpkg/@NmCls/NmCls.m"]["directive"] == "mat:autoclass"
+    assert listed["Application.mlapp"]["directive"] == "mat:autoapplication"
+    assert listed["bad-name.m"]["title"] == "bad-name.m"
+    assert listed["bad-name.m"]["callable"] is False
+    assert listed["private/nm_priv.m"]["private"] is True
+    assert listed["+nmpkg/nm_func.m"]["title"] == "nmpkg.nm_func"
+
+    nmpkg = pages["+nmpkg/index"].context
+    assert (nmpkg["kind"], nmpkg["title"]) == ("namespace", "namespace nmpkg")
+    assert nmpkg["subfolders"] == ["private/index"]
+    assert pages["+for/index"].context["title"] == "folder +for/"
+    assert pages["my~20folder/index"].context["ref"] == "my folder/"
+
+
+def test_separate_pages():
+    pages = {p.docname: p for p in pages_of(ROOT, separate=True)}
+    assert len(pages) == len(FOLDER_PAGES) + 23
+    nmpkg = pages["+nmpkg/index"].context
+    assert [
+        (t, [e["docname"] for e in entries]) for t, entries in nmpkg["sections"]
+    ] == [
+        ("Classes", ["@NmCls/NmCls.m"]),
+        ("Functions", ["nm_func.m"]),
+    ]
+    page = pages["+nmpkg/@NmCls/NmCls.m"]
+    assert page.template == "object.rst.jinja"
+    assert set(page.context) == ENTRY_KEYS
+    assert page.context["docname"] == "+nmpkg/@NmCls/NmCls.m"
+
+
+def test_only_a_class_file_makes_a_class_folder(tmp_path):
+    write(
+        tmp_path,
+        {
+            # @C/C.m is a classdef: function files are methods; another
+            # classdef and a script are listed
+            "@C/C.m": "classdef C\nend\n",
+            "@C/K.m": "classdef K\nend\n",
+            "@C/m.m": FUNCTION.format(name="m"),
+            "@C/s.m": "x = 1;\n",
+            # no @D/D.m: not a class, even with a single classdef
+            "@D/Other.m": "classdef Other\nend\n",
+            "@D/f.m": FUNCTION.format(name="f"),
+            # @E/E.m is not a classdef (old style): not a class
+            "@E/E.m": FUNCTION.format(name="E"),
+            "@E/g.m": FUNCTION.format(name="g"),
+            # no class file: not a class
+            "@F/h.m": FUNCTION.format(name="h"),
+        },
+    )
+    (page,) = pages_of(tmp_path)
+    listed = sorted(
+        e["ref"] for _, entries in page.context["sections"] for e in entries
+    )
+    assert listed == sorted(
+        [
+            "@C/C.m",
+            "@C/K.m",
+            "@C/s.m",
+            "@D/Other.m",
+            "@D/f.m",
+            "@E/E.m",
+            "@E/g.m",
+            "@F/h.m",
+        ]
+    )
+
+
+def test_the_domain_attaches_methods_only_to_the_class_file(make_app, tmp_path):
+    write(
+        tmp_path,
+        {
+            "@C/C.m": "classdef C\nend\n",
+            "@C/m.m": FUNCTION.format(name="m"),
+            "@D/Other.m": "classdef Other\nend\n",
+            "@D/f.m": FUNCTION.format(name="f"),
+            "@E/E.m": FUNCTION.format(name="E"),
+            "@E/g.m": FUNCTION.format(name="g"),
+            "conf.py": 'extensions = ["sphinxcontrib.matlab"]\n'
+            'matlab_src_code_project_root = "."\n',
+            "index.rst": "Index\n=====\n",
+        },
+    )
+    app = make_app(srcdir=tmp_path)
+    app.build()
+    dom = app.env.get_domain("mat")
+    cls = mat_types.resolve(dom, "@C/C.m")
+    assert sorted(cls.methods) == ["m"]
+    assert isinstance(mat_types.resolve(dom, "@C/m.m"), mat_types.MatMethod)
+    other = mat_types.resolve(dom, "@D/Other.m")
+    assert isinstance(other, mat_types.MatClass)
+    assert other.methods == {}
+    for ref in ("@D/f.m", "@E/E.m", "@E/g.m"):
+        obj = mat_types.resolve(dom, ref)
+        assert type(obj) is mat_types.MatFunction, ref
+
+
+def test_a_folder_with_only_hidden_files_has_no_page(tmp_path):
+    write(
+        tmp_path, {"a/Contents.m": "% Contents\n", "b/c/f.m": FUNCTION.format(name="f")}
+    )
+    pages = pages_of(tmp_path)
+    assert [p.docname for p in pages] == ["b/c/index", "b/index", "index"]
+
+
+def test_an_empty_root_gets_its_page_and_a_warning(tmp_path, caplog_sphinx):
+    (page,) = pages_of(tmp_path)
+    assert page.docname == "index"
+    assert page.context["sections"] == []
+    assert any("no documentable files" in m for _, m in caplog_sphinx)
+
+
+@pytest.fixture
+def caplog_sphinx():
+    """``(subtype, message)`` of the warnings on the ``sphinx`` loggers; Sphinx
+    test apps leave handlers there that rewrite records.
+    """
+    import logging
+
+    records = []
+
+    class Collect(logging.Handler):
+        def emit(self, record):
+            records.append((getattr(record, "subtype", None), record.getMessage()))
+
+    logger = logging.getLogger("sphinx")
+    saved = logger.handlers[:], logger.propagate
+    logger.handlers, logger.propagate = [Collect(logging.WARNING)], False
+    yield records
+    logger.handlers, logger.propagate = saved
+
+
+# --- golden trees, rendering and writing ------------------------------------
+
+
+@pytest.mark.parametrize(("name", "flags"), [("default", []), ("separate", ["-e"])])
+def test_golden_tree(tmp_path, name, flags):
+    out = tmp_path / "out"
+    assert main(["-q", *flags, "-o", str(out), str(ROOT)]) == 0
+    assert tree(out) == tree(GOLDEN / name)
+
+
+def test_files_are_utf8_with_lf_and_the_marker(tmp_path):
+    run(ROOT, tmp_path)
+    for path, data in tree(tmp_path).items():
+        assert data.startswith(MARKER.encode() + b"\n\n"), path
+        assert b"\r" not in data
+        assert data.endswith(b"\n") and not data.endswith(b"\n\n")
+        data.decode("utf-8")
+
+
+def test_second_run_writes_nothing(tmp_path):
+    first = run(ROOT, tmp_path)
+    assert len(first.created) == len(FOLDER_PAGES)
+    mtimes = {p: p.stat().st_mtime_ns for p in tmp_path.rglob("*.rst")}
+    for force in (False, True):
+        again = run(ROOT, tmp_path, ("force", force))
+        assert (again.created, again.updated, again.kept) == ([], [], [])
+        assert len(again.unchanged) == len(FOLDER_PAGES)
+    assert {p: p.stat().st_mtime_ns for p in tmp_path.rglob("*.rst")} == mtimes
+
+
+def test_existing_files_are_kept_without_force(tmp_path):
+    run(ROOT, tmp_path)
+    page = tmp_path / "alpha" / "index.rst"
+    page.write_text("Edited\n======\n")
+    kept = run(ROOT, tmp_path)
+    assert kept.kept == ["alpha/index.rst"]
+    assert page.read_text() == "Edited\n======\n"
+    forced = run(ROOT, tmp_path, ("force", True))
+    assert forced.updated == ["alpha/index.rst"]
+    assert (
+        page.read_bytes() == (GOLDEN / "default" / "alpha" / "index.rst").read_bytes()
+    )
+
+
+def test_dry_run_writes_nothing(tmp_path):
+    out = tmp_path / "out"
+    result = run(ROOT, out, ("dry_run", True), ("remove_old", True))
+    assert len(result.created) == len(FOLDER_PAGES)
+    assert not out.exists()
+
+
+def test_remove_old_deletes_only_stale_marked_files(tmp_path):
+    run(ROOT, tmp_path)
+    write(
+        tmp_path,
+        {
+            "old/deep/index.rst": f"{MARKER}\n\nOld\n===\n",
+            "notes.rst": "Notes\n=====\n",
+            "_static/x.rst": f"{MARKER}\n",
+            "alpha/stale.txt": f"{MARKER}\n",
+        },
+    )
+    dry = run(ROOT, tmp_path, ("remove_old", True), ("dry_run", True))
+    assert dry.removed == ["old/deep/index.rst"]
+    assert (tmp_path / "old" / "deep" / "index.rst").exists()
+    result = run(ROOT, tmp_path, ("remove_old", True))
+    assert result.removed == ["old/deep/index.rst"]
+    assert not (tmp_path / "old").exists()
+    for kept in ("notes.rst", "_static/x.rst", "alpha/stale.txt"):
+        assert (tmp_path / kept).exists()
+    assert len(result.unchanged) == len(FOLDER_PAGES)
+
+
+def _case_insensitive(folder):
+    probe = folder / "case_probe"
+    probe.write_text("")
+    try:
+        return (folder / "CASE_PROBE").exists()
+    finally:
+        probe.unlink()
+
+
+def test_case_only_renames_reach_the_output(tmp_path):
+    # Pages of an earlier run, from sources whose names differed only by case.
+    out = tmp_path / "out"
+    run(ROOT, out, ("separate", True))
+    (out / "alpha").rename(out / "ALPHA")
+    (out / "ALPHA" / "nm_shared.m.rst").rename(out / "ALPHA" / "NM_shared.m.rst")
+    result = run(ROOT, out, ("separate", True), ("force", True), ("remove_old", True))
+    assert tree(out) == tree(GOLDEN / "separate")
+    if _case_insensitive(tmp_path):
+        assert result.removed == []
+    else:
+        assert sorted(result.removed) == ["ALPHA/NM_shared.m.rst", "ALPHA/index.rst"]
+
+
+def test_case_variant_without_the_marker_is_kept(tmp_path, caplog_sphinx):
+    if not _case_insensitive(tmp_path):
+        pytest.skip("needs a case-insensitive file system")
+    out = tmp_path / "out"
+    run(ROOT, out)
+    (out / "beta" / "index.rst").unlink()
+    (out / "beta" / "INDEX.rst").write_text("Hand-written\n============\n")
+    result = run(ROOT, out, ("force", True), ("remove_old", True))
+    assert result.kept == ["beta/index.rst"]
+    assert os.listdir(out / "beta") == ["INDEX.rst"]
+    assert (out / "beta" / "INDEX.rst").read_text() == "Hand-written\n============\n"
+    assert any("only by case; it is kept" in m for _, m in caplog_sphinx)
+
+
+def test_remove_old_after_files_are_excluded(tmp_path):
+    out = tmp_path / "out"
+    assert main(["-q", "-o", str(out), str(ROOT)]) == 0
+    assert (
+        main(["-q", "--remove-old", "--exclude", "alpha", "-o", str(out), str(ROOT)])
+        == 0
+    )
+    assert not (out / "alpha").exists()
+    assert (out / "beta" / "index.rst").exists()
+    # The root page lost its link to alpha/ but is kept without -f.
+    assert b"alpha/index" in (out / "index.rst").read_bytes()
+
+
+def test_templatedir_replaces_a_template(tmp_path):
+    templates = tmp_path / "templates"
+    templates.mkdir()
+    (templates / "folder.rst.jinja").write_text(
+        "{{ kind }}|{{ ref }}|{{ docname }}|{{ is_root }}|{{ maxdepth }}|"
+        "{{ separate }}|{{ subfolders | join(',') }}\n"
+        "{% for title, entries in sections %}{{ title }}:"
+        "{% for e in entries %}{{ e.ref }}={{ e.kind }},{{ e.directive }},"
+        "{{ e.options | list | join(';') }},{{ e.title }},{{ e.display }},"
+        "{{ e.matlab_name }},{{ e.callable }},{{ e.private }},{{ e.docname }} "
+        "{% endfor %}\n{% endfor %}"
+    )
+    out = tmp_path / "out"
+    assert (
+        main(["-q", "-e", "-d", "2", "-t", str(templates), "-o", str(out), str(ROOT)])
+        == 0
+    )
+    assert (out / "+nmpkg" / "index.rst").read_text() == (
+        f"{MARKER}\n\n"
+        "namespace|+nmpkg/|+nmpkg/index|False|2|True|private/index\n"
+        "Classes:+nmpkg/@NmCls/NmCls.m=class,mat:autoclass,"
+        "members;undoc-members;show-inheritance,nmpkg.NmCls,nmpkg.NmCls,"
+        "nmpkg.NmCls,True,False,@NmCls/NmCls.m \n"
+        "Functions:+nmpkg/nm_func.m=function,mat:autofunction,,nmpkg.nm_func,"
+        "nmpkg.nm_func,nmpkg.nm_func,True,False,nm_func.m \n"
+    )
+    # object.rst.jinja falls back to the default.
+    assert (out / "+nmpkg" / "nm_func.m.rst").read_bytes() == (
+        GOLDEN / "separate" / "+nmpkg" / "nm_func.m.rst"
+    ).read_bytes()
+
+
+def test_long_paths_warn_on_windows(tmp_path, monkeypatch, caplog_sphinx):
+    monkeypatch.setattr(_generate, "_WINDOWS", True)
+    monkeypatch.setattr(_generate, "too_long", lambda path: path.endswith("index.rst"))
+    run(ROOT, tmp_path)
+    long = [m for s, m in caplog_sphinx if "unless long paths are enabled" in m]
+    assert len(long) == len(FOLDER_PAGES)
+
+
+# --- command line -----------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("flags", "message"),
+    [
+        (["--include", "/abs/*.m"], "--include: '/abs/*.m' must be relative"),
+        (["--include", "a\\b.m"], "--include: 'a\\\\b.m' must use '/'"),
+        (["--exclude", "../x"], "--exclude: '../x' leaves"),
+        (["--include", "**/../x"], "leaves matlab_src_code_project_root"),
+        (["--matlab-version", "R2020a"], "--matlab-version: matlab_version R2020a"),
+        (["--matlab-version", "2026a"], "--matlab-version: matlab_version must"),
+        (["--encoding", "rot13"], "--encoding 'rot13' is not a known text encoding"),
+        (["-t", "missing"], "-t 'missing' is not a folder"),
+        (["--tocfile", "a/b"], "--tocfile 'a/b' must be a file name"),
+        (["--suffix", "."], "--suffix '' must be a file name"),
+    ],
+)
+def test_settings_errors_exit_2(tmp_path, capsys, flags, message):
+    out = tmp_path / "out"
+    assert main([*flags, "-o", str(out), str(ROOT)]) == 2
+    captured = capsys.readouterr()
+    assert message in captured.err
+    assert captured.out == ""
+    assert not out.exists()
+
+
+def test_root_must_be_a_folder(tmp_path, capsys):
+    assert main(["-o", str(tmp_path), str(tmp_path / "missing")]) == 2
+    assert "is not a folder" in capsys.readouterr().err
+
+
+def test_output_must_be_a_folder(tmp_path, capsys):
+    (tmp_path / "file").write_text("")
+    assert main(["-o", str(tmp_path / "file"), str(ROOT)]) == 2
+    assert "is not a folder" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("argv", [[], [str(ROOT)], ["-o", "x", str(ROOT), "--bogus"]])
+def test_usage_errors_exit_2(argv, capsys):
+    with pytest.raises(SystemExit) as exc:
+        main(argv)
+    assert exc.value.code == 2
+    assert "usage: sphinx-matlab-apidoc" in capsys.readouterr().err
+
+
+def test_version(capsys):
+    with pytest.raises(SystemExit) as exc:
+        main(["--version"])
+    assert exc.value.code == 0
+    assert capsys.readouterr().out.startswith("sphinx-matlab-apidoc ")
+
+
+def test_output_and_warnings(tmp_path, capsys):
+    assert main(["-o", str(tmp_path), str(ROOT)]) == 0
+    captured = capsys.readouterr()
+    assert captured.out.count("Creating file ") == len(FOLDER_PAGES)
+    assert f"{len(FOLDER_PAGES)} pages: {len(FOLDER_PAGES)} created" in captured.out
+    assert "27 files indexed, 4 warnings" in captured.out
+    assert sorted(captured.err.splitlines()) == sorted(
+        f"WARNING: [sphinxcontrib-matlabdomain] {ref} is not callable in MATLAB "
+        "R2026a; it is documented by its path reference. [mat.not_callable]"
+        for ref in NOT_CALLABLE
+    )
+    assert main(["-q", "-n", "--remove-old", "-o", str(tmp_path), str(ROOT)]) == 0
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert len(captured.err.splitlines()) == 4
+
+
+def test_dry_run_lists_changes(tmp_path, capsys):
+    assert main(["-n", "-o", str(tmp_path / "out"), str(ROOT)]) == 0
+    out = capsys.readouterr().out
+    assert out.count("Would create file ") == len(FOLDER_PAGES)
+    assert out.splitlines()[-1].startswith(f"Dry run: {len(FOLDER_PAGES)} pages")
+
+
+def test_include_and_exclude(tmp_path):
+    out = tmp_path / "out"
+    flags = ["--include", "+nmpkg/**", "--exclude", "**/private"]
+    assert main(["-q", *flags, "-o", str(out), str(ROOT)]) == 0
+    assert sorted(tree(out)) == ["+nmpkg/index.rst", "index.rst"]
+
+
+def test_matlab_version_changes_callability(tmp_path, capsys):
+    assert (
+        main(["-q", "--matlab-version", "R2025b", "-o", str(tmp_path), str(ROOT)]) == 0
+    )
+    assert "nm_legacy" not in capsys.readouterr().err
+    root = (tmp_path / "index.rst").read_text()
+    assert "\nnm\\_legacy\n" in root
+
+
+def test_logging_is_restored(tmp_path):
+    import logging
+
+    logger = logging.getLogger("sphinx")
+    before = logger.handlers[:], logger.propagate, logger.level
+    main(["-q", "-o", str(tmp_path), str(ROOT)])
+    assert (logger.handlers, logger.propagate, logger.level) == before
+
+
+def _console_script():
+    scripts = Path(sysconfig.get_path("scripts"))
+    for name in ("sphinx-matlab-apidoc", "sphinx-matlab-apidoc.exe"):
+        if (scripts / name).exists():
+            return scripts / name
+    return shutil.which("sphinx-matlab-apidoc")
+
+
+def test_console_script_and_module(tmp_path):
+    script = _console_script()
+    assert script is not None, "reinstall the package to get the console script"
+    proc = subprocess.run(
+        [str(script), "--version"], capture_output=True, text=True, check=True
+    )
+    assert proc.stdout.startswith("sphinx-matlab-apidoc ")
+    out = tmp_path / "out"
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "sphinxcontrib.matlab_apidoc",
+            "-o",
+            str(out),
+            str(ROOT),
+        ],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert tree(out) == tree(GOLDEN / "default")
+
+
+# --- POSIX-only names -------------------------------------------------------
+
+
+@pytest.mark.skipif(os.name == "nt", reason="needs device and case-only names")
+def test_device_names_and_case_collisions(tmp_path, caplog_sphinx):
+    write(
+        tmp_path / "src",
+        {
+            "aux/f.m": FUNCTION.format(name="f"),
+            "Utils/g.m": FUNCTION.format(name="g"),
+            "utils/h.m": FUNCTION.format(name="h"),
+        },
+    )
+    out = tmp_path / "out"
+    run(tmp_path / "src", out)
+    assert sorted(tree(out)) == [
+        "index.rst",
+        "utils/index.rst",
+        "~55tils/index.rst",
+        "~61ux/index.rst",
+    ]
+    assert any("differ only by case" in m for _, m in caplog_sphinx)
+
+
+@pytest.mark.skipif(
+    os.name == "nt" or not hasattr(os, "geteuid") or os.geteuid() == 0,
+    reason="needs POSIX permissions",
+)
+def test_unreadable_file_is_left_out(tmp_path, caplog_sphinx):
+    write(tmp_path, {"ok.m": FUNCTION.format(name="ok"), "locked.m": "x\n"})
+    (tmp_path / "locked.m").chmod(0)
+    try:
+        (page,) = pages_of(tmp_path)
+    finally:
+        (tmp_path / "locked.m").chmod(0o644)
+    listed = [e["ref"] for _, entries in page.context["sections"] for e in entries]
+    assert listed == ["ok.m"]
+    assert any("locked.m could not be read" in m for _, m in caplog_sphinx)
+
+
+# --- builds of the generated pages ------------------------------------------
+
+
+def _inventory(app):
+    with open(app.outdir / "objects.inv", "rb") as f:
+        inventory = InventoryFile.load(f, "", posixpath_join)
+    data = getattr(inventory, "data", inventory)
+    names = [
+        name
+        for role, items in data.items()
+        if role.startswith("mat:")
+        for name in items
+    ]
+    return names
+
+
+def posixpath_join(*parts):
+    return "/".join(parts)
+
+
+def expected_objects(root):
+    """Inventory names of every indexed file except hidden and ``unknown`` ones:
+    class folder methods under their class.
+    """
+    source_index = build_index(IndexSettings(str(root)))
+    methods = _generate.class_folder_methods(source_index)
+    out = []
+    for record in source_index.index.values():
+        ref = record["reference"]
+        if is_hidden(ref) or record["type"] == "unknown":
+            continue
+        if ref in methods:
+            folder, _, name = ref.rpartition("/")
+            cls = mat_types.class_file_reference(f"{folder}/")
+            out.append(f"{cls}.{name.rsplit('.', 1)[0]}")
+        else:
+            out.append(ref)
+    return out
+
+
+@pytest.mark.parametrize("separate", [False, True])
+def test_build_of_the_generated_pages(make_app, project, separate):
+    flags = ["-e"] if separate else []
+    assert main(["-q", *flags, "-o", str(project), str(project)]) == 0
+    app = make_app(
+        srcdir=project, confoverrides={"suppress_warnings": ["mat.not_callable"]}
+    )
+    app.build(force_all=True)
+    assert app.warning.getvalue() == ""
+    names = _inventory(app)
+    assert len(names) == len(set(names))
+    expected = expected_objects(project)
+    assert len(expected) == 25
+    assert set(expected) <= set(names)
+    assert "@Bad/bad_fn.m" in names
+    assert not any(name.startswith("@Bad/Other.m.") for name in names)
+
+    # Idempotent: nothing is written, nothing is read again.
+    assert main(["-q", "-f", *flags, "-o", str(project), str(project)]) == 0
+    again = make_app(
+        srcdir=project, confoverrides={"suppress_warnings": ["mat.not_callable"]}
+    )
+    again.build()
+    assert list(again.env.get_domain("mat").read_docnames) == []
+
+
+# --- worked example (examples/apidoc) ----------------------------------------
+
+
+def test_example_is_up_to_date(tmp_path):
+    out = tmp_path / "api"
+    flags = ["-q", "-t", str(EXAMPLE / "templates"), "-o", str(out)]
+    assert main([*flags, str(EXAMPLE / "src")]) == 0
+    assert tree(out) == tree(EXAMPLE / "docs" / "api")
+
+
+def test_example_builds(make_app, tmp_path):
+    dst = tmp_path / "example"
+    shutil.copytree(EXAMPLE, dst, ignore=shutil.ignore_patterns("_build"))
+    app = make_app(srcdir=dst / "docs")
+    app.build(force_all=True)
+    assert app.warning.getvalue() == ""
+    names = _inventory(app)
+    for ref in ("+demo/@Shape/Shape.m.area", "utils/private/check_range.m"):
+        assert ref in names

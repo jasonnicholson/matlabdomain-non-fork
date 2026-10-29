@@ -15,6 +15,7 @@ import sys
 import unicodedata
 import xml.etree.ElementTree as ET
 from collections.abc import Mapping
+from dataclasses import dataclass, field
 from io import open  # for opening files with encoding in Python 2
 from zipfile import ZipFile
 
@@ -198,6 +199,15 @@ def _is_class_folder(folder):
     return folder.rstrip("/").rpartition("/")[2].startswith("@")
 
 
+def class_file_reference(folder):
+    """Return the reference of the class file of the class folder ``folder``
+    (``a/@Cls/`` -> ``a/@Cls/Cls.m``). Only if that file is a classdef is the
+    folder a class, with its function files as methods.
+    """
+    name = folder.rstrip("/").rpartition("/")[2][1:]
+    return join_reference(folder, f"{name}.m")
+
+
 def _reading_docname(dom):
     """Return the document being read, or None outside the read phase."""
     if isinstance(dom, _DetachedEntityStore):
@@ -323,28 +333,29 @@ def _load(dom, ref):
 
 
 def _load_class_folder(dom, folder):
-    """Load the files of the class folder ``folder`` and attach its functions
-    to its class as methods.
+    """Load the files of the class folder ``folder``. If its class file
+    (``class_file_reference``) is a classdef, its function files become
+    methods of that class; otherwise (no class file, an old-style
+    constructor, a classdef named differently) none is a method.
     """
     cf_entity = dom.entities_table[folder]
-    entities = [
-        (name, _load(dom, ref)) for name, ref in cf_entity.members if ref[-1:] != "/"
-    ]
-    class_entities = [e for e in entities if isinstance(e[1], MatClass)]
-    func_entities = [e for e in entities if isinstance(e[1], MatFunction)]
-    if len(class_entities) > 1:
-        # Other classdef files in a class folder are not its class.
-        class_entities = [e for e in class_entities if e[1].name == cf_entity.name[1:]]
-    if len(class_entities) != 1:
+    entities = {
+        ref: _load(dom, ref) for _, ref in cf_entity.members if ref[-1:] != "/"
+    }
+    class_ref = class_file_reference(folder)
+    cls = entities.get(class_ref)
+    record = dom.data["index"].get(dom.source_paths().get(class_ref))
+    if not isinstance(cls, MatClass) or record is None or record["type"] != "class":
         return
-    cls = class_entities[0][1]
     # Drop folder methods attached to a class reused from the parse cache.
     cls.methods = {
         n: m
         for n, m in cls.methods.items()
         if not getattr(m, "from_class_folder", False)
     }
-    for _, func in func_entities:
+    for func in entities.values():
+        if not isinstance(func, MatFunction):
+            continue
         func.__class__ = MatMethod
         func.cls = cls
         # TODO: Find the method attributes defined in classfolder class definition.
@@ -638,6 +649,8 @@ class SourceFilter:
     """
 
     def __init__(self, include, exclude):
+        #: the normalized ``(include, exclude)`` patterns
+        self.patterns = (tuple(include), tuple(exclude))
         self.include = Matcher(include)
         self.exclude = Matcher(exclude)
         #: ``(folder, deep)`` the include patterns can reach
@@ -686,7 +699,7 @@ def _within(path, root, pathmod=os.path):
     return pathmod.normcase(common) == pathmod.normcase(root)
 
 
-def check_pattern_folders(sources, root):
+def check_pattern_folders(sources, root, option="matlab_src_include_patterns"):
     """ConfigError if a literal folder of an include pattern resolves (through
     a link or junction) outside the project root.
     """
@@ -697,7 +710,7 @@ def check_pattern_folders(sources, root):
             real = os.path.realpath(path)
             if not _within(real, real_root):
                 raise ConfigError(
-                    f"matlab_src_include_patterns: {prefix} resolves to {real}, "
+                    f"{option}: {prefix} resolves to {real}, "
                     "outside matlab_src_code_project_root."
                 )
 
@@ -714,24 +727,104 @@ def _is_link(path):
     )
 
 
+@dataclass(frozen=True)
+class IndexSettings:
+    """What the index stage reads (plan.md Section 2.8), without a Sphinx app.
+
+    ``root`` is the absolute project root; ``include`` and ``exclude`` are
+    patterns normalized by ``_normalize_pattern``; ``namelengthmax=None``
+    derives it from ``matlab_version``.
+    """
+
+    root: str
+    include: tuple[str, ...] = tuple(DEFAULT_INCLUDE_PATTERNS)
+    exclude: tuple[str, ...] = ()
+    encoding: str | None = None
+    matlab_version: str = mat_naming.DEFAULT_MATLAB_VERSION
+    namelengthmax: int | None = None
+    cache_text: bool = True
+
+    @classmethod
+    def from_config(cls, config, srcdir):
+        """Return the settings of a Sphinx build, or None without a project root."""
+        root = project_root(config, srcdir)
+        if root is None:
+            return None
+        include, exclude = source_filter(config).patterns
+        return cls(
+            root=root,
+            include=include,
+            exclude=exclude,
+            encoding=config.matlab_src_encoding,
+            matlab_version=config.matlab_version,
+            namelengthmax=config.matlab_namelengthmax,
+            cache_text=config.matlab_src_cache_text,
+        )
+
+
+@dataclass
+class SourceIndex:
+    """Result of the index stage (``build_index``).
+
+    - ``index``: source path -> record ``{reference, type, mtime, size,
+      warnings, unreadable, matlab_name, private, scope}``, in walk order;
+    - ``entities``: folder reference -> ``MatModule`` with its ``members``;
+    - ``matlab_names``: MATLAB name -> path references;
+    - ``text_cache``: ``(path, mtime_ns, size)`` -> decoded text.
+    """
+
+    settings: IndexSettings
+    index: dict = field(default_factory=dict)
+    entities: dict = field(default_factory=dict)
+    matlab_names: dict = field(default_factory=dict)
+    text_cache: dict = field(default_factory=dict)
+
+
+def build_index(settings, old_index=None):
+    """Run the index stage for ``settings`` without a Sphinx app.
+
+    Walks the root, reads and classifies each selected file once and names
+    files and folders the MATLAB way. Records in ``old_index`` (``{path:
+    record}`` of an earlier run) are reused for files whose ``(mtime, size)``
+    did not change. Warnings go through ``sphinx.util.logging``
+    (``type="mat"``).
+    """
+    out = SourceIndex(settings)
+    if os.path.isdir(settings.root):
+        try:
+            _Indexer(out, old_index or {}).run()
+        except Exception as e:
+            import traceback
+
+            logger.error(f"[sphinxcontrib-matlabdomain] ERROR in analyze: {e}")
+            logger.error(
+                f"[sphinxcontrib-matlabdomain] Traceback: {traceback.format_exc()}"
+            )
+            raise
+    name_sources(out)
+    return out
+
+
 class _Indexer:
     """The index stage (plan.md Section 2.1): walk the project root and read,
     decode and classify each source file once. Records of files whose
     ``(path, mtime, size)`` did not change are reused without reading.
     """
 
-    def __init__(self, dom, basedir, config, old_index):
-        self.dom = dom
-        self.basedir = basedir
+    def __init__(self, out, old_index):
+        settings = out.settings
+        self.out = out
+        self.basedir = settings.root
         self.old_index = old_index
-        self.sources = source_filter(config)
-        self.real_root = os.path.realpath(basedir)
-        self.cache_text = config.matlab_src_cache_text
+        self.sources = SourceFilter(settings.include, settings.exclude)
+        self.real_root = os.path.realpath(self.basedir)
+        self.cache_text = settings.cache_text
+        self.encoding = settings.encoding
         self.pending = {}
 
     def run(self):
         root = MatModule(os.path.basename(self.basedir), self.basedir, ROOT_REFERENCE)
-        self.dom.entities_table[ROOT_REFERENCE] = root
+        self.out.entities[ROOT_REFERENCE] = root
         self.list(root)
         self.descend(root)
 
@@ -739,7 +832,7 @@ class _Indexer:
         for _, ref in mod.members:
             if ref[-1:] == "/":
                 child = self.pending.pop(ref)
-                self.dom.entities_table[ref] = child
+                self.out.entities[ref] = child
                 self.list(child)
                 self.descend(child)
 
@@ -811,14 +904,14 @@ class _Indexer:
         else:
             text = None
             try:
-                kind, text, problems = handler.read(path, MatObject.encoding)
+                kind, text, problems = handler.read(path, self.encoding)
                 unreadable = False
             except OSError as err:
                 kind, unreadable = UNKNOWN, True
                 problems = [("parse_error", failure_message(err), None)]
             if self.cache_text and text is not None:
-                self.dom.text_cache[key] = text
-        self.dom.data["index"][path] = {
+                self.out.text_cache[key] = text
+        self.out.index[path] = {
             "reference": ref,
             "type": kind,
             "mtime": key[1],
@@ -864,23 +957,16 @@ def analyze(app):
     MatObject.sphinx_env = env
     MatObject.sphinx_app = app
 
-    basedir = project_root(env.config, env.srcdir)
-    if basedir is None:
+    settings = IndexSettings.from_config(env.config, env.srcdir)
+    if settings is None:
         logger.debug("[sphinxcontrib-matlabdomain] no project root, skipping parsing.")
     else:
-        MatObject.basedir = basedir
-        if os.path.isdir(basedir):
-            try:
-                _Indexer(dom, basedir, env.config, old_index).run()
-            except Exception as e:
-                import traceback
-
-                logger.error(f"[sphinxcontrib-matlabdomain] ERROR in analyze: {e}")
-                logger.error(
-                    f"[sphinxcontrib-matlabdomain] Traceback: {traceback.format_exc()}"
-                )
-                raise
-        name_sources(dom, env.config)
+        MatObject.basedir = settings.root
+        source_index = build_index(settings, old_index)
+        data["index"].update(source_index.index)
+        data["matlab_names"].update(source_index.matlab_names)
+        dom.entities_table.update(source_index.entities)
+        dom.text_cache.update(source_index.text_cache)
 
     keys = {(path, r["mtime"], r["size"]) for path, r in data["index"].items()}
     for cache in (data["parse_cache"], data["parse_warnings"]):
@@ -957,7 +1043,7 @@ def _naming_folder(reference):
     return os.path.normpath(os.path.join(_ROOT_PART, folder_of(reference)))
 
 
-def name_sources(dom, config):
+def name_sources(source_index):
     """Name every discovered file and folder the MATLAB way (``form_matlab_name``).
 
     Sets ``matlab_name`` (``None`` if MATLAB cannot call it), ``private`` and
@@ -965,12 +1051,12 @@ def name_sources(dom, config):
     ``matlab_names``. Files MATLAB cannot call, except below ``private/``, get
     one ``mat.not_callable`` warning each.
     """
-    version = config.matlab_version
-    namelengthmax = mat_naming.resolve_namelengthmax(
-        version, config.matlab_namelengthmax
-    )
-    matlab_names = dom.data["matlab_names"]
-    for path, record in dom.data["index"].items():
+    settings = source_index.settings
+    version = settings.matlab_version
+    namelengthmax = mat_naming.resolve_namelengthmax(version, settings.namelengthmax)
+    matlab_names = source_index.matlab_names
+    entities = source_index.entities
+    for path, record in source_index.index.items():
         ref = record["reference"]
         name = mat_naming.form_matlab_name(
             _naming_folder(ref),
@@ -983,7 +1069,7 @@ def name_sources(dom, config):
         private = is_private_reference(ref)
         scope = _scope(folder_of(ref)) if name is not None else None
         record.update(matlab_name=matlab_name, private=private, scope=scope)
-        entity = dom.entities_table.get(ref)
+        entity = entities.get(ref)
         if entity is not None:
             entity.matlab_name, entity.private, entity.scope = matlab_name, private, scope
         if name is None:
@@ -1000,7 +1086,7 @@ def name_sources(dom, config):
         if matlab_name == name.pseudo_fullname:
             matlab_names.setdefault(matlab_name, []).append(ref)
 
-    for ref, entity in dom.entities_table.items():
+    for ref, entity in entities.items():
         if not isinstance(entity, MatModule):
             continue
         namespace = mat_naming.folder_namespace(

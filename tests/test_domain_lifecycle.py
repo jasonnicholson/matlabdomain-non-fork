@@ -88,7 +88,7 @@ def used_paths(srcdir, refs=USED):
 
 
 def test_initial_data_layout():
-    assert MATLABDomain.data_version == 9
+    assert MATLABDomain.data_version == 10
     assert set(MATLABDomain.initial_data) == {
         "objects",
         "folders",

@@ -48,6 +48,9 @@ rtd = [
     "sphinxcontrib-napoleon"
 ]
 
+[project.scripts]
+sphinx-matlab-apidoc = "sphinxcontrib.matlab_apidoc:main"
+
 [project.urls]
 Download = "http://pypi.python.org/pypi/sphinxcontrib-matlabdomain"
 Homepage = "https://github.com/sphinx-contrib/matlabdomain"
@@ -158,6 +161,7 @@ include-package-data = true
     "LICENSE",
     "CHANGES.*"
 ]
+"sphinxcontrib.matlab_apidoc" = ["templates/*.jinja"]
 
 [tool.setuptools.packages.find]
 include = ["sphinxcontrib*"]
