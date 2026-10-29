@@ -16,6 +16,8 @@ from sphinx.ext.autodoc.directive import (
 )
 from sphinx.util.logging import getLogger
 
+from .mat_types import MatObject
+
 logger = getLogger("matlab-domain")
 
 
@@ -51,7 +53,7 @@ class MatlabAutodocDirective(AutodocDirective):
 
         # look up target Documenter
         objtype = self.name.replace("auto", "")  # Removes auto
-        doccls = self.env.app.registry.documenters[objtype]
+        doccls = MatObject.sphinx_app.registry.documenters[objtype]
 
         # process the options with the selected documenter's option_spec
         try:
