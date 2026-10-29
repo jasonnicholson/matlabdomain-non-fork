@@ -297,20 +297,36 @@ def _is_marked(path):
         return False
 
 
-def _stale(output_dir, suffix, keep):
-    """Yield the marked files with ``suffix`` below ``output_dir`` that are
-    not in ``keep`` (normalized paths). Folders starting with ``.`` or ``_``
-    hold no pages and are not searched.
+def _file_id(path):
+    """``(st_dev, st_ino)`` of an existing file, or None (no file, or a file
+    system without file ids).
+    """
+    try:
+        st = os.stat(path)
+    except OSError:
+        return None
+    return (st.st_dev, st.st_ino) if st.st_ino else None
+
+
+def _stale(output_dir, suffix, keep_paths, keep_ids):
+    """Yield the marked files with ``suffix`` below ``output_dir`` that are not
+    pages of this run. A file is a page if it is the same file as one (its
+    ``_file_id`` is in ``keep_ids``), so the case of its name does not matter;
+    without a file id, if its normalized path is in ``keep_paths``. Folders
+    starting with ``.`` or ``_`` hold no pages and are not searched.
     """
     for dirpath, dirnames, filenames in os.walk(output_dir):
         dirnames[:] = sorted(d for d in dirnames if not d.startswith((".", "_")))
         for name in sorted(filenames):
             path = os.path.join(dirpath, name)
-            if (
-                name.endswith(f".{suffix}")
-                and os.path.normcase(path) not in keep
-                and _is_marked(path)
-            ):
+            if not name.endswith(f".{suffix}"):
+                continue
+            file_id = _file_id(path)
+            if file_id is None:
+                current = os.path.normcase(path) in keep_paths
+            else:
+                current = file_id in keep_ids
+            if not current and _is_marked(path):
                 yield path
 
 
@@ -327,12 +343,21 @@ def _remove_empty(folder, output_dir):
         folder = os.path.dirname(folder)
 
 
+def _same_file(a, b):
+    try:
+        return os.path.samefile(a, b)
+    except OSError:
+        return False
+
+
 def _match_case(output_dir, parts, dry_run, listings):
     """On a case-insensitive file system, give the existing folders and file
     of the page ``parts`` (below ``output_dir``) the case of its name, so a
     case-only rename of a source reaches the output. Return False if the file
     exists under another case without the marker (it is kept). ``listings``
-    caches ``(names, by casefold)`` per folder for one run.
+    caches ``(names, by casefold)`` per folder for one run; it does not see
+    files and folders this run creates, so a name counts as another case of
+    ``part`` only if both name the same file.
     """
     folder = output_dir
     for i, part in enumerate(parts):
@@ -347,23 +372,19 @@ def _match_case(output_dir, parts, dry_run, listings):
             return True
         names, folded = listings[folder]
         target = os.path.join(folder, part)
-        # Missing from the listing yet present: another case of the name.
-        if part not in names and os.path.lexists(target):
-            current = folded.get(part.casefold())
-            if current is not None:
-                if i == len(parts) - 1 and not _is_marked(
-                    os.path.join(folder, current)
-                ):
-                    _warn(
-                        f"{os.path.join(folder, current)} has no marker line and "
-                        f"its name differs from {part} only by case; it is kept."
-                    )
-                    return False
-                if not dry_run:
-                    os.rename(os.path.join(folder, current), target)
-                    names.discard(current)
-                    names.add(part)
-                    folded[part.casefold()] = part
+        current = None if part in names else folded.get(part.casefold())
+        if current is not None and _same_file(os.path.join(folder, current), target):
+            if i == len(parts) - 1 and not _is_marked(os.path.join(folder, current)):
+                _warn(
+                    f"{os.path.join(folder, current)} has no marker line and "
+                    f"its name differs from {part} only by case; it is kept."
+                )
+                return False
+            if not dry_run:
+                os.rename(os.path.join(folder, current), target)
+                names.discard(current)
+                names.add(part)
+                folded[part.casefold()] = part
         folder = target
     return True
 
@@ -413,7 +434,11 @@ def generate(source_index, options):
                 f.write(data)
 
     if options.remove_old and os.path.isdir(output_dir):
-        for path in list(_stale(output_dir, options.suffix, keep)):
+        paths = [
+            os.path.join(output_dir, *f"{d}.{options.suffix}".split("/")) for d in texts
+        ]
+        keep_ids = {i for i in map(_file_id, paths) if i is not None}
+        for path in list(_stale(output_dir, options.suffix, keep, keep_ids)):
             result.removed.append(Path(os.path.relpath(path, output_dir)).as_posix())
             if not options.dry_run:
                 os.remove(path)
