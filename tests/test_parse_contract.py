@@ -504,6 +504,18 @@ def test_crlf_docstring_keeps_all_lines(tmp_path, text, expected):
     assert mat_types.MatObject.parse_mfile(mfile, "f", "./").docstring == expected
 
 
+def test_script_docstring_is_its_first_comment(tmp_path):
+    # The script query captures every top-level comment, not in document
+    # order; taking the first capture made the docstring a later block
+    # (a live script's %[appendix], ...) that also varied between builds.
+    blocks = "".join(f"x{i} = {i};\n% block {i}\n" for i in range(10))
+    mfile = tmp_path / "s.m"
+    mfile.write_text(f"% S HELP\n{blocks}")
+    obj = mat_types.MatObject.parse_mfile(mfile, "s", "./")
+    assert isinstance(obj, mat_types.MatScript)
+    assert obj.docstring == "S HELP"
+
+
 def test_application_type_and_m_before_mlapp(make_app, rootdir, tmp_path):
     app_file = (rootdir / "test_data" / "Application.mlapp").read_bytes()
     (tmp_path / "Application.mlapp").write_bytes(app_file)

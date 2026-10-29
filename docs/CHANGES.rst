@@ -115,6 +115,10 @@ Release notes
   differently, no class file) they are documented as functions; before, the
   folder's only classdef took them as methods, whatever its name. Cached
   environments from earlier versions are rebuilt.
+* A script's docstring is its first comment block. It used to be one of its
+  top-level comment blocks, chosen by an unordered query result: often a later
+  block (a live script's ``%[appendix]``), and not always the same one from
+  build to build. Cached environments from earlier versions are rebuilt.
 * ``sphinxcontrib`` is a native (PEP 420) namespace package, like in the
   other ``sphinxcontrib-*`` packages: ``sphinxcontrib/__init__.py`` is no
   longer shipped. It imported ``pkg_resources``, so without setuptools the

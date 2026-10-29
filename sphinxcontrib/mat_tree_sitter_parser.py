@@ -392,7 +392,10 @@ class MatScriptParser:
         script_matches = list(QueryCursor(q_script).matches(root_node))
         if script_matches:
             script_match = QueryCursor(q_script).captures(root_node)
-            docstring_node = get_node(script_match, "docstring")
+            # The query is not anchored: it captures every top-level comment,
+            # not in document order. The first one is the docstring.
+            docstring_nodes = get_nodes(script_match, "docstring")
+            docstring_node = docstring_nodes[0] if docstring_nodes else None
             if docstring_node is not None:
                 self.docstring = process_text_into_docstring(
                     docstring_node.text, self.encoding
