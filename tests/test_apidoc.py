@@ -585,7 +585,8 @@ def test_output_must_be_a_folder(tmp_path, capsys):
 
 
 @pytest.mark.parametrize("argv", [[], [str(ROOT)], ["-o", "x", str(ROOT), "--bogus"]])
-def test_usage_errors_exit_2(argv, capsys):
+def test_usage_errors_exit_2(argv, capsys, monkeypatch):
+    monkeypatch.setenv("PYTHON_COLORS", "0")  # argparse colors usage from Python 3.14
     with pytest.raises(SystemExit) as exc:
         main(argv)
     assert exc.value.code == 2
@@ -684,8 +685,10 @@ def test_console_script_and_module(tmp_path):
 # --- POSIX-only names -------------------------------------------------------
 
 
-@pytest.mark.skipif(os.name == "nt", reason="needs device and case-only names")
+@pytest.mark.skipif(os.name == "nt", reason="needs device names")
 def test_device_names_and_case_collisions(tmp_path, caplog_sphinx):
+    if _case_insensitive(tmp_path):
+        pytest.skip("needs a case-sensitive file system")
     write(
         tmp_path / "src",
         {

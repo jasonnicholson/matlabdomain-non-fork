@@ -384,11 +384,17 @@ class ForkLikeTasks:
                     worker._builder_cls = main._builder_cls
                 cache = dict(mat_types.MatModuleAnalyzer.cache)
                 mat_types.MatModuleAnalyzer.cache.clear()
+                # Sphinx < 9 caches docutils publishers bound to the main env.
+                publishers = getattr(app.registry, "publishers", {})
+                saved = dict(publishers)
+                publishers.clear()
                 app.env = app.builder.env = mat_types.MatObject.sphinx_env = worker
                 try:
                     ret = func(arg)
                 finally:
                     app.env = app.builder.env = mat_types.MatObject.sphinx_env = main
+                    publishers.clear()
+                    publishers.update(saved)
                     mat_types.MatModuleAnalyzer.cache.clear()
                     mat_types.MatModuleAnalyzer.cache.update(cache)
             if result_func:
