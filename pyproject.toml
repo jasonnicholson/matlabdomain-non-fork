@@ -33,7 +33,7 @@ dynamic = ["version"]
 license = "BSD-3-Clause"
 name = "sphinxcontrib-matlabdomain"
 readme = "README.rst"
-requires-python = ">=3.10.0"
+requires-python = ">=3.11.0"
 
 [project.optional-dependencies]
 dev = [

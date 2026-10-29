@@ -23,6 +23,11 @@ Install **sphinxcontrib-matlabdomain** with
 
    pip install sphinxcontrib-matlabdomain
 
+It needs Python 3.11 or newer and Sphinx 8.0 or newer, and is tested on Linux,
+Windows and macOS. Path references and patterns are case-sensitive on every
+system; on a case-insensitive file system (the Windows and macOS default),
+names that differ only by case are handled on a best-effort basis.
+
 In order for the Sphinx MATLAB domain to auto-document MATLAB source code, set
 the config value of ``matlab_src_code_project_root`` to the root folder of the
 MATLAB sources. A relative path is relative to the Sphinx source directory

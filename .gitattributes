@@ -17,6 +17,7 @@
 *.toml text eol=lf
 *.ini text eol=lf
 *.cfg text eol=lf
+uv.lock text eol=lf
 
 # Data files
 *.json text eol=lf

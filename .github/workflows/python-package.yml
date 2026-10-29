@@ -29,6 +29,9 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    # Sphinx master may break at any time; it must not block.
+    continue-on-error: ${{ matrix.sphinx-version == 'dev' }}
+
     env:
       COVERAGE_FILE: .coverage.${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.sphinx-version }}
 
@@ -36,14 +39,17 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
-        # test all python versions but the oldest one supported
         python-version: ["3.11", "3.12", "3.13", "3.14"]
         sphinx-version: ["latest"]
         include:
         -   description: oldest supported dependencies on oldest supported python
             os: ubuntu-latest
-            python-version: '3.10'
+            python-version: '3.11'
             sphinx-version: min
+        -   description: last Sphinx 8 release line
+            os: ubuntu-latest
+            python-version: '3.12'
+            sphinx-version: '82'
         -   description: sphinx dev with latest python
             # dev does not work with python <= 3.11 so only test with latest python
             os: ubuntu-latest
@@ -57,7 +63,6 @@ jobs:
       uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
-        architecture: x64
 
     - name: Install the latest version of uv
       uses: astral-sh/setup-uv@v7
@@ -76,7 +81,7 @@ jobs:
         path: htmlcov
 
     - name: Upload coverage data
-      if: success() || failure()
+      if: (success() || failure()) && matrix.sphinx-version != 'dev'
       uses: actions/upload-artifact@v7
       with:
         name: coverage-data-${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.sphinx-version }}
