@@ -380,7 +380,8 @@ class ForkLikeTasks:
                 main = app.env
                 worker = pickle.loads(pickle.dumps(main, pickle.HIGHEST_PROTOCOL))
                 worker.setup(app)
-                worker._builder_cls = main._builder_cls
+                if hasattr(main, "_builder_cls"):  # Sphinx >= 8.2
+                    worker._builder_cls = main._builder_cls
                 cache = dict(mat_types.MatModuleAnalyzer.cache)
                 mat_types.MatModuleAnalyzer.cache.clear()
                 app.env = app.builder.env = mat_types.MatObject.sphinx_env = worker

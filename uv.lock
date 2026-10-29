@@ -980,7 +980,7 @@ requires-dist = [
     { name = "pre-commit", marker = "extra == 'dev'" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pytest-cov", marker = "extra == 'dev'" },
-    { name = "sphinx", specifier = ">=7.0.0" },
+    { name = "sphinx", specifier = ">=8.0.0" },
     { name = "sphinx-rtd-theme", marker = "extra == 'rtd'" },
     { name = "sphinxcontrib-napoleon", marker = "extra == 'rtd'" },
     { name = "tox", marker = "extra == 'dev'", specifier = ">4.8" },

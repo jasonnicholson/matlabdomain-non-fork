@@ -5,7 +5,7 @@ Release notes
 -------------------
 
 * Drop support for Python <=3.9.
-* Drop support for Sphinx <=6.x.
+* Drop support for Sphinx <=7.x.
 * Use treesitter for parsing.
 * Added new configuration: ``matlab_version`` (default ``"R2026a"``, oldest
   supported ``"R2025a"``). It selects version-dependent MATLAB naming rules.

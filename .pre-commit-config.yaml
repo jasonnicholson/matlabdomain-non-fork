@@ -39,9 +39,8 @@ repos:
         args: [--toml, pyproject.toml]
         additional_dependencies: [tomli]
 
-repos:
-  - repo: https://github.com/astral-sh/uv-pre-commit
+-   repo: https://github.com/astral-sh/uv-pre-commit
     # Pin to a specific uv version (check the repo tags for the latest)
     rev: 0.12.5
     hooks:
-      - id: uv-lock
+    -   id: uv-lock

@@ -19,7 +19,7 @@ classifiers = [
     "Framework :: Sphinx :: Domain"
 ]
 dependencies = [
-    "Sphinx>=7.0.0",
+    "Sphinx>=8.0.0",
     # tree-sitter and tree-sitter-matlab do NOT follow SemVer: both ship breaking
     # changes (grammar/AST shape, Python binding API) WITHOUT a major-version bump.
     # e.g. tree-sitter-matlab 1.3.0 was a BREAKING `fix!` released as a minor bump.
@@ -60,10 +60,37 @@ builtin = "clear,rare"
 ignore-words = ".github/codespell_ignore_words.txt"
 skip = "./.git"
 
+[tool.coverage.paths]
+# tox measures the installed package; map it back to the checkout.
+source = [
+    "sphinxcontrib/",
+    "*/site-packages/sphinxcontrib/"
+]
+
+[tool.coverage.report]
+exclude_also = [
+    'if __name__ == "__main__":',
+    "if TYPE_CHECKING:"
+]
+
 [tool.coverage.run]
 branch = true
 omit = [
     '*/_build/*'
+]
+relative_files = true
+# Not "sphinxcontrib": other distributions share that namespace package.
+source_pkgs = [
+    "sphinxcontrib.mat_classify",
+    "sphinxcontrib.mat_directives",
+    "sphinxcontrib.mat_documenters",
+    "sphinxcontrib.mat_handlers",
+    "sphinxcontrib.mat_lexer",
+    "sphinxcontrib.mat_naming",
+    "sphinxcontrib.mat_tree_sitter_parser",
+    "sphinxcontrib.mat_types",
+    "sphinxcontrib.matlab",
+    "sphinxcontrib.matlab_apidoc"
 ]
 
 [tool.pytest.ini_options]
@@ -72,6 +99,7 @@ doctest_optionflags = "NORMALIZE_WHITESPACE ELLIPSIS"
 junit_family = "xunit2"
 log_cli_level = "INFO"
 minversion = "6.0"
+testpaths = ["tests"]
 xfail_strict = true
 
 [tool.ruff]
