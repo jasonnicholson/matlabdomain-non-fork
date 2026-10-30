@@ -80,6 +80,14 @@ class MFileHandler(Handler):
             text, problem = mat_classify.decode_source(f.read(), encoding)
         kind = mat_classify.classify(path, text)
         problems = [] if problem is None else [("encoding", *problem)]
+        if (nul := text.find("\0")) >= 0:
+            problems.append(
+                (
+                    "invalid_matlab",
+                    "contains NUL bytes; it may be a binary file, not MATLAB code.",
+                    mat_classify.row_of(text[:nul]),
+                )
+            )
         if kind == mat_classify.SCRIPT and not mat_classify.first_line_of_code(text):
             problems.append(
                 ("no_code", "has no code; it is documented as a script.", None)

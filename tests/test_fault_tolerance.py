@@ -16,7 +16,7 @@ import pytest
 from conftest import remove_build_tree
 from sphinx.errors import ConfigError
 
-from sphinxcontrib import mat_classify, mat_types
+from sphinxcontrib import mat_classify, mat_handlers, mat_types
 from sphinxcontrib.mat_classify import decode_source
 
 CONF = (
@@ -336,6 +336,7 @@ EXPECTED = [
     ("encoding", "ft_binary.m"),
     ("encoding", "ft_latin1.m"),
     ("invalid_matlab", "+ftpkg/ft_dotted.m"),
+    ("invalid_matlab", "ft_binary.m"),
     ("invalid_matlab", "ft_trunc_class.m"),
     ("no_code", "ft_empty.m"),
     ("parse_error", "ft_corrupt.mlapp"),
@@ -425,6 +426,11 @@ def test_malformed_files_warn_and_the_build_completes(make_app, malformed, parse
     assert (
         "ft_corrupt.mlapp cannot be parsed (BadZipFile: File is not a zip file); "
         "it is documented without content. [mat.parse_error]"
+    ) in warnings
+    binary = srcdir / "ft_binary.m"
+    assert (
+        f"{binary}:1: WARNING: [sphinxcontrib-matlabdomain] ft_binary.m contains "
+        "NUL bytes; it may be a binary file, not MATLAB code. [mat.invalid_matlab]"
     ) in warnings
     if CAN_MAKE_UNREADABLE:
         assert (
@@ -543,6 +549,101 @@ def test_unreadable_folder_warns(make_app, tmp_path):
     # Listed once: autofolder :members: does not list (and warn) again.
     assert warnings_of(app) == [("parse_error", "locked/")]
     assert "OK FUNCTION HELP" in (app.outdir / "index.html").read_text(encoding="utf-8")
+
+
+LOCKED = {
+    "conf.py": CONF,
+    "index.rst": (
+        "Index\n=====\n\n.. mat:autofunction:: ft_ok_function\n\n"
+        ".. mat:autofolder:: locked/\n   :members:\n"
+    ),
+    "ft_ok_function.m": VALID["ft_ok_function.m"],
+    "locked/inner.m": "function inner\nend\n",
+    "locked/deeper/deep.m": "function deep\nend\n",
+    # not counted: such folders are skipped anyway
+    "locked/.cache/hidden.m": "function hidden\nend\n",
+}
+
+
+def assert_locked_warns(app):
+    assert warnings_of(app) == [("parse_error", "locked/")]
+    assert (
+        "locked/: 2 entries cannot be accessed (Permission denied); they are not "
+        "documented. [mat.parse_error]"
+    ) in COLOR_RE.sub("", app.warning.getvalue())
+    assert "OK FUNCTION HELP" in (app.outdir / "index.html").read_text(encoding="utf-8")
+    index = app.env.get_domain("mat").data["index"]
+    assert [r["reference"] for r in index.values()] == ["ft_ok_function.m"]
+
+
+def test_inaccessible_entries_warn(make_app, tmp_path, monkeypatch):
+    write(tmp_path, LOCKED)
+    locked = str(tmp_path / "locked")
+    stat = os.stat
+
+    def denied(path, *args, **kwargs):
+        if os.path.dirname(os.fspath(path)) == locked:
+            raise PermissionError(13, "Permission denied", path)
+        return stat(path, *args, **kwargs)
+
+    monkeypatch.setattr(mat_types.os, "stat", denied)
+    app = make_app(srcdir=tmp_path)
+    app.build()
+    assert_locked_warns(app)
+
+
+@pytest.mark.skipif(not CAN_MAKE_UNREADABLE, reason="needs POSIX permissions")
+def test_folder_listed_but_not_entered_warns(make_app, tmp_path):
+    write(tmp_path, LOCKED)
+    os.chmod(tmp_path / "locked", 0o444)
+    try:
+        app = make_app(srcdir=tmp_path)
+        app.build()
+    finally:
+        os.chmod(tmp_path / "locked", 0o755)
+    assert_locked_warns(app)
+
+
+ONE_FUNCTION = {
+    "conf.py": CONF,
+    "index.rst": "Index\n=====\n\n.. mat:autofunction:: ft_ok_function\n",
+    "ft_ok_function.m": VALID["ft_ok_function.m"],
+}
+
+
+def test_broken_link_is_skipped(make_app, tmp_path):
+    write(tmp_path, ONE_FUNCTION)
+    try:
+        os.symlink(tmp_path / "gone.m", tmp_path / "dangling.m")
+    except OSError:
+        pytest.skip("cannot create symbolic links")
+    app = make_app(srcdir=tmp_path)
+    app.build()
+    assert "WARNING" not in app.warning.getvalue()
+    index = app.env.get_domain("mat").data["index"]
+    assert [r["reference"] for r in index.values()] == ["ft_ok_function.m"]
+
+
+def test_read_failure_while_parsing_is_not_cached(make_app, tmp_path, monkeypatch):
+    write(tmp_path, ONE_FUNCTION)
+
+    def locked(*args, **kwargs):
+        raise PermissionError(13, "Permission denied")
+
+    # Readable for the index stage (text not kept), not when parsed.
+    monkeypatch.setattr(mat_handlers.MFileHandler, "parse", locked)
+    app = make_app(srcdir=tmp_path, confoverrides={"matlab_src_cache_text": False})
+    app.build()
+    assert warnings_of(app) == [("parse_error", "ft_ok_function.m")]
+    assert app.env.get_domain("mat").data["parse_cache"] == {}
+
+    monkeypatch.undo()
+    app2 = make_app(srcdir=tmp_path, confoverrides={"matlab_src_cache_text": False})
+    app2.build()
+    # The page that used the unreadable file is read again.
+    assert app2.env.get_domain("mat").read_docnames == ["index"]
+    html = (app2.outdir / "index.html").read_text(encoding="utf-8")
+    assert "OK FUNCTION HELP" in html
 
 
 @pytest.mark.skipif(not CAN_MAKE_UNREADABLE, reason="needs POSIX permissions")

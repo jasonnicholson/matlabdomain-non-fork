@@ -1,5 +1,4 @@
 import re
-from importlib.metadata import version
 
 import tree_sitter_matlab as tsml
 from sphinx.util.logging import getLogger
@@ -54,11 +53,7 @@ MATLAB_ATTRIBUTE_DEFAULTS = {
 }
 
 
-tree_sitter_ver = tuple([int(sec) for sec in version("tree_sitter").split(".")])
-if tree_sitter_ver[1] == 21:
-    ML_LANG = Language(tsml.language(), "matlab")
-else:
-    ML_LANG = Language(tsml.language())
+ML_LANG = Language(tsml.language())
 
 # QUERIES
 q_classdef = Query(ML_LANG, 
@@ -81,6 +76,8 @@ q_classdef = Query(ML_LANG,
     (superclasses
         [(property_name) @supers _]+
     )?
+    .
+    (line_continuation)?
     .
     (comment)? @docstring
     ) @prop_node @class
@@ -128,16 +125,6 @@ q_enumerations = Query(ML_LANG,
     """(enumeration
     [(enum) @enums _]+
     ) @enum_block
-"""
-)
-
-q_events = Query(ML_LANG, 
-    """(events
-    (attributes
-        [(attribute) @attrs _]+
-    )?
-    (identifier)+ @events
-    ) @event_block
 """
 )
 
@@ -260,6 +247,9 @@ re_percent_remove = re.compile(r"^[ \t]*% ?", flags=re.M)
 re_trim_line = re.compile(r"^[ \t]*", flags=re.M)
 re_assign_remove = re.compile(r"^=[ \t]*")
 
+# Old-style property sizes (``x double vector``).
+_SIZE_TYPES = {b"scalar": ("1", "1"), b"vector": (":", "1"), b"matrix": (":", ":")}
+
 
 def get_row(point):
     """Get the zero-based row from a tree-sitter point (a ``(row, column)`` tuple)."""
@@ -292,16 +282,29 @@ def parsed_type(root_node):
 
 
 def first_error(root_node):
-    """Return the zero-based ``(row, column)`` of the first syntax error, or None."""
-    node = root_node
-    if not node.has_error:
+    """Return the zero-based ``(row, column)`` of the first syntax error, or None.
+
+    The innermost ERROR or MISSING node of the first error: tree-sitter can
+    wrap the rest of a file in an ERROR node that starts long before the
+    problem. None if there is no error, or if the error is such a node with
+    nothing nested (its location is unknown).
+    """
+    if not root_node.has_error:
         return None
-    while not (node.is_error or node.is_missing):
-        node = next((c for c in node.children if c.has_error), None)
-        if node is None:
-            return None
+    node = root_node
+    while child := next((c for c in node.children if c.has_error), None):
+        node = child
+    if node.is_error and _wraps_file(root_node, node):
+        return None
     point = node.start_point
     return get_row(point), point[1]
+
+
+def _wraps_file(root_node, node):
+    """True if ``node`` spans from the file's first code to its end."""
+    first = declaration(root_node) if root_node.type == "source_file" else root_node
+    tail = root_node.text[node.end_byte - root_node.start_byte :]
+    return node.start_byte <= first.start_byte and not tail.strip()
 
 
 def leading_comment(root_node, decl):
@@ -313,9 +316,10 @@ def leading_comment(root_node, decl):
     """
     if root_node.type != "source_file":
         return None
-    for node in root_node.named_children:
+    # ``decl`` is one of the named children, so the loop always stops early.
+    for node in root_node.named_children:  # pragma: no branch
         if node.start_byte >= decl.start_byte:
-            return None
+            break
         if node.type == "comment":
             return node
     return None
@@ -419,25 +423,13 @@ class MatFunctionParser:
 
         # Get outputs (possibly more than one)
         self.retv = {}
-        output_nodes = get_nodes(fun_match, "outputs")
-        if output_nodes is not None:
-            retv = [
-                output.text.decode(self.encoding, errors="backslashreplace")
-                for output in output_nodes
-            ]
-            for output in retv:
-                self.retv[output] = {}
+        for output in get_nodes(fun_match, "outputs"):
+            self.retv[output.text.decode(self.encoding, errors="backslashreplace")] = {}
 
         # Get parameters
         self.args = {}
-        arg_nodes = get_nodes(fun_match, "params")
-        if arg_nodes is not None:
-            args = [
-                arg.text.decode(self.encoding, errors="backslashreplace")
-                for arg in arg_nodes
-            ]
-            for arg in args:
-                self.args[arg] = {}
+        for arg in get_nodes(fun_match, "params"):
+            self.args[arg.text.decode(self.encoding, errors="backslashreplace")] = {}
 
         # parse out info from argument blocks
         argblock_nodes = fun_match.get("argblocks")
@@ -525,11 +517,11 @@ class MatFunctionParser:
             )
 
             # extract inline or following docstring if there is no semicolon
-            docstring_node = get_node(arg_match, "docstring")
-            if docstring_node is None:
-                prop_node = get_node(arg_match, "prop_node")
-                if prop_node and prop_node.next_sibling and prop_node.next_sibling.type == "comment":
-                    docstring_node = prop_node.next_sibling
+            # (tree-sitter-matlab puts the comment after the property node)
+            prop_node = get_node(arg_match, "prop_node")
+            docstring_node = None
+            if prop_node.next_sibling and prop_node.next_sibling.type == "comment":
+                docstring_node = prop_node.next_sibling
             docstring = ""
             if docstring_node is not None:
                 # tree-sitter-matlab combines inline comments with following
@@ -554,7 +546,7 @@ class MatFunctionParser:
             # extract inline or following docstring if there _is_ a semicolon.
             # this is only done if we didn't already find a docstring with the previous approach
             next_node = arg.next_named_sibling
-            if next_node is None or docstring is not None:
+            if next_node is None or docstring != "":
                 # Nothing to be done.
                 pass
             elif next_node.type == "comment":
@@ -572,68 +564,36 @@ class MatFunctionParser:
 
             # override docstring with prior if exists
             prev_node = arg.prev_named_sibling
-            if prev_node is None:
-                # Nothing we can do, no previous comment
-                pass
-            elif prev_node.type == "comment":
-                # We have a previous comment if it ends on the previous
-                # line then we set the docstring. We also need to check
-                # if the first line of the comment is the same as a
-                # previous argument.
-                if get_row(arg.start_point) - get_row(prev_node.end_point) <= 1:
-                    ds = process_text_into_docstring(prev_node.text, self.encoding)
-                    prev_arg = prev_node.prev_named_sibling
-                    if prev_arg is not None and prev_arg.type == "property":
-                        if get_row(prev_node.start_point) == get_row(
-                            prev_arg.end_point
-                        ):
-                            ds = "\n".join(ds.split("\n")[1:])
-                    if ds:
-                        docstring = ds
-                else:
-                    if get_row(arg.start_point) - get_row(prev_node.end_point) <= 1:
-                        docstring = process_text_into_docstring(
-                            prev_node.text, self.encoding
-                        )
-            elif prev_node.type == "property":
-                # The previous argumentnode may have eaten our comment
-                # check for it a trailing comment. If it is not there
-                # then we stop looking.
-                prev_comment = prev_node.named_children[-1]
-                if prev_comment.type == "comment":
-                    # we now need to check if prev_comment ends on the line
-                    # before ours and trim the first line if it on the same
-                    # line as prev property.
-                    if get_row(arg.start_point) - get_row(prev_comment.end_point) <= 1:
-                        ds = process_text_into_docstring(
-                            prev_comment.text, self.encoding
-                        )
-                        if get_row(prev_comment.start_point) == get_row(
-                            prev_comment.prev_named_sibling.end_point
-                        ):
-                            ds = "\n".join(ds.split("\n")[1:])
-                        if ds:
-                            docstring = ds
+            # A previous comment that ends on the line before sets the
+            # docstring; a first line on the same line as the previous
+            # argument belongs to that argument.
+            if (
+                prev_node is not None
+                and prev_node.type == "comment"
+                and get_row(arg.start_point) - get_row(prev_node.end_point) <= 1
+            ):
+                ds = process_text_into_docstring(prev_node.text, self.encoding)
+                prev_arg = prev_node.prev_named_sibling
+                if prev_arg is not None and prev_arg.type == "property":
+                    if get_row(prev_node.start_point) == get_row(prev_arg.end_point):
+                        ds = "\n".join(ds.split("\n")[1:])
+                if ds:
+                    docstring = ds
             # After all that if our docstring is empty then we have none
             if not docstring.strip():
                 docstring = None
-            else:
-                pass  # docstring = docstring.rstrip()
 
-            # Here we trust that the person is giving us valid matlab.
+            # Here we trust that the person is giving us valid matlab. A
+            # name-value argument (``opts.Name``) is listed under ``opts``.
             arg_loc = self.retv if "Output" in attrs else self.args
-            if len(name) == 1:
-                arg_loc[name[0]] = {
-                    "attrs": attrs,
-                    "size": dims,
-                    "type": typename,
-                    "validators": vfs,
-                    "default": default,
-                    "docstring": docstring,
-                }
-            else:
-                # how to handle dotted args
-                pass
+            arg_loc[name[0]] = {
+                "attrs": attrs,
+                "size": dims,
+                "type": typename,
+                "validators": vfs,
+                "default": default,
+                "docstring": docstring,
+            }
 
     def _parse_attributes(self, attrs_nodes):
         attrs = {}
@@ -655,7 +615,6 @@ class MatClassParser:
         self.properties = {}
         self.methods = {}
         self.enumerations = {}
-        self.events = {}
 
         self.root_node = root_node
 
@@ -694,10 +653,10 @@ class MatClassParser:
             docstring = help_text(leading.text, self.encoding)
         self.docstring = docstring
 
+        # ``events`` blocks are not documented (Notes.md, parked features).
         prop_matches = list(QueryCursor(q_properties).matches(self.cls))
         method_matches = list(QueryCursor(q_methods).matches(self.cls))
         enum_matches = list(QueryCursor(q_enumerations).matches(self.cls))
-        event_matches = list(QueryCursor(q_events).matches(self.cls))
 
         for _, prop_match in prop_matches:
             self._parse_property_section(prop_match)
@@ -705,8 +664,6 @@ class MatClassParser:
             self._parse_enum_section(enum_match)
         for _, method_match in method_matches:
             self._parse_method_section(method_match)
-        for _, event_match in event_matches:
-            self._parse_event_section(event_match)
 
     def _parse_property_section(self, props_match):
         properties = props_match.get("properties")
@@ -734,14 +691,8 @@ class MatClassParser:
                         for dim in dims_list
                     ]
                 )
-            elif size_type is None:
-                dims = None
-            elif size_type.text == b"scalar":
-                dims = ("1", "1")
-            elif size_type.text == b"vector":
-                dims = (":", "1")
-            elif size_type.text == b"matrix":
-                dims = (":", ":")
+            elif size_type is not None:
+                dims = _SIZE_TYPES.get(size_type.text)
 
             # extract validator functions
             vf_list = get_nodes(prop_match, "validation_functions")
@@ -769,11 +720,11 @@ class MatClassParser:
             )
 
             # extract inline or following docstring if there is no semicolon
-            docstring_node = get_node(prop_match, "docstring")
-            if docstring_node is None:
-                prop_node = get_node(prop_match, "prop_node")
-                if prop_node and prop_node.next_sibling and prop_node.next_sibling.type == "comment":
-                    docstring_node = prop_node.next_sibling
+            # (tree-sitter-matlab puts the comment after the property node)
+            prop_node = get_node(prop_match, "prop_node")
+            docstring_node = None
+            if prop_node.next_sibling and prop_node.next_sibling.type == "comment":
+                docstring_node = prop_node.next_sibling
             docstring = ""
             if docstring_node is not None:
                 # tree-sitter-matlab combines inline comments with following
@@ -816,54 +767,24 @@ class MatClassParser:
 
             # override docstring with prior if exists
             prev_node = prop.prev_named_sibling
-            if prev_node is None:
-                # Nothing we can do, no previous comment
-                pass
-            elif prev_node.type == "comment":
-                # We have a previous comment if it ends on the previous
-                # line then we set the docstring. We also need to check
-                # if the first line of the comment is the same as a
-                # previous property.
-                if get_row(prop.start_point) - get_row(prev_node.end_point) <= 1:
-                    ds = process_text_into_docstring(prev_node.text, self.encoding)
-                    prev_prop = prev_node.prev_named_sibling
-                    if prev_prop is not None and prev_prop.type == "property":
-                        if get_row(prev_node.start_point) == get_row(
-                            prev_prop.end_point
-                        ):
-                            ds = "\n".join(ds.split("\n")[1:])
-
-                    if ds:
-                        docstring = ds
-                else:
-                    if get_row(prop.start_point) - get_row(prev_node.end_point) <= 1:
-                        docstring = process_text_into_docstring(
-                            prev_node.text, self.encoding
-                        )
-            elif prev_node.type == "property":
-                # The previous property node may have eaten our comment
-                # check for it a trailing comment. If it is not there
-                # then we stop looking.
-                prev_comment = prev_node.named_children[-1]
-                if prev_comment.type == "comment":
-                    # we now need to check if prev_comment ends on the line
-                    # before ours and trim the first line if it on the same
-                    # line as prev property.
-                    if get_row(prop.start_point) - get_row(prev_comment.end_point) <= 1:
-                        ds = process_text_into_docstring(
-                            prev_comment.text, self.encoding
-                        )
-                        if get_row(prev_comment.start_point) == get_row(
-                            prev_comment.prev_named_sibling.end_point
-                        ):
-                            ds = "\n".join(ds.split("\n")[1:])
-                        if ds:
-                            docstring = ds
+            # A previous comment that ends on the line before sets the
+            # docstring; a first line on the same line as the previous
+            # property belongs to that property.
+            if (
+                prev_node is not None
+                and prev_node.type == "comment"
+                and get_row(prop.start_point) - get_row(prev_node.end_point) <= 1
+            ):
+                ds = process_text_into_docstring(prev_node.text, self.encoding)
+                prev_prop = prev_node.prev_named_sibling
+                if prev_prop is not None and prev_prop.type == "property":
+                    if get_row(prev_node.start_point) == get_row(prev_prop.end_point):
+                        ds = "\n".join(ds.split("\n")[1:])
+                if ds:
+                    docstring = ds
             # After all that if our docstring is empty then we have none
             if not docstring.strip():
                 docstring = None
-            else:
-                pass  # docstring = docstring.rstrip()
 
             self.properties[name] = {
                 "attrs": attrs,
@@ -930,94 +851,26 @@ class MatClassParser:
 
             # override docstring with prior if exists
             prev_node = enum.prev_named_sibling
-            if prev_node is None:
-                # Nothing we can do, no previous comment
-                pass
-            elif prev_node.type == "comment":
-                # We have a previous comment if it ends on the previous
-                # line then we set the docstring. We also need to check
-                # if the first line of the comment is the same as a
-                # previous enum.
-                if get_row(enum.start_point) - get_row(prev_node.end_point) <= 1:
-                    ds = process_text_into_docstring(prev_node.text, self.encoding)
-                    prev_enum = prev_node.prev_named_sibling
-                    if prev_enum is not None and prev_enum.type == "enum":
-                        if get_row(prev_node.start_point) == get_row(
-                            prev_enum.end_point
-                        ):
-                            ds = "\n".join(ds.split("\n")[1:])
-                    if ds:
-                        docstring = ds
-                else:
-                    if get_row(enum.start_point) - get_row(prev_node.end_point) <= 1:
-                        docstring = process_text_into_docstring(
-                            prev_node.text, self.encoding
-                        )
+            # A previous comment that ends on the line before sets the
+            # docstring; a first line on the same line as the previous enum
+            # belongs to that enum.
+            if (
+                prev_node is not None
+                and prev_node.type == "comment"
+                and get_row(enum.start_point) - get_row(prev_node.end_point) <= 1
+            ):
+                ds = process_text_into_docstring(prev_node.text, self.encoding)
+                prev_enum = prev_node.prev_named_sibling
+                if prev_enum is not None and prev_enum.type == "enum":
+                    if get_row(prev_node.start_point) == get_row(prev_enum.end_point):
+                        ds = "\n".join(ds.split("\n")[1:])
+                if ds:
+                    docstring = ds
             # After all that if our docstring is empty then we have none
             if docstring.strip() == "":
                 docstring = None
-            else:
-                pass  # docstring = docstring.rstrip()
 
             self.enumerations[name] = {"args": args, "docstring": docstring}
-
-    def _parse_event_section(self, events_match):
-        attrs_nodes = events_match.get("attrs")
-        attrs = self._parse_attributes(attrs_nodes)
-        events = events_match.get("events")
-        if events is None:
-            return
-        for event in events:
-            name = event.text.decode(self.encoding, errors="backslashreplace")
-
-            docstring = ""
-            # look forward for docstring
-            next_node = event.next_named_sibling
-            if next_node is not None and next_node.type == "comment":
-                if get_row(next_node.start_point) == get_row(event.end_point):
-                    # if the docstring is on the same line as the end of the definition only take the inline part
-                    docstring = process_text_into_docstring(
-                        next_node.text, self.encoding
-                    )
-                    docstring = docstring.split("\n")[0]
-                elif get_row(next_node.start_point) - get_row(event.end_point) <= 1:
-                    # Otherwise take the whole docstring
-                    docstring = process_text_into_docstring(
-                        next_node.text, self.encoding
-                    )
-
-            # override docstring with prior if exists
-            prev_node = event.prev_named_sibling
-            if prev_node is None:
-                # Nothing we can do, no previous comment
-                pass
-            elif prev_node.type == "comment":
-                # We have a previous comment if it ends on the previous
-                # line then we set the docstring. We also need to check
-                # if the first line of the comment is the same as a
-                # previous event.
-                if get_row(event.start_point) - get_row(prev_node.end_point) <= 1:
-                    ds = process_text_into_docstring(prev_node.text, self.encoding)
-                    prev_event = prev_node.prev_named_sibling
-                    if prev_event is not None and prev_event.type == "identifier":
-                        if get_row(prev_node.start_point) == get_row(
-                            prev_event.end_point
-                        ):
-                            ds = "\n".join(ds.split("\n")[1:])
-                    if ds:
-                        docstring = ds
-                else:
-                    if get_row(event.start_point) - get_row(prev_node.end_point) <= 1:
-                        docstring = process_text_into_docstring(
-                            prev_node.text, self.encoding
-                        )
-            # After all that if our docstring is empty then we have none
-            if docstring.strip() == "":
-                docstring = None
-            else:
-                pass  # docstring = docstring.rstrip()
-
-            self.events[name] = {"attrs": attrs, "docstring": docstring}
 
     def _parse_attributes(self, attrs_nodes):
         attrs = {}

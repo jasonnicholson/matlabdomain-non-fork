@@ -26,6 +26,8 @@ UNKNOWN = "unknown"
 
 _DECLARATION = re.compile(r"(function|classdef)\b")
 _FALLBACK = ("mbcs", "Windows ANSI") if os.name == "nt" else ("latin-1", "ISO-8859-1")
+# MATLAB ends lines at LF, CRLF or a lone CR.
+_LINE_BREAK = re.compile(r"\r\n?|\n")
 
 # MATLAB and Simulink read these by file name (folder help, block libraries,
 # customizations, search path, startup, code generation); compared lowercase.
@@ -71,7 +73,7 @@ def decode_source(
     try:
         text, problem = data.decode(codec or "utf-8"), None
     except UnicodeDecodeError as err:
-        row = err.object[: err.start].decode(err.encoding, errors="replace").count("\n")
+        row = row_of(err.object[: err.start].decode(err.encoding, errors="replace"))
         where = f"line {row + 1}: {err.reason}"
         if codec is None:
             fallback, label = _FALLBACK
@@ -87,6 +89,11 @@ def decode_source(
             )
         problem = (message, row)
     return text.removeprefix("\ufeff"), problem
+
+
+def row_of(prefix: str) -> int:
+    """Return the row (from 0) that follows the text ``prefix``."""
+    return len(_LINE_BREAK.findall(prefix))
 
 
 def is_hidden(path) -> bool:

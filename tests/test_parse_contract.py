@@ -551,7 +551,8 @@ def test_docstring_positions_render(make_app, tmp_path):
         "Index\n=====\n\n"
         + "".join(f".. mat:autofunction:: dp_{k}\n\n" for k in ("before", "after"))
         + ".. mat:autofunction:: dp_both\n\n"
-        + ".. mat:autoclass:: DpClass\n   :members:\n\n.. mat:autoclass:: DpLead\n",
+        + ".. mat:autoclass:: DpClass\n   :members:\n   :undoc-members:\n\n"
+        + ".. mat:autoclass:: DpLead\n",
     )
     app = make_app(srcdir=tmp_path)
     app.build()

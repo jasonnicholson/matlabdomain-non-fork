@@ -8,13 +8,13 @@ Types for MATLAB.
 :license: BSD, see LICENSE for details.
 """
 
+import copy
 import ntpath
 import os
 import stat
 import sys
 import unicodedata
 import xml.etree.ElementTree as ET
-from collections.abc import Mapping
 from dataclasses import dataclass, field
 from io import open  # for opening files with encoding in Python 2
 from zipfile import ZipFile
@@ -348,15 +348,19 @@ def _load_class_folder(dom, folder):
         for n, m in cls.methods.items()
         if not getattr(m, "from_class_folder", False)
     }
-    for func in entities.values():
+    for ref, func in entities.items():
         if not isinstance(func, MatFunction):
             continue
-        func.__class__ = MatMethod
-        func.cls = cls
+        # A copy: the parse cache keeps the function for a later build in
+        # which the folder is no class.
+        method = copy.copy(func)
+        method.__class__ = MatMethod
+        method.cls = cls
         # TODO: Find the method attributes defined in classfolder class definition.
-        func.attrs = {}
-        func.from_class_folder = True
-        cls.methods[func.name] = func
+        method.attrs = {}
+        method.from_class_folder = True
+        cls.methods[method.name] = method
+        dom.entities_table[ref] = method
 
 
 def _attrs(dom, ref):
@@ -714,7 +718,7 @@ def _is_link(path):
     """Return True for a symbolic link or a Windows junction."""
     try:
         st = os.lstat(path)
-    except OSError:
+    except OSError:  # pragma: no cover - defensive: the entry vanished after stat
         return False
     junction = getattr(stat, "IO_REPARSE_TAG_MOUNT_POINT", None)
     return stat.S_ISLNK(st.st_mode) or (
@@ -788,7 +792,7 @@ def build_index(settings, old_index=None):
     if os.path.isdir(settings.root):
         try:
             _Indexer(out, old_index or {}).run()
-        except Exception as e:
+        except Exception as e:  # pragma: no cover - defensive: log an indexer bug
             import traceback
 
             logger.error(f"[sphinxcontrib-matlabdomain] ERROR in analyze: {e}")
@@ -853,6 +857,7 @@ class _Indexer:
                 "are not documented.",
             )
             return
+        denied = []
         for key in keys:
             if _undecodable(key):
                 _warn(
@@ -863,7 +868,15 @@ class _Indexer:
                 continue
             path = os.path.join(mod.path, key)
             ref = join_reference(mod.ref, unicodedata.normalize("NFC", key))
-            if os.path.isdir(path):
+            try:
+                st = os.stat(path)
+            except PermissionError as err:  # e.g. a folder listed but not entered
+                if not key.startswith((".", "_")):  # skipped folders stay quiet
+                    denied.append(err)
+                continue
+            except OSError:  # e.g. a broken link
+                continue
+            if stat.S_ISDIR(st.st_mode):
                 # "." (VCS and editors) and "_" (Sphinx build/temp folders)
                 if key.startswith((".", "_")):
                     continue
@@ -880,14 +893,16 @@ class _Indexer:
                 continue
             if _is_link(path) and self.outside(path, ref):
                 continue
-            if self.index_file(handler, path, ref):
-                mod.members.append((os.path.splitext(key)[0], ref))
+            self.index_file(handler, path, ref, st)
+            mod.members.append((os.path.splitext(key)[0], ref))
+        if denied:
+            _warn(
+                "parse_error",
+                f"{mod.ref}: {len(denied)} entries cannot be accessed "
+                f"({denied[0].strerror or denied[0]}); they are not documented.",
+            )
 
-    def index_file(self, handler, path, ref):
-        try:
-            st = os.stat(path)
-        except OSError:
-            return False
+    def index_file(self, handler, path, ref, st):
         key = (path, st.st_mtime_ns, st.st_size)
         old = self.old_index.get(path)
         if (
@@ -916,7 +931,6 @@ class _Indexer:
         }
         for subtype, message, row in problems:
             _warn_file(ref, path, subtype, message, row)
-        return True
 
 
 def _index_shape(data):
@@ -1042,15 +1056,14 @@ def name_sources(source_index):
     """Name every discovered file and folder the MATLAB way (``form_matlab_name``).
 
     Sets ``matlab_name`` (``None`` if MATLAB cannot call it), ``private`` and
-    ``scope`` (see ``_scope``) on each entity and ``index`` record, and fills
-    ``matlab_names``. Files MATLAB cannot call, except below ``private/``, get
-    one ``mat.not_callable`` warning each.
+    ``scope`` (see ``_scope``) on each ``index`` record and folder entity, and
+    fills ``matlab_names``. Files MATLAB cannot call, except below
+    ``private/``, get one ``mat.not_callable`` warning each.
     """
     settings = source_index.settings
     version = settings.matlab_version
     namelengthmax = mat_naming.resolve_namelengthmax(version, settings.namelengthmax)
     matlab_names = source_index.matlab_names
-    entities = source_index.entities
     for path, record in source_index.index.items():
         ref = record["reference"]
         name = mat_naming.form_matlab_name(
@@ -1064,9 +1077,6 @@ def name_sources(source_index):
         private = is_private_reference(ref)
         scope = _scope(folder_of(ref)) if name is not None else None
         record.update(matlab_name=matlab_name, private=private, scope=scope)
-        entity = entities.get(ref)
-        if entity is not None:
-            entity.matlab_name, entity.private, entity.scope = matlab_name, private, scope
         if name is None:
             if not private and not is_hidden(ref):
                 logger.warning(
@@ -1081,9 +1091,8 @@ def name_sources(source_index):
         if matlab_name == name.pseudo_fullname:
             matlab_names.setdefault(matlab_name, []).append(ref)
 
-    for ref, entity in entities.items():
-        if not isinstance(entity, MatModule):
-            continue
+    # ``entities`` holds the folders only (files are parsed on first use).
+    for ref, entity in source_index.entities.items():
         namespace = mat_naming.folder_namespace(
             _naming_folder(ref), namelengthmax, version
         )
@@ -1203,17 +1212,14 @@ class MatObject(object):
     def getter(self, name, *defargs):
         if name == "__name__":
             return self.__name__
-        elif len(defargs) == 0:
-            logger.debug(
-                '[sphinxcontrib-matlabdomain] Warning attribute "%s" was not found in %s.',
-                name,
-                self,
-            )
-            return None
-        elif len(defargs) == 1:
+        if defargs:
             return defargs[0]
-        else:
-            return defargs
+        logger.debug(
+            '[sphinxcontrib-matlabdomain] Warning attribute "%s" was not found in %s.',
+            name,
+            self,
+        )
+        return None
 
     @staticmethod
     def matlabify(objname):
@@ -1269,9 +1275,10 @@ class MatObject(object):
         warnings = [] if problem is None else [("encoding", *problem)]
         source_type = classify(mfile, text)
 
-        # tree-sitter reads UTF-8 and splits comment blocks at CRLF
-        code = text.encode("utf-8")
-        tree = Parser(ML_LANG).parse(code.replace(b"\r\n", b"\n"))
+        # tree-sitter reads UTF-8, splits comment blocks at CRLF and ends
+        # lines at LF only; MATLAB also ends them at a lone CR
+        code = text.encode("utf-8").replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+        tree = Parser(ML_LANG).parse(code)
 
         modname = path  # folder reference
 
@@ -1531,7 +1538,7 @@ class MatFunction(MatObject):
         elif name == "__module__":
             return self.__module__
         else:
-            super(MatFunction, self).getter(name, *defargs)
+            return super(MatFunction, self).getter(name, *defargs)
 
 
 class MatClass(MatObject):
@@ -1622,15 +1629,13 @@ class MatClass(MatObject):
             return MatEnumeration(name, self, self.enumerations[name])
         elif name in self.methods:
             return self.methods[name]
-        elif name in self.enumerations:
-            return
         elif name == "__dict__":
             objdict = {pn: self.getter(pn) for pn in self.properties}
             objdict.update(self.methods)
             objdict.update({en: self.getter(en) for en in self.enumerations})
             return objdict
         else:
-            super(MatClass, self).getter(name, *defargs)
+            return super(MatClass, self).getter(name, *defargs)
 
 
 class MatProperty(MatObject):
@@ -1752,90 +1757,52 @@ class MatApplication(MatObject):
 
 
 class MatcodeError(Exception):
-    def __str__(self):
-        res = self.args[0]
-        if len(self.args) > 1:
-            res += " (exception was: %r)" % self.args[1]
-        return res
+    """A folder reference that names no discovered folder."""
 
 
 class MatModuleAnalyzer(object):
-    # cache for analyzer objects -- caches both by module and file name
+    """Stands in for Sphinx's ``ModuleAnalyzer`` in autodoc: the source order
+    of a folder's files and of its classes' members (``tagorder``).
+    """
+
+    # folder reference -> analyzer, or the MatcodeError of an unknown folder
     cache = {}
 
     @classmethod
-    def for_folder(cls, dirname, modname):
-        if ("folder", dirname) in cls.cache:
-            return cls.cache["folder", dirname]
-        obj = cls(None, modname, dirname, True)
-        cls.cache["folder", dirname] = obj
-        return obj
-
-    @classmethod
     def for_module(cls, modname):
-        if ("module", modname) in cls.cache:
-            entry = cls.cache["module", modname]
-            if isinstance(entry, MatcodeError):
-                raise entry
-            return entry
-        mod = resolve(_domain(), modname)
-        if isinstance(mod, MatModule):
-            obj = cls.for_folder(mod.path, modname)
-        elif isinstance(mod, MatClass):
-            obj = cls.for_folder(mod.module, modname)
-        else:
-            err = MatcodeError("error importing %r" % modname)
-            cls.cache["module", modname] = err
-            raise err
-        cls.cache["module", modname] = obj
-        return obj
+        entry = cls.cache.get(modname)
+        if entry is None:
+            mod = resolve(_domain(), modname)
+            if isinstance(mod, MatModule):
+                entry = cls(mod)
+            else:
+                entry = MatcodeError("error importing %r" % modname)
+            cls.cache[modname] = entry
+        if isinstance(entry, MatcodeError):
+            raise entry
+        return entry
 
-    def __init__(self, source, modname, srcname, decoded=False):
-        # name of the module
-        self.modname = modname
-        # name of the source file
-        self.srcname = srcname
-        # file-like object yielding source lines
-        self.source = source
-        # cache the source code as well
-        self.encoding = None
-        self.code = None
-        # will be filled by tokenize()
-        self.tokens = None
-        # will be filled by parse()
-        self.parsetree = None
-        # will be filled by find_attr_docs()
-        self.attr_docs = None
-        self.tagorder = None
-        # will be filled by find_tags()
-        self.tags = None
-
-    def find_attr_docs(self, scope=""):
-        """Find class and module-level attributes and their documentation."""
-        if self.attr_docs is None:
-            self.attr_docs = _AttrDocs(_domain().entities_table.get(self.modname))
-            self.tagorder = _TagOrder(self.attr_docs)
-        return self.attr_docs
+    def __init__(self, mod):
+        self.modname = mod.ref
+        # autodoc's ``get_sourcename`` names the source with it
+        self.srcname = mod.path
+        self.tagorder = _TagOrder(mod)
 
 
-class _AttrDocs(Mapping):
-    """``(namespace, name) -> docstring`` of a folder's files and of its
-    classes' members. Documenter namespaces are ``".".join(objpath)``, so
-    only the project root's entries can match. A class is parsed only when
-    its namespace is asked for.
+class _TagOrder:
+    """Source order of a folder's files (``name``) and of a class's members
+    (``Class.member``), for ``:member-order: bysource``. A class is parsed
+    only when one of its members is asked for.
     """
 
     def __init__(self, mod):
-        # Documenter namespaces are ".".join(objpath); only root members match.
-        members = mod.member_refs() if isinstance(mod, MatModule) else []
-        self.package = "" if mod is None or mod.ref == ROOT_REFERENCE else mod.ref
-        self.files = [(name, ref) for name, ref in members if ref[-1:] != "/"]
+        self.files = [(name, ref) for name, ref in mod.member_refs() if ref[-1:] != "/"]
         #: file name -> position (the last file with that name)
         self.order = {name: i for i, (name, _) in enumerate(self.files)}
         self._classes = {}
 
     def class_members(self, stem):
-        """Members (``__dict__``) of the classes in the files named ``stem``."""
+        """Member names (``__dict__``) of the classes in the files named ``stem``."""
         if stem not in self._classes:
             members = {}
             for name, ref in self.files:
@@ -1843,57 +1810,14 @@ class _AttrDocs(Mapping):
                     obj = resolve(_domain(), ref)
                     if isinstance(obj, MatClass):
                         members.update(obj.getter("__dict__"))
-            self._classes[stem] = members
+            self._classes[stem] = list(members)
         return self._classes[stem]
 
-    def names(self, namespace):
-        """Member names in ``namespace``, in source order."""
-        if namespace == self.package:
-            return list(dict.fromkeys(name for name, _ in self.files))
-        if namespace.startswith(self.package):
-            return list(self.class_members(namespace[len(self.package) :]))
-        return []
-
-    def __contains__(self, key):
-        return key[1] in self.names(key[0])
-
-    def __getitem__(self, key):
-        namespace, name = key
-        if namespace == self.package:
-            refs = [ref for n, ref in self.files if n == name]
-            if refs:
-                return resolve(_domain(), refs[-1]).docstring
-        elif namespace.startswith(self.package):
-            members = self.class_members(namespace[len(self.package) :])
-            if name in members:
-                return members[name].docstring
-        raise KeyError(key)
-
-    def __iter__(self):
-        for name in self.names(self.package):
-            yield self.package, name
-        for stem in self.names(self.package):
-            for name in self.class_members(stem):
-                yield f"{self.package}{stem}", name
-
-    def __len__(self):
-        return sum(1 for _ in self)
-
-
-class _TagOrder:
-    """Source order of a folder's files (``name``) and of a class's members
-    (``Class.member``), for ``:member-order: bysource``.
-    """
-
-    def __init__(self, attr_docs):
-        self.attr_docs = attr_docs
-
     def get(self, tag, default=None):
-        order = self.attr_docs.order
-        if tag in order:
-            return order[tag]
+        if tag in self.order:
+            return self.order[tag]
         stem, dot, member = tag.partition(".")
-        names = list(self.attr_docs.class_members(stem)) if dot else []
+        names = self.class_members(stem) if dot else []
         return names.index(member) if member in names else default
 
     def __len__(self):

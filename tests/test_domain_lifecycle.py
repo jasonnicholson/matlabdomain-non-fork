@@ -88,7 +88,7 @@ def used_paths(srcdir, refs=USED):
 
 
 def test_initial_data_layout():
-    assert MATLABDomain.data_version == 11
+    assert MATLABDomain.data_version == 12
     assert set(MATLABDomain.initial_data) == {
         "objects",
         "folders",
@@ -261,6 +261,22 @@ def test_removed_folder_method_not_kept_on_reused_class(make_app, srcdir, parsed
     assert "index_second" in read_docs(app2)
     second = find_class(app2.env.get_domain("mat").entities_table, "Second")
     assert sorted(second.methods) == ["Second", "method_inside_classdef"]
+
+
+def test_removed_class_file_turns_folder_methods_into_functions(
+    make_app, srcdir, parsed
+):
+    app = build(make_app, srcdir)
+    method = "src/@Second/method_in_folder.m"
+    assert type(app.env.get_domain("mat").entities_table[method]) is mat_types.MatMethod
+    (srcdir / "src" / "@Second" / "Second.m").unlink()
+
+    parsed.clear()
+    app2 = build(make_app, srcdir)
+    dom = app2.env.get_domain("mat")
+    # Reused from the parse cache, and no longer a method of the class.
+    assert type(mat_types.resolve(dom, method)) is mat_types.MatFunction
+    assert parsed == []
 
 
 def test_config_change_invalidates_parse_cache(make_app, srcdir, parsed):

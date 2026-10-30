@@ -132,6 +132,33 @@ Release notes
 * ``sphinxcontrib.matlab`` sets up ``sphinx.ext.autodoc`` itself; the
   ``mat:auto*`` directives failed when it was not in ``extensions``. An
   invalid option of a ``mat:auto*`` directive is reported at the right file.
+* ``mat:autoclass`` option ``:access-list-members:`` (MATLAB access lists:
+  ``Access = ?Cls`` or ``{?A, ?B}``) replaces ``:friend-members:``, which is
+  still accepted. Class names may be given with or without ``?``.
+* Fixed member selection of ``mat:autoclass`` and ``mat:autofolder``:
+
+  * At the project root, members without help were listed without
+    ``:undoc-members:``.
+  * ``Access = 'private'`` (quoted) counted as public.
+  * ``:members: a, b`` on a class warned "missing attribute" and documented
+    nothing.
+  * Enumeration values were missing from "Enumeration Values".
+  * ``autoclass_content = "both"`` or ``"init"`` added "The type of the None
+    singleton." to a class without a constructor.
+  * With ``matlab_auto_link``, a line without a name (such as ``---``) after
+    "See also" crashed the build.
+* Help text and warnings follow MATLAB R2026a more closely: a lone CR ends a
+  line; after ``...`` at the end of the superclasses, a comment on the
+  continued line is not help (the next block is); an ``arguments`` entry
+  ending with ``;`` takes the comment after it, like a property. A parse
+  failure names the innermost syntax error, or no line when tree-sitter
+  cannot locate it.
+* New warnings: ``mat.invalid_matlab`` for a ``.m`` file with NUL bytes
+  (likely binary), and ``mat.parse_error`` for a folder whose entries cannot
+  be accessed (listed but not entered).
+* A function file of an ``@`` folder whose class file was removed is a
+  function again in the next build; it stayed a method. Cached environments
+  from earlier versions are rebuilt.
 
 .. _PR 232: https://github.com/sphinx-contrib/matlabdomain/pull/253
 

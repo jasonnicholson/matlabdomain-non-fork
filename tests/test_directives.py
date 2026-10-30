@@ -151,3 +151,13 @@ def test_add_module_names(make_app, tmp_path):
     sig = signature(app, "+pkg/g.m")
     assert texts(sig, addnodes.desc_addname) == []
     assert sig.astext() == "g()"
+
+
+def test_static_and_class_method_prefixes(make_app, tmp_path):
+    page = (
+        "Index\n=====\n\n.. mat:class:: Shape\n\n   .. mat:staticmethod:: make()\n\n"
+        "   .. mat:classmethod:: create()\n"
+    )
+    app = build(make_app, tmp_path, page)
+    assert signature(app, "Shape.m.make").astext() == "static make()"
+    assert signature(app, "Shape.m.create").astext() == "classmethod create()"
