@@ -60,15 +60,15 @@ def test_target_auto_link_basic(app, confdict):
     assert len(content) == 1
     assert (
         property_section.rawsource
-        == "ClassExample Properties:\n* :attr:`a <target/ClassExample.m.a>` - first property of ClassExample\n* :attr:`b <target/ClassExample.m.b>` - second property of ClassExample\n* :attr:`c <target/ClassExample.m.c>` - third property of ClassExample"
+        == "ClassExample Properties:\n* :mat:attr:`a <target/ClassExample.m.a>` - first property of ClassExample\n* :mat:attr:`b <target/ClassExample.m.b>` - second property of ClassExample\n* :mat:attr:`c <target/ClassExample.m.c>` - third property of ClassExample"
     )
     assert (
         method_section.rawsource
-        == "ClassExample Methods:\n* :meth:`ClassExample() <target/ClassExample.m.ClassExample>` - the constructor and a reference to mymethod()\n* :meth:`mymethod() <target/ClassExample.m.mymethod>` - a method in ClassExample\n"
+        == "ClassExample Methods:\n* :mat:meth:`ClassExample() <target/ClassExample.m.ClassExample>` - the constructor and a reference to mymethod()\n* :mat:meth:`mymethod() <target/ClassExample.m.mymethod>` - a method in ClassExample\n"
     )
     assert (
         see_also_line.rawsource
-        == "See also :class:`BaseClass <BaseClass.m>`, :func:`baseFunction() <baseFunction.m>`, :attr:`b <target/ClassExample.m.b>`, ``unknownEntity``, :meth:`mymethod() <target/ClassExample.m.mymethod>`,\n:attr:`package.ClassBar.bars <target/+package/ClassBar.m.bars>`, :meth:`package.ClassBar.doFoo() <target/+package/ClassBar.m.doFoo>`."
+        == "See also :mat:class:`BaseClass <BaseClass.m>`, :mat:func:`baseFunction() <baseFunction.m>`, :mat:attr:`b <target/ClassExample.m.b>`, ``unknownEntity``, :mat:meth:`mymethod() <target/ClassExample.m.mymethod>`,\n:mat:attr:`package.ClassBar.bars <target/+package/ClassBar.m.bars>`, :mat:meth:`package.ClassBar.doFoo() <target/+package/ClassBar.m.doFoo>`."
     )
 
 
@@ -82,19 +82,19 @@ def test_target_auto_link_all(app, confdict):
     assert len(content) == 1
     assert (
         property_section.rawsource
-        == "ClassExample Properties:\n* :attr:`a <target/ClassExample.m.a>` - first property of :class:`ClassExample <target/ClassExample.m>`\n* :attr:`b <target/ClassExample.m.b>` - second property of :class:`ClassExample <target/ClassExample.m>`\n* :attr:`c <target/ClassExample.m.c>` - third property of :class:`ClassExample <target/ClassExample.m>`"
+        == "ClassExample Properties:\n* :mat:attr:`a <target/ClassExample.m.a>` - first property of :mat:class:`ClassExample <target/ClassExample.m>`\n* :mat:attr:`b <target/ClassExample.m.b>` - second property of :mat:class:`ClassExample <target/ClassExample.m>`\n* :mat:attr:`c <target/ClassExample.m.c>` - third property of :mat:class:`ClassExample <target/ClassExample.m>`"
     )
     assert (
         method_section.rawsource
-        == "ClassExample Methods:\n* :meth:`ClassExample() <target/ClassExample.m.ClassExample>` - the constructor and a reference to :meth:`mymethod() <target/ClassExample.m.mymethod>`\n* :meth:`mymethod() <target/ClassExample.m.mymethod>` - a method in :class:`ClassExample <target/ClassExample.m>`\n"
+        == "ClassExample Methods:\n* :mat:meth:`ClassExample() <target/ClassExample.m.ClassExample>` - the constructor and a reference to :mat:meth:`mymethod() <target/ClassExample.m.mymethod>`\n* :mat:meth:`mymethod() <target/ClassExample.m.mymethod>` - a method in :mat:class:`ClassExample <target/ClassExample.m>`\n"
     )
     assert (
         see_also_line.rawsource
-        == "See also :class:`BaseClass <BaseClass.m>`, :func:`baseFunction() <baseFunction.m>`, :attr:`b <target/ClassExample.m.b>`, ``unknownEntity``, :meth:`mymethod() <target/ClassExample.m.mymethod>`,\n:attr:`package.ClassBar.bars <target/+package/ClassBar.m.bars>`, :meth:`package.ClassBar.doFoo() <target/+package/ClassBar.m.doFoo>`."
+        == "See also :mat:class:`BaseClass <BaseClass.m>`, :mat:func:`baseFunction() <baseFunction.m>`, :mat:attr:`b <target/ClassExample.m.b>`, ``unknownEntity``, :mat:meth:`mymethod() <target/ClassExample.m.mymethod>`,\n:mat:attr:`package.ClassBar.bars <target/+package/ClassBar.m.bars>`, :mat:meth:`package.ClassBar.doFoo() <target/+package/ClassBar.m.doFoo>`."
     )
     assert (
         constructor_desc.rawsource
-        == "Links to fully qualified names :attr:`package.ClassBar.foos <target/+package/ClassBar.m.foos>`,\n:meth:`package.ClassBar.doBar() <target/+package/ClassBar.m.doBar>`, and :meth:`ClassExample.mymethod() <target/ClassExample.m.mymethod>`."
+        == "Links to fully qualified names :mat:attr:`package.ClassBar.foos <target/+package/ClassBar.m.foos>`,\n:mat:meth:`package.ClassBar.doBar() <target/+package/ClassBar.m.doBar>`, and :mat:meth:`ClassExample.mymethod() <target/ClassExample.m.mymethod>`."
     )
 
 
@@ -150,17 +150,19 @@ def test_package_auto_link_all(app, confdict):
     )
     assert (
         docstring1.rawsource
-        == "The Bar and Foo handler, with :meth:`doFoo() <target/+package/ClassBar.m.doFoo>` and doBar() methods."
+        == "The Bar and Foo handler, with :mat:meth:`doFoo() <target/+package/ClassBar.m.doFoo>` and doBar() methods."
     )
     assert (
         docstring2.rawsource
-        == "Number of :attr:`foos <target/+package/ClassBar.m.foos>`, used by :meth:`doBar() <target/+package/ClassBar.m.doBar>` method"
+        == "Number of :mat:attr:`foos <target/+package/ClassBar.m.foos>`, used by :mat:meth:`doBar() <target/+package/ClassBar.m.doBar>` method"
     )
-    assert docstring3.rawsource == ":meth:`doFoo() <target/+package/ClassBar.m.doFoo>`"
+    assert (
+        docstring3.rawsource == ":mat:meth:`doFoo() <target/+package/ClassBar.m.doFoo>`"
+    )
     assert docstring4.rawsource == "``@ClassExample``"
     assert (
         docstring5.rawsource
-        == "Implement **doBar** stage, not called by :meth:`ClassBar() <target/+package/ClassBar.m.ClassBar>`"
+        == "Implement **doBar** stage, not called by :mat:meth:`ClassBar() <target/+package/ClassBar.m.ClassBar>`"
     )
 
 
@@ -174,7 +176,7 @@ def test_submodule(app):
     )
     assert (
         bases_line.rawsource
-        == "Bases: :class:`package.ClassBar <target/+package/ClassBar.m>`"
+        == "Bases: :mat:class:`package.ClassBar <target/+package/ClassBar.m>`"
     )
 
 
@@ -216,15 +218,15 @@ def test_root_auto_link_basic(app, confdict):
     assert len(content) == 1
     assert (
         method_section.rawsource
-        == "BaseClass Methods:\n* :meth:`BaseClass() <BaseClass.m.BaseClass>` - the constructor, whose description extends\n    to the next line\n* :meth:`DoBase() <BaseClass.m.DoBase>` - another BaseClass method\n"
+        == "BaseClass Methods:\n* :mat:meth:`BaseClass() <BaseClass.m.BaseClass>` - the constructor, whose description extends\n    to the next line\n* :mat:meth:`DoBase() <BaseClass.m.DoBase>` - another BaseClass method\n"
     )
     assert (
         see_also_line_1.rawsource
-        == "See Also\n:class:`target/ClassExample.m <target/ClassExample.m>`, :func:`baseFunction() <baseFunction.m>`, :class:`ClassExample <target/ClassExample.m>`\n\n"
+        == "See Also\n:mat:class:`target/ClassExample.m <target/ClassExample.m>`, :mat:func:`baseFunction() <baseFunction.m>`, :mat:class:`ClassExample <target/ClassExample.m>`\n\n"
     )
     assert (
         see_also_line_2.rawsource
-        == "See Also:\n:class:`target/submodule/ClassMeow.m <target/submodule/ClassMeow.m>`\n:class:`target/+package/ClassBar.m <target/+package/ClassBar.m>`\n:class:`ClassMeow <target/submodule/ClassMeow.m>`\n:class:`package.ClassBar <target/+package/ClassBar.m>`"
+        == "See Also:\n:mat:class:`target/submodule/ClassMeow.m <target/submodule/ClassMeow.m>`\n:mat:class:`target/+package/ClassBar.m <target/+package/ClassBar.m>`\n:mat:class:`ClassMeow <target/submodule/ClassMeow.m>`\n:mat:class:`package.ClassBar <target/+package/ClassBar.m>`"
     )
 
 

@@ -1587,7 +1587,7 @@ class MatClass(MatObject):
     def link(self, env, name=None):  # noqa: ARG002
         """Returns link for class object"""
         title = name or getattr(self, "matlab_name", None) or self.ref
-        return f":class:`{title} <{self.ref}>`"
+        return f":mat:class:`{title} <{self.ref}>`"
 
     @property
     def __module__(self):

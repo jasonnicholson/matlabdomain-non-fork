@@ -167,6 +167,13 @@ Release notes
   arguments and help to the enclosing function. Name-value arguments take
   the help of the last one every time. Cached environments from earlier
   versions are rebuilt.
+* Fixed ``matlab_auto_link``: a link next to a character that cannot border
+  inline markup (``y=f(1)``) broke the reST ("start-string without
+  end-string" warnings); names between ``|`` bars (MATLAB's code markup) or
+  next to ``/`` are no longer linked; links and "Bases:" entries resolved in
+  the primary domain, so they did not link without
+  ``primary_domain = "mat"``.
+* Help of only blank ``%`` lines crashed the build.
 * An old-style property without a default (``p@double vector``) lost its
   type and size.
 

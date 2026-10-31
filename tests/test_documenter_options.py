@@ -417,6 +417,86 @@ def test_auto_links(make_app, tmp_path):
     assert "ignored" in html(app)
 
 
+def test_auto_links_keep_the_markup_valid(make_app, tmp_path):
+    # A link next to a character that cannot start or end inline markup is
+    # separated from it by an escaped space, which the output drops.
+    calls = (
+        "function calls\n% CALLS HELP\n%\n"
+        "% y=fnone(1); [a]=Sig.x(2); (fnone) fnone.\n"
+        "%\n% See also: Sig, fnone()\n%\n% See also fsig{}\nend\n"
+    )
+    app = build(
+        make_app,
+        tmp_path,
+        page(".. mat:autofunction:: calls\n"),
+        files={**FILES, "calls.m": calls},
+        matlab_auto_link="all",
+        add_function_parentheses=False,
+    )
+    assert "WARNING" not in app.warning.getvalue()
+    doctree = app.env.get_doctree("index")
+    targets = [n["reftarget"] for n in doctree.findall(addnodes.pending_xref)]
+    assert sorted(targets) == ["Sig.m", "Sig.m.x"] + ["fnone.m"] * 4 + ["fsig.m"]
+    text = doctree.astext()
+    assert "y=fnone(1); [a]=Sig.x(2); (fnone) fnone." in text
+    # the parentheses of the last entry are the link's (none here)
+    assert "See also: Sig, fnone\n" in text
+    assert "See also fsig{}" in text
+
+
+def test_auto_links_skip_names_in_markup(make_app, tmp_path):
+    # A name in a "See also" literal (``Runner/go``) or between MATLAB's
+    # ``|code|`` bars is not linked: a role inside would break the markup.
+    walker = (
+        "classdef Walker\n% WALKER HELP\nmethods\nfunction go(obj)\n% GO HELP\n%\n"
+        "% See also: Runner/go\nend\nend\nend\n"
+    )
+    app = build(
+        make_app,
+        tmp_path,
+        page(
+            ".. mat:autoclass:: Walker\n   :members:\n",
+            ".. mat:autofunction:: bars\n",
+        ),
+        files={
+            **FILES,
+            "Walker.m": walker,
+            "bars.m": "function bars\n% |fnone|\nend\n",
+        },
+        matlab_auto_link="all",
+    )
+    # only the user's own markup problem: bars are a reST substitution
+    warnings = app.warning.getvalue().strip().splitlines()
+    assert len(warnings) == 1
+    assert 'Undefined substitution referenced: "fnone"' in warnings[0]
+    assert documented(app) == ["Walker.m", "Walker.m.go", "bars.m"]
+
+
+def test_blank_help_lines(make_app, tmp_path):
+    # Help of only blank ``%`` lines crashed the docstring signature lookup.
+    files = {
+        **FILES,
+        "blank.m": "function blank(x)\n%\n%\nend\n",
+        "BlankCtor.m": (
+            "classdef BlankCtor\n% BLANK HELP\nmethods\nfunction obj = BlankCtor(x)\n"
+            "%\n%\nend\nend\nend\n"
+        ),
+    }
+    app = build(
+        make_app,
+        tmp_path,
+        page(
+            ".. mat:autofunction:: blank\n",
+            ".. mat:autoclass:: BlankCtor\n   :members:\n",
+        ),
+        files=files,
+        autoclass_content="both",
+    )
+    # (the constructor's help goes into the class's: autoclass_content)
+    assert documented(app) == ["blank.m", "BlankCtor.m"]
+    assert "WARNING" not in app.warning.getvalue()
+
+
 def test_class_without_help(make_app, tmp_path):
     app = build(
         make_app,

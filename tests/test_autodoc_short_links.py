@@ -93,25 +93,25 @@ def test_target_auto_link_basic(app, confdict):
 
     see_also_line = content[0][2][1][3]  # a bit fragile, I know
     assert see_also_line.rawsource == (
-        "See also :class:`BaseClass <BaseClass.m>`, "
-        ":func:`baseFunction() <baseFunction.m>`, "
-        ":attr:`b <target/ClassExample.m.b>`, ``unknownEntity``, "
-        ":meth:`mymethod() <target/ClassExample.m.mymethod>`,\n"
-        ":attr:`package.ClassBar.bars <target/+package/ClassBar.m.bars>`, "
-        ":meth:`package.ClassBar.doFoo() <target/+package/ClassBar.m.doFoo>`."
+        "See also :mat:class:`BaseClass <BaseClass.m>`, "
+        ":mat:func:`baseFunction() <baseFunction.m>`, "
+        ":mat:attr:`b <target/ClassExample.m.b>`, ``unknownEntity``, "
+        ":mat:meth:`mymethod() <target/ClassExample.m.mymethod>`,\n"
+        ":mat:attr:`package.ClassBar.bars <target/+package/ClassBar.m.bars>`, "
+        ":mat:meth:`package.ClassBar.doFoo() <target/+package/ClassBar.m.doFoo>`."
     )
 
     property_section = content[0][2][1][2][0]  # a bit fragile, I know
     class_example_pattern = "ClassExample"
     if confdict.get("matlab_auto_link") == "all":
-        class_example_pattern = ":class:`ClassExample <target/ClassExample.m>`"
+        class_example_pattern = ":mat:class:`ClassExample <target/ClassExample.m>`"
     expected_property_section = (
         "ClassExample Properties:\n"
-        "* :attr:`a <target/ClassExample.m.a>` - "
+        "* :mat:attr:`a <target/ClassExample.m.a>` - "
         f"first property of {class_example_pattern}\n"
-        "* :attr:`b <target/ClassExample.m.b>` - "
+        "* :mat:attr:`b <target/ClassExample.m.b>` - "
         f"second property of {class_example_pattern}\n"
-        "* :attr:`c <target/ClassExample.m.c>` - "
+        "* :mat:attr:`c <target/ClassExample.m.c>` - "
         f"third property of {class_example_pattern}"
     )
     assert property_section.rawsource == expected_property_section
@@ -121,24 +121,24 @@ def test_target_auto_link_basic(app, confdict):
     if confdict.get("matlab_auto_link") == "all":
         assert method_section.rawsource == (
             "ClassExample Methods:\n"
-            "* :meth:`ClassExample() <target/ClassExample.m.ClassExample>` "
+            "* :mat:meth:`ClassExample() <target/ClassExample.m.ClassExample>` "
             "- the constructor and a reference to "
-            ":meth:`mymethod() <target/ClassExample.m.mymethod>`\n"
-            "* :meth:`mymethod() <target/ClassExample.m.mymethod>` "
-            "- a method in :class:`ClassExample <target/ClassExample.m>`\n"
+            ":mat:meth:`mymethod() <target/ClassExample.m.mymethod>`\n"
+            "* :mat:meth:`mymethod() <target/ClassExample.m.mymethod>` "
+            "- a method in :mat:class:`ClassExample <target/ClassExample.m>`\n"
         )
         assert constructor_desc.rawsource == (
             "Links to fully qualified names "
-            ":attr:`package.ClassBar.foos <target/+package/ClassBar.m.foos>`,\n"
-            ":meth:`package.ClassBar.doBar() <target/+package/ClassBar.m.doBar>`, "
-            "and :meth:`ClassExample.mymethod() <target/ClassExample.m.mymethod>`."
+            ":mat:attr:`package.ClassBar.foos <target/+package/ClassBar.m.foos>`,\n"
+            ":mat:meth:`package.ClassBar.doBar() <target/+package/ClassBar.m.doBar>`, "
+            "and :mat:meth:`ClassExample.mymethod() <target/ClassExample.m.mymethod>`."
         )
     else:
         assert method_section.rawsource == (
             "ClassExample Methods:\n"
-            "* :meth:`ClassExample() <target/ClassExample.m.ClassExample>` "
+            "* :mat:meth:`ClassExample() <target/ClassExample.m.ClassExample>` "
             "- the constructor and a reference to mymethod()\n"
-            "* :meth:`mymethod() <target/ClassExample.m.mymethod>` "
+            "* :mat:meth:`mymethod() <target/ClassExample.m.mymethod>` "
             "- a method in ClassExample\n"
         )
         assert constructor_desc.rawsource == (
@@ -228,17 +228,17 @@ def test_package(app, confdict):
     if confdict.get("matlab_auto_link", "basic") == "all":
         assert docstring1.rawsource == (
             "The Bar and Foo handler, "
-            "with :meth:`doFoo() <target/+package/ClassBar.m.doFoo>` "
+            "with :mat:meth:`doFoo() <target/+package/ClassBar.m.doFoo>` "
             "and doBar() methods."
         )
         assert docstring2.rawsource == (
-            "Number of :attr:`foos <target/+package/ClassBar.m.foos>`, "
-            "used by :meth:`doBar() <target/+package/ClassBar.m.doBar>` method"
+            "Number of :mat:attr:`foos <target/+package/ClassBar.m.foos>`, "
+            "used by :mat:meth:`doBar() <target/+package/ClassBar.m.doBar>` method"
         )
 
         docstring3 = content[0][2][1][2][0][2][1][4][1][0][0]  # a bit fragile, I know
-        assert (
-            docstring3.rawsource == ":meth:`doFoo() <target/+package/ClassBar.m.doFoo>`"
+        assert docstring3.rawsource == (
+            ":mat:meth:`doFoo() <target/+package/ClassBar.m.doFoo>`"
         )
 
         docstring4 = content[0][2][1][2][0][2][1][4][1][0][2]  # a bit fragile, I know
@@ -247,7 +247,7 @@ def test_package(app, confdict):
         docstring5 = content[0][2][1][2][0][2][1][2][1][0]  # a bit fragile, I know
         assert docstring5.rawsource == (
             "Implement **doBar** stage, "
-            "not called by :meth:`ClassBar() <target/+package/ClassBar.m.ClassBar>`"
+            "not called by :mat:meth:`ClassBar() <target/+package/ClassBar.m.ClassBar>`"
         )
 
     else:
@@ -290,7 +290,7 @@ def test_submodule(app, confdict):
 
     bases_line = content[0][2][1][0]
     assert bases_line.rawsource == (
-        "Bases: :class:`package.ClassBar <target/+package/ClassBar.m>`"
+        "Bases: :mat:class:`package.ClassBar <target/+package/ClassBar.m>`"
     )
 
 
@@ -341,26 +341,26 @@ def test_root_auto_link_basic(app, confdict):
     method_section = content[0][2][1][1][0]  # a bit fragile, I know
     assert method_section.rawsource == (
         "BaseClass Methods:\n"
-        "* :meth:`BaseClass() <BaseClass.m.BaseClass>` "
+        "* :mat:meth:`BaseClass() <BaseClass.m.BaseClass>` "
         "- the constructor, whose description extends\n"
         "    to the next line\n"
-        "* :meth:`DoBase() <BaseClass.m.DoBase>` "
+        "* :mat:meth:`DoBase() <BaseClass.m.DoBase>` "
         "- another BaseClass method\n"
     )
 
     see_also_line_1 = content[0][2][1][1][1]  # a bit fragile, I know
     assert see_also_line_1.rawsource == (
         "See Also\n"
-        ":class:`target/ClassExample.m <target/ClassExample.m>`, "
-        ":func:`baseFunction() <baseFunction.m>`, "
-        ":class:`ClassExample <target/ClassExample.m>`\n\n"
+        ":mat:class:`target/ClassExample.m <target/ClassExample.m>`, "
+        ":mat:func:`baseFunction() <baseFunction.m>`, "
+        ":mat:class:`ClassExample <target/ClassExample.m>`\n\n"
     )
 
     see_also_line_2 = content[0][4][1][1][0]  # a bit fragile, I know
     assert see_also_line_2.rawsource == (
         "See Also:\n"
-        ":class:`target/submodule/ClassMeow.m <target/submodule/ClassMeow.m>`\n"
-        ":class:`target/+package/ClassBar.m <target/+package/ClassBar.m>`\n"
-        ":class:`ClassMeow <target/submodule/ClassMeow.m>`\n"
-        ":class:`package.ClassBar <target/+package/ClassBar.m>`"
+        ":mat:class:`target/submodule/ClassMeow.m <target/submodule/ClassMeow.m>`\n"
+        ":mat:class:`target/+package/ClassBar.m <target/+package/ClassBar.m>`\n"
+        ":mat:class:`ClassMeow <target/submodule/ClassMeow.m>`\n"
+        ":mat:class:`package.ClassBar <target/+package/ClassBar.m>`"
     )
