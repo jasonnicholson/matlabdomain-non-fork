@@ -382,6 +382,93 @@ page relative to the folder page; else ``None``). ``object.rst.jinja``
 to ``OUTPUT_DIR``. Both templates are rendered with Sphinx's
 ``ReSTRenderer``, which adds the ``e`` (escape) and ``heading`` filters.
 
+Checking help text: ``matlab-api-check``
+----------------------------------------
+
+The ``matlab-api-check`` builder checks the help text of the MATLAB sources,
+for example in CI::
+
+   sphinx-build -b matlab-api-check docs docs/_build/api-check
+
+It reads the pages like any builder (give it the ``-d`` folder of the HTML
+build to avoid reading them twice), but it checks every indexed file, whether
+a page documents it or not, on every run, and writes no pages. It checks
+functions, classes, scripts, apps and public methods: static methods and
+constructors, not ``Access = private``, ``protected`` or an access list,
+not ``Hidden``; ``get.`` and ``set.`` methods are not checked. Files below
+``private/`` are checked; ``Contents.m`` and the other special files, files
+that cannot be read and files that cannot be parsed are not.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Rule
+     - Checks
+     - Passes when
+   * - ``description``
+     - functions, classes, scripts, apps
+     - the first help line (MATLAB's H1 line) is not blank
+   * - ``method-description``
+     - methods
+     - the same
+   * - ``inputs``
+     - functions and methods with inputs
+     - the help has an inputs section, or every input has an
+       ``arguments``-block comment
+   * - ``outputs``
+     - functions and methods with outputs
+     - the help has an outputs section, or every output has an
+       ``arguments (Output)`` comment
+   * - ``name-value``
+     - functions and methods with name-value arguments
+     - the help has a name-value section, or every name-value argument has an
+       ``arguments``-block comment
+
+Inputs are the named inputs except ``~``, the object of a method that is not
+static or a constructor, and the structure of name-value arguments;
+``varargin`` counts. A constructor's output (the object) does not count;
+``varargout`` does. Name-value arguments are the ``opts.Name`` entries of
+``arguments`` blocks; name-value pairs that the code parses itself
+(``varargin``, ``inputParser``) are not detected.
+
+A section starts with a help line that is one of these labels, in any letter
+case, alone or followed by ``:`` (``Inputs``, ``INPUTS:``, ``Options:: ...``):
+
+* inputs: ``Input``, ``Inputs``, ``Input(s)``, ``Input Arguments``, ``Input
+  Parameters``, ``Arguments``, ``Parameters``, ``Params``, ``Required
+  Inputs``, ``Required Arguments``;
+* outputs: ``Output``, ``Outputs``, ``Output(s)``, ``Output Arguments``,
+  ``Output Parameters``, ``Returns``, ``Return Values``;
+* name-value: ``Name-Value Arguments``, ``Name-Value Pairs``, ``Name/Value
+  Pair Arguments`` (``-``, ``/``, a space or nothing between the words),
+  ``Options``, ``Optional Inputs``, ``Optional Arguments``, ``Optional
+  Parameters``; ``Input Arguments (Name-Value Arguments)`` counts for inputs
+  and name-value arguments.
+
+Configuration (changing it does not make Sphinx read pages again):
+
+* ``matlab_api_check_rules`` (default ``{}``): rule name to severity,
+  ``"error"``, ``"warning"`` or ``"ignore"``, over the default ``"error"``
+  of every rule, for example ``{"method-description": "warning", "name-value":
+  "ignore"}``. An unknown rule or severity is a configuration error.
+* ``matlab_api_check_enabled`` (default ``True``): ``False`` checks nothing;
+  the reports say so.
+* ``matlab_api_check_ignore_patterns`` (default ``[]``): globs, with the
+  rules of ``matlab_src_exclusion_patterns``, matched against path
+  references of files and of methods (``+pkg/Cls.m.helper``); matching
+  objects are not checked.
+
+Each finding is logged with its path reference, MATLAB name and rule, at the
+line of its declaration, as an ``ERROR`` (severity ``error``) or a
+``WARNING`` (``warning``) of type ``mat.api_check``. The output folder gets
+``api-check.txt`` (one line per finding, then a summary) and
+``api-check.json`` (``summary``: ``enabled``, ``rules``, ``checked`` per
+kind, ``not_checked``, ``findings`` per rule and severity, ``errors``,
+``warnings``; ``findings``: ``reference``, ``name``, ``kind``, ``rule``,
+``severity``, ``line``, ``message``). The exit status is 1 when a finding
+has the severity ``error``; with ``-W``, any finding fails the build, like
+any warning.
+
 Directives
 ----------
 

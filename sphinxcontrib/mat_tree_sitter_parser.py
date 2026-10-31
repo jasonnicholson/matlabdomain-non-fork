@@ -412,6 +412,10 @@ class MatFunctionParser:
         self.name = get_node(fun_match, "name").text.decode(
             self.encoding, errors="backslashreplace"
         )
+        #: one-based line of the ``function`` keyword
+        self.line = get_row(fun_node.start_point) + 1
+        #: ``opts.Name`` -> help of each name-value argument (None: no comment)
+        self.name_value = {}
 
         # Get outputs (possibly more than one)
         self.retv = {}
@@ -577,6 +581,12 @@ class MatFunctionParser:
             # Here we trust that the person is giving us valid matlab. A
             # name-value argument (``opts.Name``) is listed under ``opts``.
             arg_loc = self.retv if "Output" in attrs else self.args
+            name_node = arg.child_by_field_name("name")
+            if name_node.type == "property_name" and arg_loc is self.args:
+                full_name = name_node.text.decode(
+                    self.encoding, errors="backslashreplace"
+                )
+                self.name_value[full_name] = docstring
             arg_loc[name[0]] = {
                 "attrs": attrs,
                 "size": dims,
@@ -617,6 +627,8 @@ class MatClassParser:
         _, class_match = class_matches[0]
         self.cls = get_node(class_match, "class")
         self.name = get_node(class_match, "name")
+        #: one-based line of the ``classdef`` keyword
+        self.line = get_row(self.cls.start_point) + 1
 
         # Parse class attrs and supers
         attrs_nodes = class_match.get("attrs")

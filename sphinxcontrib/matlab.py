@@ -21,7 +21,7 @@ from sphinx.util.docfields import Field, GroupedField, TypedField
 from sphinx.util.logging import getLogger
 from sphinx.util.nodes import make_refnode
 
-from . import mat_directives, mat_naming, mat_types
+from . import mat_api_check, mat_directives, mat_naming, mat_types
 from . import mat_documenters as doc
 
 logger = getLogger("matlab-domain")
@@ -617,7 +617,7 @@ class MATLABDomain(Domain):
     }
     # Bump when the layout of ``initial_data`` (the pickled domain data) or the
     # parsed objects it caches change, so Sphinx drops stale cached environments.
-    data_version = 13
+    data_version = 14
     indices = [
         MATLABFolderIndex,
     ]
@@ -919,12 +919,15 @@ def setup(app):
     app.setup_extension("sphinx.ext.autodoc")
     app.connect("config-inited", ensure_configuration)
     app.connect("config-inited", check_encoding)
+    app.connect("config-inited", mat_api_check.check_config)
     app.connect("builder-inited", analyze)
     app.connect("env-get-outdated", mat_types.outdated_docs)
     app.connect("env-before-read-docs", mat_types.note_read_docs)
     app.connect("env-updated", mat_types.warn_parsed_sources)
+    app.connect("build-finished", mat_api_check.set_status)
 
     app.add_domain(MATLABDomain)
+    app.add_builder(mat_api_check.MatlabApiCheckBuilder)
     # autodoc
     # Relative paths are relative to the Sphinx source directory.
     app.add_config_value("matlab_src_code_project_root", None, "env")
@@ -952,6 +955,11 @@ def setup(app):
     app.add_config_value("matlab_version", mat_naming.DEFAULT_MATLAB_VERSION, "env")
     # None: derived from matlab_version (2048 from R2025a on).
     app.add_config_value("matlab_namelengthmax", None, "env")
+    # matlab-api-check: read by the builder only, so no page is read again.
+    app.add_config_value("matlab_api_check_enabled", True, "", bool)
+    # Rule -> severity, merged over mat_api_check.DEFAULT_RULES.
+    app.add_config_value("matlab_api_check_rules", {}, "", dict)
+    app.add_config_value("matlab_api_check_ignore_patterns", [], "", [list, tuple])
 
     app.registry.add_documenter("mat:folder", doc.MatFolderDocumenter)
     app.add_directive_to_domain(

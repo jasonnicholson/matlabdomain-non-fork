@@ -81,6 +81,7 @@ omit = [
 relative_files = true
 # Not "sphinxcontrib": other distributions share that namespace package.
 source_pkgs = [
+    "sphinxcontrib.mat_api_check",
     "sphinxcontrib.mat_classify",
     "sphinxcontrib.mat_directives",
     "sphinxcontrib.mat_documenters",

@@ -64,17 +64,17 @@
             "console": "integratedTerminal",
             "justMyCode": false
         },
-        // Future target (plan Appendix A): the builder is added in Phase 9, so this
-        // config fails until then.
+        // The test root with known gaps; exits 1 (its findings are errors).
         {
-            "name": "Debug matlab-api-check [Phase 9, not yet implemented]",
+            "name": "Debug matlab-api-check",
             "type": "debugpy",
             "request": "launch",
             "module": "sphinx.cmd.build",
             "args": [
+                "-E",
                 "-b", "matlab-api-check",
-                "${workspaceFolder}/docs",
-                "${workspaceFolder}/docs/_build/api-check"
+                "${workspaceFolder}/tests/roots/test_api_check",
+                "${workspaceFolder}/_build/api-check-debug"
             ],
             "console": "integratedTerminal",
             "justMyCode": false

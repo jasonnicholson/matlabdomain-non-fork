@@ -1124,11 +1124,13 @@ def placeholder(kind, name, folder):
     MatObject.__init__(obj, name)
     obj.module = folder
     obj.docstring = None
+    obj.line = None
     if cls is MatClass:
         obj.attrs, obj.bases, obj.properties = {}, [], {}
         obj.methods, obj.enumerations, obj.rem_tks = {}, {}, None
     elif cls is MatFunction:
         obj.retv, obj.args, obj.rem_tks = {}, {}, None
+        obj.name_value = {}
     else:
         obj.tokens = None
     return obj
@@ -1515,6 +1517,10 @@ class MatFunction(MatObject):
         self.retv = parsed_function.retv
         #: input args
         self.args = parsed_function.args
+        #: ``opts.Name`` -> help of each name-value argument
+        self.name_value = parsed_function.name_value
+        #: line of the declaration (one-based)
+        self.line = parsed_function.line
         #: remaining tokens after main function is parsed
         self.rem_tks = None
 
@@ -1564,6 +1570,8 @@ class MatClass(MatObject):
         self.bases = parsed_class.supers
         #: docstring
         self.docstring = parsed_class.docstring
+        #: line of the declaration (one-based)
+        self.line = parsed_class.line
         #: dictionary of class properties
         self.properties = parsed_class.properties
         #: dictionary of class methods
@@ -1692,6 +1700,8 @@ class MatMethod(MatFunction):
         self.retv = parsed_function.retv
         #: input args
         self.args = parsed_function.args
+        self.name_value = parsed_function.name_value
+        self.line = parsed_function.line
         self.cls = cls
         self.attrs = parsed_function.attrs
 

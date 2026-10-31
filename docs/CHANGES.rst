@@ -176,6 +176,15 @@ Release notes
 * Help of only blank ``%`` lines crashed the build.
 * An old-style property without a default (``p@double vector``) lost its
   type and size.
+* New builder ``matlab-api-check`` (``sphinx-build -b matlab-api-check``):
+  checks the help text of every indexed function, class, public method,
+  script and app (the H1 line; inputs, outputs and name-value sections, or
+  ``arguments``-block comments), logs each finding as ``mat.api_check``,
+  writes ``api-check.txt`` and ``api-check.json``, and exits with status 1
+  when a rule with severity ``error`` finds something. New configuration:
+  ``matlab_api_check_rules``, ``matlab_api_check_enabled`` and
+  ``matlab_api_check_ignore_patterns``. Cached environments from earlier
+  versions are rebuilt.
 
 .. _PR 232: https://github.com/sphinx-contrib/matlabdomain/pull/253
 
