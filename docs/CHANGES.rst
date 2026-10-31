@@ -161,6 +161,14 @@ Release notes
 * A function file of an ``@`` folder whose class file was removed is a
   function again in the next build; it stayed a method. Cached environments
   from earlier versions are rebuilt.
+* A function's or method's help could be a later comment block before its
+  first statement (a copyright line, a developer note), not always the same
+  one from build to build. Nested functions no longer add their outputs,
+  arguments and help to the enclosing function. Name-value arguments take
+  the help of the last one every time. Cached environments from earlier
+  versions are rebuilt.
+* An old-style property without a default (``p@double vector``) lost its
+  type and size.
 
 .. _PR 232: https://github.com/sphinx-contrib/matlabdomain/pull/253
 

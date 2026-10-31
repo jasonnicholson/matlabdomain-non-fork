@@ -146,17 +146,6 @@ q_property = Query(ML_LANG,
 """
 )
 
-q_old_property = Query(ML_LANG, 
-    """
-    (property name: (identifier) @name
-     (identifier) @type
-     (identifier)? @size_type
-     (default_value)? @default
-     (comment)? @docstring
-    ) @prop_node
-"""
-)
-
 q_enum = Query(ML_LANG, 
     """(enum
     .
@@ -416,7 +405,10 @@ class MatFunctionParser:
         self.encoding = encoding
         fun_nodes = [m[1]["f"][0] for m in QueryCursor(q_function).matches(root_node)]
         fun_node = fun_nodes[0] if fun_nodes else root_node
-        fun_match = QueryCursor(q_fun).captures(fun_node)
+        cursor = QueryCursor(q_fun)
+        # Match ``fun_node`` only, not the nested functions in its body.
+        cursor.set_max_start_depth(0)
+        fun_match = cursor.captures(fun_node)
         self.name = get_node(fun_match, "name").text.decode(
             self.encoding, errors="backslashreplace"
         )
@@ -432,14 +424,14 @@ class MatFunctionParser:
             self.args[arg.text.decode(self.encoding, errors="backslashreplace")] = {}
 
         # parse out info from argument blocks
-        argblock_nodes = fun_match.get("argblocks")
-        if argblock_nodes is not None:
-            for argblock_node in argblock_nodes:
-                self._parse_argument_section(argblock_node)
+        for argblock_node in get_nodes(fun_match, "argblocks"):
+            self._parse_argument_section(argblock_node)
 
         # get docstring: the comment block after the declaration, blank lines
         # allowed, unless a block precedes a file's function (leading_comment).
-        docstring_node = get_node(fun_match, "docstring")
+        # Captures are not in document order: the first comment is the help.
+        docstring_nodes = get_nodes(fun_match, "docstring")
+        docstring_node = docstring_nodes[0] if docstring_nodes else None
         docstring = ""
         if docstring_node is not None:
             docstring = trailing_docstring(
@@ -458,10 +450,9 @@ class MatFunctionParser:
         attrs_nodes = argblock_match.get("attrs")
         attrs = self._parse_attributes(attrs_nodes)
 
-        arguments = argblock_match.get("args")
-
-        # Bug fix: Check if arguments is None before iterating
-        if arguments is None:
+        # In document order: the last name-value argument's help wins.
+        arguments = get_nodes(argblock_match, "args")
+        if not arguments:
             return
 
         # TODO this is almost identical to property parsing.
@@ -673,8 +664,12 @@ class MatClassParser:
         attrs_nodes = props_match.get("attrs")
         attrs = self._parse_attributes(attrs_nodes)
         for prop in properties:
-            # match property to extract details
-            prop_match = list(QueryCursor(q_property).matches(prop))[0][1]
+            # The optional identifiers match in several ways; the match with
+            # the most captures, a type before a size, is the declaration.
+            prop_match = max(
+                (match for _, match in QueryCursor(q_property).matches(prop)),
+                key=lambda match: (sum(map(len, match.values())), "type" in match),
+            )
             # extract name (this is always available so no need for None check)
             name = get_node(prop_match, "name").text.decode(
                 self.encoding, errors="backslashreplace"

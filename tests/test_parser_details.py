@@ -133,6 +133,9 @@ def test_property_and_enumeration_help(tmp_path):
         "p9": "below P9",
     }
     assert obj.properties["p1"]["attrs"] == {"Hidden": False}
+    # old-style ``name@type size`` without a default lost its type and size
+    p6 = obj.properties["p6"]
+    assert (p6["type"], p6["size"]) == ("double", (":", "1"))
     assert docstrings(obj.enumerations) == {
         "E0": "before E0",
         "E1": "inline E1",
@@ -202,6 +205,53 @@ def test_file_wrapped_in_an_error_is_a_script(tmp_path):
     obj = parse(tmp_path, "wrapped", "if x\n y = 1;\n")
     assert isinstance(obj, mat_types.MatScript)
     assert obj.docstring is None
+
+
+NESTED = """\
+function out = outer(x, opts)
+% OUTER HELP
+arguments
+    x
+    opts.First = 1 % first
+    opts.Second = 2 % second
+    opts.Third = 3 % third
+end
+
+% Copyright notice.
+
+%%%%%%%%%%%%%%%%%%%%
+% DEVELOPER NOTE
+%%%%%%%%%%%%%%%%%%%%
+y = inner(x);
+    function z = inner(w, v)
+    % INNER HELP
+    arguments
+        w double % W
+        v = 1
+    end
+    z = w;
+    end
+end
+"""
+
+
+def test_function_help_and_signature_are_its_own(tmp_path):
+    # tree-sitter returns the comment and argument captures in no fixed
+    # order (a later block came back about every other parse), and used to
+    # include the nested function's. Parse several times.
+    method = NESTED.replace("\n", "\n    ").replace("outer", "m")
+    source = f"classdef K\n  methods\n    {method}\n  end\nend\n"
+    for _ in range(8):
+        obj = parse(tmp_path, "outer", NESTED)
+        assert obj.docstring == "OUTER HELP"
+        assert list(obj.retv) == ["out"]
+        assert list(obj.args) == ["x", "opts"]
+        # one entry for all name-value arguments: the last one's help
+        assert obj.args["opts"]["docstring"] == "third"
+        cls = parse(tmp_path, "K", source)
+        m = cls.methods["m"]
+        assert m.docstring == "OUTER HELP"
+        assert (list(m.retv), list(m.args)) == (["out"], ["x", "opts"])
 
 
 def tree(source):
