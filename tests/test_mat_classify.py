@@ -174,7 +174,13 @@ def _corpus_path(fullpath):
         _, matlab_sep, matlab_tail = fullpath.partition("/home/jason/Programs/MATLAB/2026a/")
         if matlab_sep:
             return Path(root, *matlab_tail.split("/"))
-    return _REPO / "test_slow" / tail if sep else Path(fullpath)
+    if not sep:
+        return Path(fullpath)
+    # The checkouts moved from artifacts/<name>/repo/ to gauntlet/repos/<name>/.
+    parts = tail.split("/")
+    if parts[0] == "artifacts" and parts[2:3] == ["repo"]:
+        parts = ["gauntlet", "repos", parts[1], *parts[3:]]
+    return _REPO / "test_slow" / Path(*parts)
 
 
 @pytest.mark.skipif(not _CORPUS.exists(), reason="reference corpus not present")
