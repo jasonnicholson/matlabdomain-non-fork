@@ -1,5 +1,7 @@
 """Autodoc options and member documentation of the mat documenters."""
 
+import os
+
 import pytest
 from docutils import nodes
 from sphinx import addnodes
@@ -451,6 +453,20 @@ def test_folder_members_without_a_documenter(make_app, tmp_path):
     app = build(make_app, tmp_path, page(directive), files=files)
     # The file h.m wins over the folder h/; folders are not documented as members.
     assert documented(app, "sub/") == ["", "g.m", "h.m"]
+
+
+@pytest.mark.parametrize("order", ["alphabetical", "bysource"])
+def test_folder_members_ignore_the_listing_order(
+    make_app, tmp_path, monkeypatch, order
+):
+    listdir = os.listdir
+    monkeypatch.setattr(
+        mat_types.os, "listdir", lambda path: sorted(listdir(path), reverse=True)
+    )
+    files = {**FILES, "sub/a.m": "function a\n% A HELP\nend\n"}
+    directive = f".. mat:autofolder:: sub\n   :members:\n   :member-order: {order}\n"
+    app = build(make_app, tmp_path, page(directive), files=files)
+    assert documented(app, "sub/") == ["", "a.m", "g.m"]
 
 
 def test_analyzer_failure_is_logged(make_app, tmp_path, monkeypatch):

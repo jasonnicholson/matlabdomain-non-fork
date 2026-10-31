@@ -712,9 +712,10 @@ class MatFolderDocumenter(MatlabDocumenter, PyModuleDocumenter):
                 if not is_hidden(ref):
                     members.setdefault(name, []).append(ref)
             dom = self.env.get_domain("mat")
+            # sorted like class members, not in the file system's listing order
             return False, [
                 (n, resolve(dom, min(refs, key=lambda r: r[-1:] == "/")))
-                for n, refs in members.items()
+                for n, refs in sorted(members.items())
             ]
         else:
             memberlist = self.options.members or []

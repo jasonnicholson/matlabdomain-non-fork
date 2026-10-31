@@ -1790,13 +1790,16 @@ class MatModuleAnalyzer(object):
 
 
 class _TagOrder:
-    """Source order of a folder's files (``name``) and of a class's members
-    (``Class.member``), for ``:member-order: bysource``. A class is parsed
-    only when one of its members is asked for.
+    """Order of a folder's files (``name``, by name: a folder has no source
+    order) and source order of a class's members (``Class.member``), for
+    ``:member-order: bysource``. A class is parsed only when one of its
+    members is asked for.
     """
 
     def __init__(self, mod):
-        self.files = [(name, ref) for name, ref in mod.member_refs() if ref[-1:] != "/"]
+        self.files = sorted(
+            (name, ref) for name, ref in mod.member_refs() if ref[-1:] != "/"
+        )
         #: file name -> position (the last file with that name)
         self.order = {name: i for i, (name, _) in enumerate(self.files)}
         self._classes = {}

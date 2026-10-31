@@ -147,6 +147,8 @@ Release notes
     singleton." to a class without a constructor.
   * With ``matlab_auto_link``, a line without a name (such as ``---``) after
     "See also" crashed the build.
+  * ``mat:autofolder`` with ``:members:`` listed files in the file system's
+    order, which differs between operating systems; they are sorted by name.
 * Help text and warnings follow MATLAB R2026a more closely: a lone CR ends a
   line; after ``...`` at the end of the superclasses, a comment on the
   continued line is not help (the next block is); an ``arguments`` entry
