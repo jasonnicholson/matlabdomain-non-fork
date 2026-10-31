@@ -2,7 +2,7 @@ import sys, importlib.metadata as md
 from pathlib import Path
 from tree_sitter import Language, Parser
 import tree_sitter_matlab as tsml
-FILE = str(Path(__file__).resolve().parents[2] / "artifacts/vhlab-toolbox-matlab/repo/+vlt/+plot/hist2d.m")
+FILE = str(Path(__file__).resolve().parents[2] / "gauntlet/repos/vhlab-toolbox-matlab/+vlt/+plot/hist2d.m")
 Q = r'''(function_definition
     _*
     (function_output [(identifier) @outputs (multioutput_variable [[(identifier) (ignored_argument)] @outputs _]+)])?

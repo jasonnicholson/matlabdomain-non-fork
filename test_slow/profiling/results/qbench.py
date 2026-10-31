@@ -3,7 +3,7 @@ import json, sys, time, platform, sysconfig, importlib.metadata as md
 from pathlib import Path
 import tree_sitter as ts
 import tree_sitter_matlab as tsml
-SRC = Path(__file__).resolve().parents[2] / "artifacts" / "vhlab-toolbox-matlab" / "repo"
+SRC = Path(__file__).resolve().parents[2] / "gauntlet" / "repos" / "vhlab-toolbox-matlab"
 Q_IS_FUNCTION = r"""(source_file [(comment) "\n"]* (function_definition))"""
 Q_IS_CLASS = "(class_definition)"
 Q_FUN = r'''(function_definition
