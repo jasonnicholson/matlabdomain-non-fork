@@ -30,11 +30,15 @@ python test_slow/gauntlet/compare.py test_slow/gauntlet/summaries/phase8-linux.j
 NAME arguments keep the projects whose name contains one of them. For each
 project, `gauntlet.py` generates the pages 3 times (`--trials`), reruns with
 `-f` (expect nothing created or updated), and builds with the defaults
-(`conf`) and with `matlab_auto_link = "all"` (`all`; `--variant` picks one).
+(`conf`), with `matlab_auto_link = "all"` (`all`) and with `-b
+matlab-api-check` (`api`, the default rules; its reports are kept as
+`<project>/api-check.{txt,json}`); `--variant` picks one.
 `--jobs` builds each again with `-j auto` and compares the HTML,
-`objects.inv` and warnings. On Windows, `-j` runs serially (no fork).
+`objects.inv` (the api-check reports) and warnings. On Windows, `-j` runs
+serially (no fork).
 `gauntlet.py` exits 1 on a problem: a checkout not at its commit, a nonzero
-exit code, a traceback, a duplicate object, a rerun that changes pages, or a
+exit code (`api`: 1 with findings of severity `error`, else 0), a
+traceback, a duplicate object, a rerun that changes pages, or a
 serial vs `-j` difference (unless `parallel_may_differ`).
 
 To save a summary, copy `runs/<name>/results.json` to `summaries/<name>.json`.

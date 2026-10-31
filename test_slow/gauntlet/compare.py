@@ -6,12 +6,13 @@ Usage, from anywhere:
 A and B are run folders (gauntlet.py --out) or results.json files (such as
 summaries/*.json). Per project: the commit, the CLI summary (pages, created,
 updated, unchanged, files indexed, warnings), the warnings by subtype of the
-CLI and each build, exit codes, and whether serial and -j builds matched.
-When both are run folders, also the generated pages (manifest.json) and the
-warnings themselves, with paths normalized (project root, generated docs
-folder, separators) and the fallback codec's name (Windows ANSI or
-ISO-8859-1) replaced; prints a few warnings found on one side only. Exit 1
-when a project differs.
+CLI and each build, exit codes, the api-check summary, and whether serial
+and -j builds matched. When both are run folders, also the generated pages
+(manifest.json), the api-check findings (api-check.json) and the warnings
+themselves, with paths normalized (project root, generated docs folder,
+separators) and the fallback codec's name (Windows ANSI or ISO-8859-1)
+replaced; prints a few warnings found on one side only. Exit 1 when a
+project differs.
 """
 
 import collections
@@ -21,7 +22,7 @@ import sys
 from pathlib import Path
 
 RECORD = re.compile(r"(^|: )(WARNING|ERROR|CRITICAL|SEVERE): ")
-VARIANTS = ("conf", "all")
+VARIANTS = ("conf", "all", "api")
 
 
 def load(arg):
@@ -107,6 +108,10 @@ def compare(name, ra, rb, a, b):
             problems.append(
                 f"{variant} warnings: {counts(va['warnings'], vb['warnings'])}"
             )
+        if va.get("api_check") != vb.get("api_check"):
+            problems.append(
+                f"{variant} api-check: {va.get('api_check')} vs {vb.get('api_check')}"
+            )
         ja, jb = ra.get(f"{variant}_jobs"), rb.get(f"{variant}_jobs")
         if ja and jb and (ja["diff"] == "identical") != (jb["diff"] == "identical"):
             problems.append(f"{variant} -j: {ja['diff']} vs {jb['diff']}")
@@ -118,6 +123,18 @@ def compare(name, ra, rb, a, b):
                 f"{len(changed)} generated files differ, e.g. {changed[:3]}"
             )
     if a[1] is not None and b[1] is not None:
+        fa, fb = (folder / name / "api-check.json" for folder in (a[1], b[1]))
+        if fa.exists() and fb.exists():
+            ja, jb = (json.loads(f.read_text(encoding="utf-8")) for f in (fa, fb))
+            if ja != jb:
+                keys = [
+                    {json.dumps(x, sort_keys=True) for x in j["findings"]}
+                    for j in (ja, jb)
+                ]
+                problems.append(
+                    f"api-check.json: {len(keys[0] - keys[1])} findings only in A, "
+                    f"{len(keys[1] - keys[0])} only in B"
+                )
         built = [f"{v}.warnings.txt" for v in VARIANTS if v in ra and v in rb]
         for file in ["cli_stderr.txt", *built]:
             wa, wb = warnings(a[1], name, file), warnings(b[1], name, file)

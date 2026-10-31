@@ -2,7 +2,7 @@
 
 Usage, from anywhere (fetch.py first; this script fetches nothing):
   python test_slow/gauntlet/gauntlet.py [NAME ...] [--out DIR] [--trials N]
-      [--jobs] [--variant {conf,all}] [--projects FILE]
+      [--jobs] [--variant {all,api,conf}] [--projects FILE]
 
 For each enabled project in the list (NAME arguments keep the projects whose
 name contains one of them), on its checkout repos/<name>:
@@ -10,17 +10,20 @@ name contains one of them), on its checkout repos/<name>:
   the CLI summary; CLI warnings by subtype (OUT/<name>/cli_stderr.txt);
 - reruns into the first folder with -f (expect 0 created or updated);
 - builds that output with sphinx-build -E (no -W), once per variant:
-  ``conf`` (the defaults) and ``all`` (``-D matlab_auto_link=all``); exit
-  code, wall time, warnings by subtype (OUT/<name>/<variant>.warnings.txt),
-  a traceback or crash log in stderr;
+  ``conf`` (the defaults), ``all`` (``-D matlab_auto_link=all``) and ``api``
+  (``-b matlab-api-check`` with the default rules; its reports are kept as
+  OUT/<name>/api-check.{txt,json}); exit code, wall time, warnings by
+  subtype (OUT/<name>/<variant>.warnings.txt), a traceback or crash log in
+  stderr; for ``api`` also the report's summary;
 - with --jobs, builds each variant again with -j auto and compares exit
-  codes, the bytes of every *.html and objects.inv, and the warnings
-  (Windows has no fork, so -j runs serially there).
+  codes, the bytes of every *.html and objects.inv (the api-check reports),
+  and the warnings (Windows has no fork, so -j runs serially there).
 
 Writes OUT/results.json (the summary: the environment and, per project, the
 commit and the numbers above) and OUT/manifest.json (SHA-256 of every
 generated file per project). Prints the problems: a checkout not at its
-pinned or locked commit, a nonzero exit code, a traceback, a duplicate
+pinned or locked commit, a nonzero exit code (for ``api``: other than 1
+with findings of severity error, 0 without), a traceback, a duplicate
 object, a rerun that changes pages, and a serial vs -j difference (unless
 ``parallel_may_differ``). Exit 1 when there is one.
 """
@@ -49,7 +52,13 @@ SUMMARY = re.compile(
     r"(\d+) pages: (\d+) created, (\d+) updated, (\d+) unchanged.*?"
     r"(\d+) files indexed, (\d+) warnings, ([\d.]+) s\."
 )
-VARIANTS = {"conf": [], "all": ["-D", "matlab_auto_link=all"]}
+# variant -> (builder, extra sphinx-build arguments)
+VARIANTS = {
+    "conf": ("html", []),
+    "all": ("html", ["-D", "matlab_auto_link=all"]),
+    "api": ("matlab-api-check", []),
+}
+API_REPORTS = ("api-check.json", "api-check.txt")
 CONF = (
     'extensions = ["sphinx.ext.autodoc", "sphinxcontrib.matlab"]\n'
     "matlab_src_code_project_root = {root!r}\n"
@@ -107,18 +116,20 @@ def manifest(folder):
     }
 
 
-def build(docs, outdir, root, extra):
+def build(docs, outdir, root, variant, extra=()):
     shutil.rmtree(outdir, ignore_errors=True)
     warnfile = outdir.parent / f"{outdir.name}.warnings.txt"
+    builder, args = VARIANTS[variant]
     proc, wall = run(
         "sphinx",
         "-E",
         "-b",
-        "html",
+        builder,
         "-q",
         "-w",
         str(warnfile),
         *extra,
+        *args,
         str(docs),
         str(outdir),
     )
@@ -126,7 +137,8 @@ def build(docs, outdir, root, extra):
     files = {
         p.relative_to(outdir).as_posix(): p.read_bytes()
         for p in outdir.rglob("*")
-        if p.is_file() and (p.suffix == ".html" or p.name == "objects.inv")
+        if p.is_file()
+        and (p.suffix == ".html" or p.name == "objects.inv" or p.name in API_REPORTS)
     }
     row = {
         "rc": proc.returncode,
@@ -137,12 +149,26 @@ def build(docs, outdir, root, extra):
         "traceback": "Traceback" in proc.stderr or "Traceback" in text,
         "html_files": sum(f.endswith(".html") for f in files),
     }
+    if "api-check.json" in files:
+        summary = json.loads(files["api-check.json"])["summary"]
+        row["api_check"] = {
+            key: summary[key]
+            for key in ("checked", "not_checked", "errors", "warnings")
+        }
+        row["api_check"]["findings"] = {
+            rule: n["error"] + n["warning"] for rule, n in summary["findings"].items()
+        }
     if proc.returncode or row["traceback"]:
         (outdir.parent / f"{outdir.name}.stderr.txt").write_text(
             proc.stderr, encoding="utf-8"
         )
     norm = collections.Counter(text.replace(str(root), "<ROOT>").splitlines())
     return row, files, norm
+
+
+def expected_rc(row):
+    """0, or 1 for an api-check build with findings of severity error."""
+    return 1 if row.get("api_check", {}).get("errors") else 0
 
 
 def compare_jobs(serial, files, warnings, par, pfiles, pwarnings):
@@ -188,7 +214,9 @@ def problems(project, row):
         out.append(f"the -f rerun created or updated pages: {rerun}")
     for variant in VARIANTS:
         b = row.get(variant)
-        if b and (b["rc"] or b["traceback"] or b["duplicate_objects"]):
+        if b and (
+            b["rc"] != expected_rc(b) or b["traceback"] or b["duplicate_objects"]
+        ):
             out.append(
                 f"{variant}: exit {b['rc']}, traceback {b['traceback']}, "
                 f"duplicate objects {b['duplicate_objects']}"
@@ -242,13 +270,14 @@ def run_project(project, lock, args, out):
     (docs / "conf.py").write_text(CONF.format(root=str(root)), encoding="utf-8")
     for variant in args.variant or list(VARIANTS):
         base = out / project.name / variant
-        serial, files, warnings = build(docs, base, root, VARIANTS[variant])
+        serial, files, warnings = build(docs, base, root, variant)
         row[variant] = serial
+        for report in API_REPORTS:
+            if report in files:
+                (out / project.name / report).write_bytes(files[report])
         if args.jobs:
             jobs = out / project.name / f"{variant}-j"
-            par, pfiles, pwarnings = build(
-                docs, jobs, root, ["-j", "auto", *VARIANTS[variant]]
-            )
+            par, pfiles, pwarnings = build(docs, jobs, root, variant, ["-j", "auto"])
             diff = compare_jobs(serial, files, warnings, par, pfiles, pwarnings)
             row[f"{variant}_jobs"] = {"wall_s": par["wall_s"], "diff": diff}
             shutil.rmtree(jobs, ignore_errors=True)
