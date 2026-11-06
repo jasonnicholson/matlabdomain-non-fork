@@ -1,0 +1,2010 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="#"><link rel="search" title="Search" href="search.html">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 --><title>Index - sphinxcontrib-matlabdomain</title>
+<link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">sphinxcontrib-matlabdomain</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <span class="sidebar-brand-text">sphinxcontrib-matlabdomain</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting-started/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting-started/quickstart.html">Quickstart</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/setting-up.html">Setting up a project: <code class="docutils literal notranslate"><span class="pre">sphinx-matlab-quickstart</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/documenting.html">Documenting MATLAB code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/referencing.html">Names, references and links</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/linking-projects.html">Linking between projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/help-text.html">Help text</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/apidoc.html">Generating pages: <code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/sidecars.html">Sidecar docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/api-check.html">Checking help text: <code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/warnings.html">Warnings</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/builds.html">Builds and performance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/projects-and-versions.html">Several projects and versions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/migration.html">Migrating from 0.22 and earlier</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="reference/configuration.html">Configuration values</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/directives.html">Directives, roles and indices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/cli.html">Command-line tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/templates.html"><code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code> templates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/api-check-report.html"><code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code> reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/warnings.html">Warnings</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="developer-guide/contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developer-guide/testing.html">Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developer-guide/architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developer-guide/debugging.html">Debugging and profiling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developer-guide/roadmap.html">Roadmap</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Project</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="CHANGES.html">Release notes</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          
+<section class="genindex-section">
+  <h1 id="index">Index</h1>
+  <div class="genindex-jumpbox"><a href="#Symbols"><strong>Symbols</strong></a> | <a href="#A"><strong>A</strong></a> | <a href="#B"><strong>B</strong></a> | <a href="#C"><strong>C</strong></a> | <a href="#D"><strong>D</strong></a> | <a href="#E"><strong>E</strong></a> | <a href="#F"><strong>F</strong></a> | <a href="#G"><strong>G</strong></a> | <a href="#H"><strong>H</strong></a> | <a href="#M"><strong>M</strong></a> | <a href="#N"><strong>N</strong></a> | <a href="#P"><strong>P</strong></a> | <a href="#R"><strong>R</strong></a> | <a href="#S"><strong>S</strong></a> | <a href="#T"><strong>T</strong></a> | <a href="#U"><strong>U</strong></a> | <a href="#X"><strong>X</strong></a> | <a href="#Y"><strong>Y</strong></a></div>
+</section>
+<section id="Symbols" class="genindex-section">
+  <h2>Symbols</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li>
+    --answers
+
+        <ul>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-answers">sphinx-matlab-quickstart command line option</a>
+</li>
+        </ul></li>
+        <li>
+    --check
+
+        <ul>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-check">sphinx-matlab-apidoc command line option</a>
+</li>
+        </ul></li>
+        <li>
+    --conf-dir
+
+        <ul>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-c">sphinx-matlab-apidoc command line option</a>
+</li>
+        </ul></li>
+        <li>
+    --dry-run
+
+        <ul>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-n">sphinx-matlab-apidoc command line option</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-n">sphinx-matlab-quickstart command line option</a>
+</li>
+        </ul></li>
+        <li>
+    --force
+
+        <ul>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-f">sphinx-matlab-apidoc command line option</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-force">sphinx-matlab-quickstart command line option</a>
+</li>
+        </ul></li>
+        <li>
+    --help
+
+        <ul>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-h">sphinx-matlab-apidoc command line option</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-h">sphinx-matlab-quickstart command line option</a>
+</li>
+        </ul></li>
+        <li>
+    --output-dir
+
+        <ul>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-o">sphinx-matlab-quickstart command line option</a>
+</li>
+        </ul></li>
+        <li>
+    --quiet
+
+        <ul>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-q">sphinx-matlab-apidoc command line option</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-q">sphinx-matlab-quickstart command line option</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li>
+    --version
+
+        <ul>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-version">sphinx-matlab-apidoc command line option</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-version">sphinx-matlab-quickstart command line option</a>
+</li>
+        </ul></li>
+        <li>
+    -c
+
+        <ul>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-c">sphinx-matlab-apidoc command line option</a>
+</li>
+        </ul></li>
+        <li>
+    -f
+
+        <ul>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-f">sphinx-matlab-apidoc command line option</a>
+</li>
+        </ul></li>
+        <li>
+    -h
+
+        <ul>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-h">sphinx-matlab-apidoc command line option</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-h">sphinx-matlab-quickstart command line option</a>
+</li>
+        </ul></li>
+        <li>
+    -n
+
+        <ul>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-n">sphinx-matlab-apidoc command line option</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-n">sphinx-matlab-quickstart command line option</a>
+</li>
+        </ul></li>
+        <li>
+    -o
+
+        <ul>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-o">sphinx-matlab-quickstart command line option</a>
+</li>
+        </ul></li>
+        <li>
+    -q
+
+        <ul>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-q">sphinx-matlab-apidoc command line option</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-q">sphinx-matlab-quickstart command line option</a>
+</li>
+        </ul></li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="A" class="genindex-section">
+  <h2>A</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li>
+    :abstract: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-attribute-abstract">mat:attribute (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-class-abstract">mat:class (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-method-abstract">mat:method (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-staticmethod-abstract">mat:staticmethod (directive)</a>
+</li>
+        </ul></li>
+        <li>
+    :access-list-members: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-access-list-members">mat:autoclass (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-access-list-members">mat:autofolder (directive)</a>
+</li>
+        </ul></li>
+        <li>
+    :annotation: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-application-annotation">mat:application (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-attribute-annotation">mat:attribute (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoattribute-annotation">mat:autoattribute (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoenum-annotation">mat:autoenum (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-class-annotation">mat:class (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-data-annotation">mat:data (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-event-annotation">mat:event (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-function-annotation">mat:function (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-method-annotation">mat:method (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-script-annotation">mat:script (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-staticmethod-annotation">mat:staticmethod (directive)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="user-guide/documenting.html#mat-+shapes/Circle.m.area">area() (shapes.Circle method)</a>
+
+        <ul>
+          <li><a href="user-guide/documenting.html#mat-+shapes/@Polygon/Polygon.m.area">(shapes.Polygon method)</a>
+</li>
+        </ul></li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="B" class="genindex-section">
+  <h2>B</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="user-guide/documenting.html#mat-+shapes/Color.m.Blue">Blue (shapes.Color attribute)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="C" class="genindex-section">
+  <h2>C</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li>
+    :constant: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-attribute-constant">mat:attribute (directive)</a>
+</li>
+        </ul></li>
+        <li><a href="user-guide/documenting.html#mat-+shapes/private/checkPositive.m">checkPositive() (function in +shapes/private/)</a>
+</li>
+        <li><a href="user-guide/documenting.html#mat-+shapes/Circle.m.Circle">Circle() (shapes.Circle method)</a>
+</li>
+        <li><a href="user-guide/documenting.html#mat-+shapes/Shape.m.Color">Color (shapes.Shape attribute)</a>
+</li>
+        <li>
+    configuration value
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_add_namespace_names">matlab_add_namespace_names</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_api_check_enabled">matlab_api_check_enabled</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_api_check_files">matlab_api_check_files</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_api_check_files_from">matlab_api_check_files_from</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_api_check_ignore_patterns">matlab_api_check_ignore_patterns</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_api_check_ignore_unmatched">matlab_api_check_ignore_unmatched</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_api_check_rules">matlab_api_check_rules</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_api_check_section_labels">matlab_api_check_section_labels</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_apidoc_group">matlab_apidoc_group</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_apidoc_maxdepth">matlab_apidoc_maxdepth</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_apidoc_output_dir">matlab_apidoc_output_dir</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_apidoc_page_size">matlab_apidoc_page_size</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_apidoc_private">matlab_apidoc_private</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_apidoc_remove_old">matlab_apidoc_remove_old</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_apidoc_separate">matlab_apidoc_separate</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_apidoc_suffix">matlab_apidoc_suffix</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_apidoc_templatedir">matlab_apidoc_templatedir</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_apidoc_tocfile">matlab_apidoc_tocfile</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_auto_link">matlab_auto_link</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_class_signature">matlab_class_signature</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_external_names">matlab_external_names</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_keep_package_prefix">matlab_keep_package_prefix</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_namelengthmax">matlab_namelengthmax</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_short_links">matlab_short_links</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_show_property_default_value">matlab_show_property_default_value</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_show_property_specs">matlab_show_property_specs</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_src_cache_text">matlab_src_cache_text</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_src_code_project_root">matlab_src_code_project_root</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_src_dir">matlab_src_dir</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_src_encoding">matlab_src_encoding</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_src_exclusion_patterns">matlab_src_exclusion_patterns</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_src_include_patterns">matlab_src_include_patterns</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_src_sidecar_suffixes">matlab_src_sidecar_suffixes</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_stable_urls">matlab_stable_urls</a>
+</li>
+          <li><a href="reference/configuration.html#confval-matlab_version">matlab_version</a>
+</li>
+        </ul></li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="D" class="genindex-section">
+  <h2>D</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li>
+    :dependent: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-attribute-dependent">mat:attribute (directive)</a>
+</li>
+        </ul></li>
+        <li>
+    :deprecated: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-deprecated">mat:autofolder (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-folder-deprecated">mat:folder (directive)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="user-guide/documenting.html#mat-+shapes/Shape.m.describe">describe() (shapes.Shape method)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="E" class="genindex-section">
+  <h2>E</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li>
+    :exclude-members: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-exclude-members">mat:autoclass (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-exclude-members">mat:autofolder (directive)</a>
+</li>
+        </ul></li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="F" class="genindex-section">
+  <h2>F</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li>
+    :friend-members: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-friend-members">mat:autoclass (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-friend-members">mat:autofolder (directive)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="user-guide/documenting.html#mat-+shapes/fastSolve">fastSolve() (function in +shapes/)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="G" class="genindex-section">
+  <h2>G</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="user-guide/documenting.html#mat-+shapes/Color.m.Green">Green (shapes.Color attribute)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="H" class="genindex-section">
+  <h2>H</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li>
+    :hidden-members: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-hidden-members">mat:autoclass (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-hidden-members">mat:autofolder (directive)</a>
+</li>
+        </ul></li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="M" class="genindex-section">
+  <h2>M</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li>
+    :member-order: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-member-order">mat:autoclass (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-member-order">mat:autofolder (directive)</a>
+</li>
+        </ul></li>
+        <li>
+    :members: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-members">mat:autoclass (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-members">mat:autofolder (directive)</a>
+</li>
+        </ul></li>
+        <li><a href="reference/directives.html#role-mat-app">mat:app (role)</a>
+</li>
+        <li><a href="reference/directives.html#directive-mat-application">mat:application (directive)</a>
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-application-annotation">:annotation: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-application-no-index">:no-index: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-application-noindex">:noindex: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-application-reference">:reference: (directive option)</a>
+</li>
+        </ul></li>
+        <li><a href="reference/directives.html#role-mat-attr">mat:attr (role)</a>
+</li>
+        <li><a href="reference/directives.html#directive-mat-attribute">mat:attribute (directive)</a>
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-attribute-abstract">:abstract: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-attribute-annotation">:annotation: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-attribute-constant">:constant: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-attribute-dependent">:dependent: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-attribute-no-index">:no-index: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-attribute-noindex">:noindex: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-attribute-read-only">:read-only: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-attribute-reference">:reference: (directive option)</a>
+</li>
+        </ul></li>
+        <li><a href="reference/directives.html#directive-mat-autoapplication">mat:autoapplication (directive)</a>
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autoapplication-no-index">:no-index: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoapplication-noindex">:noindex: (directive option)</a>
+</li>
+        </ul></li>
+        <li><a href="reference/directives.html#directive-mat-autoattribute">mat:autoattribute (directive)</a>
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autoattribute-annotation">:annotation: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoattribute-no-index">:no-index: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoattribute-noindex">:noindex: (directive option)</a>
+</li>
+        </ul></li>
+        <li><a href="reference/directives.html#directive-mat-autoclass">mat:autoclass (directive)</a>
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-access-list-members">:access-list-members: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-exclude-members">:exclude-members: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-friend-members">:friend-members: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-hidden-members">:hidden-members: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-member-order">:member-order: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-members">:members: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-no-index">:no-index: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-noindex">:noindex: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-private-members">:private-members: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-protected-members">:protected-members: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-show-inheritance">:show-inheritance: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-undoc-members">:undoc-members: (directive option)</a>
+</li>
+        </ul></li>
+        <li><a href="reference/directives.html#directive-mat-autodata">mat:autodata (directive)</a>
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autodata-no-index">:no-index: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autodata-noindex">:noindex: (directive option)</a>
+</li>
+        </ul></li>
+        <li><a href="reference/directives.html#directive-mat-autoenum">mat:autoenum (directive)</a>
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autoenum-annotation">:annotation: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoenum-no-index">:no-index: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoenum-noindex">:noindex: (directive option)</a>
+</li>
+        </ul></li>
+        <li><a href="reference/directives.html#directive-mat-autoevent">mat:autoevent (directive)</a>
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autoevent-no-index">:no-index: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoevent-noindex">:noindex: (directive option)</a>
+</li>
+        </ul></li>
+        <li><a href="reference/directives.html#directive-mat-autofolder">mat:autofolder (directive)</a>
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-access-list-members">:access-list-members: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-deprecated">:deprecated: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-exclude-members">:exclude-members: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-friend-members">:friend-members: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-hidden-members">:hidden-members: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-member-order">:member-order: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-members">:members: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-no-index">:no-index: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-noindex">:noindex: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-platform">:platform: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-private-members">:private-members: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-protected-members">:protected-members: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-show-inheritance">:show-inheritance: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-synopsis">:synopsis: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-undoc-members">:undoc-members: (directive option)</a>
+</li>
+        </ul></li>
+        <li><a href="reference/directives.html#directive-mat-autofunction">mat:autofunction (directive)</a>
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autofunction-no-index">:no-index: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofunction-noindex">:noindex: (directive option)</a>
+</li>
+        </ul></li>
+        <li><a href="reference/directives.html#directive-mat-automethod">mat:automethod (directive)</a>
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-automethod-no-index">:no-index: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-automethod-noindex">:noindex: (directive option)</a>
+</li>
+        </ul></li>
+        <li><a href="reference/directives.html#directive-mat-autoscript">mat:autoscript (directive)</a>
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autoscript-no-index">:no-index: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoscript-noindex">:noindex: (directive option)</a>
+</li>
+        </ul></li>
+        <li><a href="reference/directives.html#directive-mat-autosidecar">mat:autosidecar (directive)</a>
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autosidecar-no-title">:no-title: (directive option)</a>
+</li>
+        </ul></li>
+        <li><a href="reference/directives.html#directive-mat-class">mat:class (directive)</a>
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-class-abstract">:abstract: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-class-annotation">:annotation: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-class-no-index">:no-index: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-class-noindex">:noindex: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-class-reference">:reference: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-class-sealed">:sealed: (directive option)</a>
+</li>
+        </ul></li>
+        <li><a href="reference/directives.html#role-mat-class">mat:class (role)</a>
+</li>
+        <li><a href="reference/directives.html#role-mat-const">mat:const (role)</a>
+</li>
+        <li><a href="reference/directives.html#directive-mat-currentfolder">mat:currentfolder (directive)</a>
+</li>
+        <li><a href="reference/directives.html#directive-mat-data">mat:data (directive)</a>
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-data-annotation">:annotation: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-data-no-index">:no-index: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-data-noindex">:noindex: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-data-reference">:reference: (directive option)</a>
+</li>
+        </ul></li>
+        <li><a href="reference/directives.html#role-mat-data">mat:data (role)</a>
+</li>
+        <li><a href="reference/directives.html#role-mat-enum">mat:enum (role)</a>
+</li>
+        <li><a href="reference/directives.html#directive-mat-event">mat:event (directive)</a>
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-event-annotation">:annotation: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-event-no-index">:no-index: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-event-noindex">:noindex: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-event-reference">:reference: (directive option)</a>
+</li>
+        </ul></li>
+        <li><a href="reference/directives.html#role-mat-event">mat:event (role)</a>
+</li>
+        <li><a href="reference/directives.html#directive-mat-folder">mat:folder (directive)</a>
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-folder-deprecated">:deprecated: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-folder-no-index">:no-index: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-folder-noindex">:noindex: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-folder-platform">:platform: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-folder-synopsis">:synopsis: (directive option)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="reference/directives.html#role-mat-folder">mat:folder (role)</a>
+</li>
+        <li><a href="reference/directives.html#role-mat-func">mat:func (role)</a>
+</li>
+        <li><a href="reference/directives.html#directive-mat-function">mat:function (directive)</a>
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-function-annotation">:annotation: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-function-no-index">:no-index: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-function-noindex">:noindex: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-function-reference">:reference: (directive option)</a>
+</li>
+        </ul></li>
+        <li><a href="reference/directives.html#role-mat-meth">mat:meth (role)</a>
+</li>
+        <li><a href="reference/directives.html#directive-mat-method">mat:method (directive)</a>
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-method-abstract">:abstract: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-method-annotation">:annotation: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-method-no-index">:no-index: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-method-noindex">:noindex: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-method-reference">:reference: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-method-sealed">:sealed: (directive option)</a>
+</li>
+        </ul></li>
+        <li><a href="reference/directives.html#role-mat-obj">mat:obj (role)</a>
+</li>
+        <li><a href="reference/directives.html#role-mat-scpt">mat:scpt (role)</a>
+</li>
+        <li><a href="reference/directives.html#directive-mat-script">mat:script (directive)</a>
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-script-annotation">:annotation: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-script-no-index">:no-index: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-script-noindex">:noindex: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-script-reference">:reference: (directive option)</a>
+</li>
+        </ul></li>
+        <li><a href="reference/directives.html#role-mat-sidecar">mat:sidecar (role)</a>
+</li>
+        <li><a href="reference/directives.html#directive-mat-staticmethod">mat:staticmethod (directive)</a>
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-staticmethod-abstract">:abstract: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-staticmethod-annotation">:annotation: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-staticmethod-no-index">:no-index: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-staticmethod-noindex">:noindex: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-staticmethod-reference">:reference: (directive option)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-staticmethod-sealed">:sealed: (directive option)</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_add_namespace_names
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_add_namespace_names">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_api_check_enabled
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_api_check_enabled">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_api_check_files
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_api_check_files">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_api_check_files_from
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_api_check_files_from">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_api_check_ignore_patterns
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_api_check_ignore_patterns">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_api_check_ignore_unmatched
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_api_check_ignore_unmatched">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_api_check_rules
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_api_check_rules">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_api_check_section_labels
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_api_check_section_labels">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_apidoc_group
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_apidoc_group">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_apidoc_maxdepth
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_apidoc_maxdepth">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_apidoc_output_dir
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_apidoc_output_dir">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_apidoc_page_size
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_apidoc_page_size">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_apidoc_private
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_apidoc_private">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_apidoc_remove_old
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_apidoc_remove_old">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_apidoc_separate
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_apidoc_separate">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_apidoc_suffix
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_apidoc_suffix">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_apidoc_templatedir
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_apidoc_templatedir">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_apidoc_tocfile
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_apidoc_tocfile">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_auto_link
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_auto_link">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_class_signature
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_class_signature">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_external_names
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_external_names">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_keep_package_prefix
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_keep_package_prefix">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_namelengthmax
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_namelengthmax">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_short_links
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_short_links">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_show_property_default_value
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_show_property_default_value">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_show_property_specs
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_show_property_specs">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_src_cache_text
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_src_cache_text">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_src_code_project_root
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_src_code_project_root">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_src_dir
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_src_dir">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_src_encoding
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_src_encoding">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_src_exclusion_patterns
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_src_exclusion_patterns">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_src_include_patterns
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_src_include_patterns">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_src_sidecar_suffixes
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_src_sidecar_suffixes">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_stable_urls
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_stable_urls">configuration value</a>
+</li>
+        </ul></li>
+        <li>
+    matlab_version
+
+        <ul>
+          <li><a href="reference/configuration.html#confval-matlab_version">configuration value</a>
+</li>
+        </ul></li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="N" class="genindex-section">
+  <h2>N</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li>
+    :no-index: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-application-no-index">mat:application (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-attribute-no-index">mat:attribute (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoapplication-no-index">mat:autoapplication (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoattribute-no-index">mat:autoattribute (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-no-index">mat:autoclass (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autodata-no-index">mat:autodata (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoenum-no-index">mat:autoenum (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoevent-no-index">mat:autoevent (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-no-index">mat:autofolder (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofunction-no-index">mat:autofunction (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-automethod-no-index">mat:automethod (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoscript-no-index">mat:autoscript (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-class-no-index">mat:class (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-data-no-index">mat:data (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-event-no-index">mat:event (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-folder-no-index">mat:folder (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-function-no-index">mat:function (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-method-no-index">mat:method (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-script-no-index">mat:script (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-staticmethod-no-index">mat:staticmethod (directive)</a>
+</li>
+        </ul></li>
+        <li>
+    :no-title: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autosidecar-no-title">mat:autosidecar (directive)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li>
+    :noindex: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-application-noindex">mat:application (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-attribute-noindex">mat:attribute (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoapplication-noindex">mat:autoapplication (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoattribute-noindex">mat:autoattribute (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-noindex">mat:autoclass (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autodata-noindex">mat:autodata (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoenum-noindex">mat:autoenum (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoevent-noindex">mat:autoevent (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-noindex">mat:autofolder (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofunction-noindex">mat:autofunction (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-automethod-noindex">mat:automethod (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autoscript-noindex">mat:autoscript (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-class-noindex">mat:class (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-data-noindex">mat:data (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-event-noindex">mat:event (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-folder-noindex">mat:folder (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-function-noindex">mat:function (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-method-noindex">mat:method (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-script-noindex">mat:script (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-staticmethod-noindex">mat:staticmethod (directive)</a>
+</li>
+        </ul></li>
+        <li><a href="user-guide/documenting.html#mat-+shapes/Shape.m.Name">Name (shapes.Shape attribute)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="P" class="genindex-section">
+  <h2>P</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li>
+    :platform: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-platform">mat:autofolder (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-folder-platform">mat:folder (directive)</a>
+</li>
+        </ul></li>
+        <li>
+    :private-members: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-private-members">mat:autoclass (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-private-members">mat:autofolder (directive)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li>
+    :protected-members: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-protected-members">mat:autoclass (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-protected-members">mat:autofolder (directive)</a>
+</li>
+        </ul></li>
+        <li><a href="user-guide/documenting.html#mat-+shapes/@Polygon/Polygon.m.perimeter">perimeter() (shapes.Polygon method)</a>
+</li>
+        <li><a href="user-guide/documenting.html#mat-+shapes/@Polygon/Polygon.m.Polygon">Polygon() (shapes.Polygon method)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="R" class="genindex-section">
+  <h2>R</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li>
+    :read-only: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-attribute-read-only">mat:attribute (directive)</a>
+</li>
+        </ul></li>
+        <li>
+    :reference: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-application-reference">mat:application (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-attribute-reference">mat:attribute (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-class-reference">mat:class (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-data-reference">mat:data (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-event-reference">mat:event (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-function-reference">mat:function (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-method-reference">mat:method (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-script-reference">mat:script (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-staticmethod-reference">mat:staticmethod (directive)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="user-guide/documenting.html#mat-+shapes/Circle.m.Radius">Radius (shapes.Circle attribute)</a>
+</li>
+        <li><a href="user-guide/documenting.html#mat-+shapes/Color.m.Red">Red (shapes.Color attribute)</a>
+</li>
+        <li>
+    ROOT
+
+        <ul>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-arg-ROOT">sphinx-matlab-quickstart command line option</a>
+</li>
+        </ul></li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="S" class="genindex-section">
+  <h2>S</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li>
+    :sealed: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-class-sealed">mat:class (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-method-sealed">mat:method (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-staticmethod-sealed">mat:staticmethod (directive)</a>
+</li>
+        </ul></li>
+        <li>
+    :show-inheritance: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-show-inheritance">mat:autoclass (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-show-inheritance">mat:autofolder (directive)</a>
+</li>
+        </ul></li>
+        <li>
+    :synopsis: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-synopsis">mat:autofolder (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-folder-synopsis">mat:folder (directive)</a>
+</li>
+        </ul></li>
+        <li><a href="user-guide/help-text.html#mat-help_styles/scaled.m">scaled() (function in help_styles/)</a>
+</li>
+        <li><a href="user-guide/help-text.html#mat-help_styles/scaled_list.m">scaled_list() (function in help_styles/)</a>
+</li>
+        <li><a href="user-guide/documenting.html#mat-+shapes/">shapes (namespace)</a>
+</li>
+        <li><a href="user-guide/documenting.html#mat-+shapes/Circle.m">shapes.Circle (class in +shapes/)</a>
+</li>
+        <li><a href="user-guide/documenting.html#mat-+shapes/Color.m">shapes.Color (class in +shapes/)</a>
+</li>
+        <li><a href="user-guide/documenting.html#mat-+shapes/@Polygon/Polygon.m">shapes.Polygon (class in +shapes/@Polygon/)</a>
+</li>
+        <li><a href="user-guide/documenting.html#mat-+shapes/Shape.m">shapes.Shape (class in +shapes/)</a>
+</li>
+        <li><a href="user-guide/documenting.html#mat-+shapes/totalArea.m">shapes.totalArea() (function in +shapes/)</a>
+</li>
+        <li><a href="user-guide/documenting.html#mat-apps/ShapesApp.mlapp">ShapesApp (application in apps/)</a>
+</li>
+        <li>
+    sphinx-matlab-apidoc command line option
+
+        <ul>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-check">--check</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-c">--conf-dir</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-n">--dry-run</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-f">--force</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-h">--help</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-q">--quiet</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-version">--version</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-c">-c</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-f">-f</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-h">-h</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-n">-n</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-apidoc-q">-q</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li>
+    sphinx-matlab-quickstart command line option
+
+        <ul>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-answers">--answers</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-n">--dry-run</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-force">--force</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-h">--help</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-o">--output-dir</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-q">--quiet</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-version">--version</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-h">-h</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-n">-n</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-o">-o</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-q">-q</a>
+</li>
+          <li><a href="reference/cli.html#cmdoption-sphinx-matlab-quickstart-arg-ROOT">ROOT</a>
+</li>
+        </ul></li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="T" class="genindex-section">
+  <h2>T</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="getting-started/quickstart.html#mat-times_two.m">times_two() (function in ./)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="user-guide/help-text.html#mat-times_two_napoleon.m">times_two_napoleon() (function in ./)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="U" class="genindex-section">
+  <h2>U</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li>
+    :undoc-members: (directive option)
+
+        <ul>
+          <li><a href="reference/directives.html#directive-option-mat-autoclass-undoc-members">mat:autoclass (directive)</a>
+</li>
+          <li><a href="reference/directives.html#directive-option-mat-autofolder-undoc-members">mat:autofolder (directive)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="user-guide/documenting.html#mat-+shapes/Circle.m.unit">unit() (shapes.Circle static method)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="X" class="genindex-section">
+  <h2>X</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="user-guide/documenting.html#mat-+shapes/@Polygon/Polygon.m.X">X (shapes.Polygon attribute)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="Y" class="genindex-section">
+  <h2>Y</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="user-guide/documenting.html#mat-+shapes/@Polygon/Polygon.m.Y">Y (shapes.Polygon attribute)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; Jørgen Cederberg and contributors
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="_static/mat_urls.js?v=43922072"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = "pre.mermaid {\n    /* Same as .mermaid-container > pre */\n    display: block;\n    width: 100%;\n}\n\npre.mermaid > svg {\n    /* Same as .mermaid-container > pre > svg */\n    height: 500px;\n    width: 100%;\n    max-width: 100% !important;\n}";
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = ".mermaid-container {\n    position: relative;\n    display: flex;\n    flex-direction: row;\n    width: 100%;\n}\n\n.mermaid-container > pre {\n    display: block;\n    width: 100%;\n}\n\n.mermaid-container > pre > svg {\n    height: 500px;\n    width: 100%;\n    max-width: 100% !important;\n}\n\n.mermaid-fullscreen-btn {\n    position: absolute;\n    width: 28px;\n    height: 28px;\n    background: rgba(255, 255, 255, 0.95);\n    border: 1px solid rgba(0, 0, 0, 0.3);\n    border-radius: 4px;\n    cursor: pointer;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    transition: all 0.2s;\n    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);\n    font-size: 14px;\n    line-height: 1;\n    padding: 0;\n    color: #333;\n}\n\n.mermaid-fullscreen-btn:hover {\n    opacity: 100% !important;\n    background: rgba(255, 255, 255, 1);\n    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);\n    transform: scale(1.1);\n}\n\n.mermaid-fullscreen-btn.dark-theme {\n    background: rgba(50, 50, 50, 0.95);\n    border: 1px solid rgba(255, 255, 255, 0.3);\n    color: #e0e0e0;\n}\n\n.mermaid-fullscreen-btn.dark-theme:hover {\n    background: rgba(60, 60, 60, 1);\n    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);\n}\n\n.mermaid-fullscreen-modal {\n    display: none;\n    position: fixed !important;\n    top: 0 !important;\n    left: 0 !important;\n    width: 95vw;\n    height: 100vh;\n    background: rgba(255, 255, 255, 0.98);\n    z-index: 9999;\n    padding: 20px;\n    overflow: auto;\n}\n\n.mermaid-fullscreen-modal.dark-theme {\n    background: rgba(0, 0, 0, 0.98);\n}\n\n.mermaid-fullscreen-modal.active {\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen {\n    position: relative;\n    width: 95vw;\n    height: 90vh;\n    max-width: 95vw;\n    max-height: 90vh;\n    background: white;\n    border-radius: 8px;\n    padding: 20px;\n    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);\n    overflow: auto;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen.dark-theme {\n    background: #1a1a1a;\n    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);\n}\n\n.mermaid-container-fullscreen pre.mermaid {\n    width: 100%;\n    height: 100%;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen .mermaid svg {\n    height: 100% !important;\n    width: 100% !important;\n    cursor: grab;\n}\n\n.mermaid-fullscreen-close {\n    position: fixed !important;\n    top: 20px !important;\n    right: 20px !important;\n    width: 40px;\n    height: 40px;\n    background: rgba(255, 255, 255, 0.95);\n    border: 1px solid rgba(0, 0, 0, 0.2);\n    border-radius: 50%;\n    cursor: pointer;\n    z-index: 10000;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);\n    transition: all 0.2s;\n    font-size: 24px;\n    line-height: 1;\n    color: #333;\n}\n\n.mermaid-fullscreen-close:hover {\n    background: white;\n    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);\n    transform: scale(1.1);\n}\n\n.mermaid-fullscreen-close.dark-theme {\n    background: rgba(50, 50, 50, 0.95);\n    border: 1px solid rgba(255, 255, 255, 0.2);\n    color: #e0e0e0;\n}\n\n.mermaid-fullscreen-close.dark-theme:hover {\n    background: rgba(60, 60, 60, 1);\n    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);\n}\n\n.mermaid-fullscreen-modal .mermaid-fullscreen-btn {\n    display: none !important;\n}";
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+let _lazyObserver = null;
+let _renderQueue = Promise.resolve();
+let closeModal = () => {};
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal?.classList.contains('active')) {
+        closeModal();
+    }
+});
+
+// Apply d3 zoom to each SVG. Idempotent: an SVG already wrapped is skipped,
+// so this is safe to call both for the initial batch and for diagrams that
+// render lazily once they become visible.
+const addZoomToSvgs = (svgs) => {
+    svgs.each(function() {
+        if (this.getAttribute('data-zoom-applied') === 'true') return;
+        var svg = d3.select(this);
+        svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+        var inner = svg.select("g");
+        var zoom = d3.zoom().on("zoom", function(event) {
+            inner.attr("transform", event.transform);
+        });
+        svg.call(zoom);
+        this.setAttribute('data-zoom-applied', 'true');
+    });
+};
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        // Disconnect any previous lazy rendering observer
+        if (_lazyObserver) {
+            _lazyObserver.disconnect();
+            _lazyObserver = null;
+        }
+
+        all_mermaids.forEach((el) => {
+            el.removeAttribute('data-mermaid-deferred');
+            el.removeAttribute('data-mermaid-render-failed');
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+
+        // Separate visible and hidden elements. Mermaid's layout engine measures
+        // text dimensions via the DOM, which fails for elements hidden by a parent
+        // (e.g., Reveal.js non-active slides, sphinx-design unopened tabs),
+        // producing broken SVGs. Render visible elements now, defer hidden ones.
+        const visible = [];
+        const hidden = [];
+        all_mermaids.forEach((el) => {
+            // offsetParent is null for display:none ancestors.
+            // getClientRects().length > 0 catches position:fixed elements
+            // (which also have null offsetParent but are still visible).
+            if (el.offsetParent !== null || el.getClientRects().length > 0) {
+                visible.push(el);
+            } else {
+                hidden.push(el);
+                el.setAttribute('data-mermaid-deferred', 'true');
+            }
+        });
+
+        if (visible.length > 0) {
+            try {
+                await mermaid.run({ nodes: visible });
+            } catch (e) {
+                console.error("Mermaid rendering failed:", e);
+            }
+        }
+
+        // Lazily render hidden elements when they become visible.
+        // Uses a promise chain (_renderQueue) to serialize rendering,
+        // since IntersectionObserver may report multiple entries at once
+        // and mermaid.run() is not safe to call concurrently.
+        if (hidden.length > 0) {
+            if (typeof IntersectionObserver === 'undefined') {
+                console.warn("IntersectionObserver not available; hidden mermaid diagrams will not render.");
+            } else {
+                _renderQueue = Promise.resolve();
+                _lazyObserver = new IntersectionObserver((entries) => {
+                    for (const entry of entries) {
+                        if (entry.isIntersecting && entry.target.getAttribute("data-processed") !== "true") {
+                            _lazyObserver.unobserve(entry.target);
+                            const el = entry.target;
+                            _renderQueue = _renderQueue.then(async () => {
+                                try {
+                                    await mermaid.run({ nodes: [el] });
+                                    el.removeAttribute('data-mermaid-deferred');
+                                    // Apply zoom to the now-rendered diagram, matching
+                                    // the decoration visible diagrams receive.
+                                    if (false) {
+                                        addZoomToSvgs(d3.selectAll("").select(function() {
+                                            return this.querySelector("svg");
+                                        }));
+                                    }
+                                } catch (e) {
+                                    console.error("Mermaid deferred rendering failed:", e);
+                                    el.removeAttribute('data-mermaid-deferred');
+                                    el.setAttribute('data-mermaid-render-failed', 'true');
+                                }
+                            });
+                        }
+                    }
+                });
+                hidden.forEach((el) => _lazyObserver.observe(el));
+            }
+        }
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    // Exclude deferred (hidden) and render-failed elements from completion checks
+    const mermaids_active = document.querySelectorAll(".mermaid:not([data-mermaid-deferred]):not([data-mermaid-render-failed])");
+    const mermaids_processed = document.querySelectorAll(".mermaid:not([data-mermaid-deferred]):not([data-mermaid-render-failed])[data-processed='true']");
+
+    if (false) {
+        const mermaids_to_add_zoom = 0 === -1 ? mermaids_active.length : 0;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("").select(function() {
+                return this.querySelector("svg");
+            });
+            // Wait until every active (visible) diagram has rendered. Deferred
+            // diagrams are excluded, so a fixed d3_node_count that counts a
+            // hidden diagram no longer loops forever waiting for its SVG.
+            if(mermaids_active.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            }
+            addZoomToSvgs(svgs);
+        }
+    } else if(mermaids_active.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if (!true) return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = "\u26f6";
+        fullscreenBtn.style.opacity = "50%";
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scrollX, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.display = 'block';
+
+                if (false) {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+
+
+const load = async () => {
+    initStyles();
+
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...{"startOnLoad": false},
+                ...{ darkMode: darkTheme, theme: darkTheme ? "dark" : "default" },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...{"startOnLoad": false},
+    ...{ darkMode: darkTheme, theme: darkTheme ? "dark" : "default" },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+    </body>
+</html>

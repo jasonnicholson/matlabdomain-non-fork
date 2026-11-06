@@ -1,0 +1,994 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Directives, roles and indices" href="directives.html"><link rel="prev" title="Migrating from 0.22 and earlier" href="../user-guide/migration.html">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>Configuration values - sphinxcontrib-matlabdomain</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">sphinxcontrib-matlabdomain</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <span class="sidebar-brand-text">sphinxcontrib-matlabdomain</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/quickstart.html">Quickstart</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/setting-up.html">Setting up a project: <code class="docutils literal notranslate"><span class="pre">sphinx-matlab-quickstart</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/documenting.html">Documenting MATLAB code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/referencing.html">Names, references and links</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/linking-projects.html">Linking between projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/help-text.html">Help text</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/apidoc.html">Generating pages: <code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/sidecars.html">Sidecar docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/api-check.html">Checking help text: <code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/warnings.html">Warnings</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/builds.html">Builds and performance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/projects-and-versions.html">Several projects and versions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/migration.html">Migrating from 0.22 and earlier</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Configuration values</a></li>
+<li class="toctree-l1"><a class="reference internal" href="directives.html">Directives, roles and indices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command-line tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="templates.html"><code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code> templates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api-check-report.html"><code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code> reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="warnings.html">Warnings</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../developer-guide/contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer-guide/testing.html">Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer-guide/architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer-guide/debugging.html">Debugging and profiling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer-guide/roadmap.html">Roadmap</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Project</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../CHANGES.html">Release notes</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../_sources/reference/configuration.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="configuration-values">
+<h1>Configuration values<a class="headerlink" href="#configuration-values" title="Link to this heading">¶</a></h1>
+<p>The values the extension adds to <code class="docutils literal notranslate"><span class="pre">conf.py</span></code>. <a class="reference internal" href="../user-guide/configuration.html"><span class="doc">Configuration</span></a>
+explains how to use them. Unless noted, changing a value makes Sphinx read
+every page again.</p>
+<p>Every name in <code class="docutils literal notranslate"><span class="pre">conf.py</span></code> that starts with <code class="docutils literal notranslate"><span class="pre">matlab_</span></code> must be one of the
+values below. Any other one (a typo, or a value this version does not have)
+is a <code class="docutils literal notranslate"><span class="pre">ConfigError</span></code> in the build and in <code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code>, which
+suggests the closest value. Give helper variables another name, such as
+<code class="docutils literal notranslate"><span class="pre">_matlab_root</span></code>.</p>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_src_code_project_root">
+<span class="sig-name descname"><span class="pre">matlab_src_code_project_root</span></span><a class="headerlink" href="#confval-matlab_src_code_project_root" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">str</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">None</span></code></dd>
+</dl>
+<p>The folder all MATLAB source lives below. Every path reference is
+relative to it. A relative path is relative to the Sphinx source folder.
+<code class="docutils literal notranslate"><span class="pre">None</span></code> indexes no files. Required when
+<a class="reference internal" href="#confval-matlab_src_include_patterns"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_include_patterns</span></code></a> differs from its default,
+<a class="reference internal" href="#confval-matlab_src_exclusion_patterns"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_exclusion_patterns</span></code></a> is set to a list other than
+its default or <code class="docutils literal notranslate"><span class="pre">[]</span></code>, or <a class="reference internal" href="#confval-matlab_src_sidecar_suffixes"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_sidecar_suffixes</span></code></a> is set.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_src_include_patterns">
+<span class="sig-name descname"><span class="pre">matlab_src_include_patterns</span></span><a class="headerlink" href="#confval-matlab_src_include_patterns" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">list[str]</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">[&quot;**/*&quot;]</span></code></dd>
+</dl>
+<p>Glob patterns, relative to <a class="reference internal" href="#confval-matlab_src_code_project_root"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_code_project_root</span></code></a>, of
+the files to index. A file is indexed if its path reference matches one
+of them; <code class="docutils literal notranslate"><span class="pre">[]</span></code> selects no files. Patterns use <code class="docutils literal notranslate"><span class="pre">/</span></code>, match like
+<code class="docutils literal notranslate"><span class="pre">exclude_patterns</span></code> (<code class="docutils literal notranslate"><span class="pre">**</span></code> crosses folders, <code class="docutils literal notranslate"><span class="pre">**/x</span></code> also matches
+<code class="docutils literal notranslate"><span class="pre">x</span></code>) and are case-sensitive. An absolute pattern, a drive, a <code class="docutils literal notranslate"><span class="pre">\</span></code>, an
+empty pattern, or <code class="docutils literal notranslate"><span class="pre">..</span></code> that leaves the root or follows a wildcard is a
+<code class="docutils literal notranslate"><span class="pre">ConfigError</span></code>.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_src_exclusion_patterns">
+<span class="sig-name descname"><span class="pre">matlab_src_exclusion_patterns</span></span><a class="headerlink" href="#confval-matlab_src_exclusion_patterns" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">list[str]</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">[&quot;README.*&quot;,</span> <span class="pre">&quot;CHANGES.*&quot;,</span> <span class="pre">&quot;CHANGELOG.*&quot;,</span> <span class="pre">&quot;LICENSE.*&quot;,</span> <span class="pre">&quot;CONTRIBUTING.*&quot;,</span> <span class="pre">&quot;CODE_OF_CONDUCT.*&quot;,</span> <span class="pre">&quot;SECURITY.*&quot;]</span></code></dd>
+</dl>
+<p>Glob patterns of files and folders to leave out, with the rules of
+<a class="reference internal" href="#confval-matlab_src_include_patterns"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_include_patterns</span></code></a>. An excluded folder is not
+searched. The default leaves out the project’s own files at the root
+(in upper case only), which are neither code nor
+<a class="reference internal" href="../user-guide/sidecars.html"><span class="doc">sidecar docs</span></a>; a list of your own replaces it, so
+copy these patterns into it if you want to keep them.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_src_sidecar_suffixes">
+<span class="sig-name descname"><span class="pre">matlab_src_sidecar_suffixes</span></span><a class="headerlink" href="#confval-matlab_src_sidecar_suffixes" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">list[str]</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">[]</span></code></dd>
+</dl>
+<p>The suffixes of the sidecar docs: <code class="docutils literal notranslate"><span class="pre">&quot;.md&quot;</span></code> (needs
+<code class="docutils literal notranslate"><span class="pre">myst_parser</span></code> in <code class="docutils literal notranslate"><span class="pre">extensions</span></code>) and <code class="docutils literal notranslate"><span class="pre">&quot;.rst&quot;</span></code>. <code class="docutils literal notranslate"><span class="pre">[]</span></code> indexes no
+sidecar docs. They follow the include and exclusion patterns and are read
+as UTF-8. The root must not be the Sphinx source folder. See
+<a class="reference internal" href="../user-guide/sidecars.html"><span class="doc">Sidecar docs</span></a>. Any other suffix, a missing root or
+<code class="docutils literal notranslate"><span class="pre">myst_parser</span></code>, or the root equal to the source folder is a
+<code class="docutils literal notranslate"><span class="pre">ConfigError</span></code>.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_src_encoding">
+<span class="sig-name descname"><span class="pre">matlab_src_encoding</span></span><a class="headerlink" href="#confval-matlab_src_encoding" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">str</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">None</span></code></dd>
+</dl>
+<p>The Python codec for files without a byte-order mark. <code class="docutils literal notranslate"><span class="pre">None</span></code> reads them
+as UTF-8, falling back to the Windows ANSI code page (Windows) or
+ISO-8859-1 (elsewhere) for files that are not valid UTF-8, like MATLAB.
+An unknown or non-text codec is a <code class="docutils literal notranslate"><span class="pre">ConfigError</span></code>.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_src_cache_text">
+<span class="sig-name descname"><span class="pre">matlab_src_cache_text</span></span><a class="headerlink" href="#confval-matlab_src_cache_text" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">bool</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">True</span></code></dd>
+</dl>
+<p>Keep the text read by the index in memory until the file is parsed,
+during one build. <code class="docutils literal notranslate"><span class="pre">False</span></code> reads the file again to parse it. Changing it
+reads no page again.</p>
+</dd></dl>
+
+</section>
+<section id="matlab-semantics">
+<h2>MATLAB semantics<a class="headerlink" href="#matlab-semantics" title="Link to this heading">¶</a></h2>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_version">
+<span class="sig-name descname"><span class="pre">matlab_version</span></span><a class="headerlink" href="#confval-matlab_version" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">str</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">&quot;R2026a&quot;</span></code></dd>
+</dl>
+<p>The MATLAB release the code targets, <code class="docutils literal notranslate"><span class="pre">R&lt;year&gt;a</span></code> or <code class="docutils literal notranslate"><span class="pre">R&lt;year&gt;b</span></code>,
+R2024a or newer (<code class="docutils literal notranslate"><span class="pre">ConfigError</span></code> otherwise). It selects release-dependent
+naming and callability rules and the default of
+<a class="reference internal" href="#confval-matlab_namelengthmax"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_namelengthmax</span></code></a>.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_namelengthmax">
+<span class="sig-name descname"><span class="pre">matlab_namelengthmax</span></span><a class="headerlink" href="#confval-matlab_namelengthmax" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">int</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">None</span></code></dd>
+</dl>
+<p>The longest valid MATLAB name, like MATLAB’s <code class="docutils literal notranslate"><span class="pre">namelengthmax</span></code>: <code class="docutils literal notranslate"><span class="pre">63</span></code>
+or <code class="docutils literal notranslate"><span class="pre">2048</span></code> (<code class="docutils literal notranslate"><span class="pre">ConfigError</span></code> otherwise). <code class="docutils literal notranslate"><span class="pre">None</span></code> derives it from
+<a class="reference internal" href="#confval-matlab_version"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_version</span></code></a>: 2048 from R2025a on, else 63. An explicit
+value always wins.</p>
+</dd></dl>
+
+</section>
+<section id="output">
+<h2>Output<a class="headerlink" href="#output" title="Link to this heading">¶</a></h2>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_show_property_default_value">
+<span class="sig-name descname"><span class="pre">matlab_show_property_default_value</span></span><a class="headerlink" href="#confval-matlab_show_property_default_value" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">bool</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">True</span></code></dd>
+</dl>
+<p>Show a property’s default value after its name. A default that spans
+lines is shortened to its first and last line. Also shows the
+constructor arguments of an enumeration value (<code class="docutils literal notranslate"><span class="pre">Red</span> <span class="pre">(1,</span> <span class="pre">0,</span> <span class="pre">0)</span></code>).</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_show_property_specs">
+<span class="sig-name descname"><span class="pre">matlab_show_property_specs</span></span><a class="headerlink" href="#confval-matlab_show_property_specs" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">bool</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">True</span></code></dd>
+</dl>
+<p>Show a property’s size, class and validators after its name.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_class_signature">
+<span class="sig-name descname"><span class="pre">matlab_class_signature</span></span><a class="headerlink" href="#confval-matlab_class_signature" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">bool</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">False</span></code></dd>
+</dl>
+<p>Show the constructor’s arguments in the class signature.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_add_namespace_names">
+<span class="sig-name descname"><span class="pre">matlab_add_namespace_names</span></span><a class="headerlink" href="#confval-matlab_add_namespace_names" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">bool</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">True</span></code></dd>
+</dl>
+<p>Show the namespace before the name in signatures (<code class="docutils literal notranslate"><span class="pre">shapes.Circle</span></code>);
+<code class="docutils literal notranslate"><span class="pre">False</span></code> shows the name alone (<code class="docutils literal notranslate"><span class="pre">Circle</span></code>). It replaces Sphinx’s
+<code class="docutils literal notranslate"><span class="pre">add_module_names</span></code>, which the MATLAB domain does not read.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_auto_link">
+<span class="sig-name descname"><span class="pre">matlab_auto_link</span></span><a class="headerlink" href="#confval-matlab_auto_link" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">None</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;basic&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;all&quot;</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">None</span></code></dd>
+</dl>
+<p>Turn names in help text into links. <code class="docutils literal notranslate"><span class="pre">&quot;basic&quot;</span></code> (any true value other
+than <code class="docutils literal notranslate"><span class="pre">&quot;all&quot;</span></code>): the entries of “See also” lines and of the property and
+method lists of class help. <code class="docutils literal notranslate"><span class="pre">&quot;all&quot;</span></code>: also every documented class and
+function name anywhere in help text. A false value (<code class="docutils literal notranslate"><span class="pre">None</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>)
+turns it off. See
+<a class="reference internal" href="../user-guide/help-text.html"><span class="doc">Help text</span></a>.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_external_names">
+<span class="sig-name descname"><span class="pre">matlab_external_names</span></span><a class="headerlink" href="#confval-matlab_external_names" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">list[str]</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even">MATLAB's own names, below</dd>
+</dl>
+<p>Regular expressions of names that the project does not document: a
+<code class="docutils literal notranslate"><span class="pre">mat</span></code> reference to a matching name that resolves to nothing (in the
+project or through intersphinx) is shown as text, without a “reference
+target not found” warning. Each expression must match the whole name.
+The default:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
+    <span class="sa">r</span><span class="s2">&quot;handle|dynamicprops&quot;</span><span class="p">,</span>
+    <span class="sa">r</span><span class="s2">&quot;(matlab|Simulink|event|meta)\..+&quot;</span><span class="p">,</span>
+    <span class="sa">r</span><span class="s2">&quot;double|single|u?int(8|16|32|64)|logical|char|string|cell|struct&quot;</span><span class="p">,</span>
+    <span class="sa">r</span><span class="s2">&quot;function_handle|table|timetable|datetime|duration|calendarDuration&quot;</span><span class="p">,</span>
+    <span class="sa">r</span><span class="s2">&quot;categorical|containers\.Map|dictionary|MException|missing|timeseries&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<p>To add the names of another toolbox, extend it:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">sphinxcontrib.matlab</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEFAULT_EXTERNAL_NAMES</span>
+
+<span class="n">matlab_external_names</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="n">DEFAULT_EXTERNAL_NAMES</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;sltest\..+&quot;</span><span class="p">]</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">[]</span></code> turns it off. A value that is not a list of valid regular
+expressions is a <code class="docutils literal notranslate"><span class="pre">ConfigError</span></code>. Changing it reads no page again.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_stable_urls">
+<span class="sig-name descname"><span class="pre">matlab_stable_urls</span></span><a class="headerlink" href="#confval-matlab_stable_urls" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">bool</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">True</span></code></dd>
+</dl>
+<p>HTML builds write a stable address for every documented object, which
+redirects to the page the object is on: <code class="docutils literal notranslate"><span class="pre">mat/ref/&lt;path</span>
+<span class="pre">reference&gt;.html</span></code> and, for a MATLAB name of non-private objects,
+<code class="docutils literal notranslate"><span class="pre">mat/name/&lt;MATLAB</span> <span class="pre">name&gt;.html</span></code> (a list of the objects when several have
+the name). The “¶” link of an object points to it, and so does its
+entry in <code class="docutils literal notranslate"><span class="pre">objects.inv</span></code>; <code class="docutils literal notranslate"><span class="pre">mat/refs.js</span></code>, a script on every page and
+<code class="docutils literal notranslate"><span class="pre">404.html</span></code> send an address of a page that no longer has the object to
+it. <code class="docutils literal notranslate"><span class="pre">False</span></code> writes no such files and keeps “¶”
+and the inventory on the page (<a class="reference internal" href="../user-guide/linking-projects.html#library-changes"><span class="std std-ref">When the library changes</span></a>).</p>
+</dd></dl>
+
+</section>
+<section id="matlab-api-check">
+<h2><code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code><a class="headerlink" href="#matlab-api-check" title="Link to this heading">¶</a></h2>
+<p>Changing these reads no page again.</p>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_api_check_rules">
+<span class="sig-name descname"><span class="pre">matlab_api_check_rules</span></span><a class="headerlink" href="#confval-matlab_api_check_rules" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">dict[str,</span> <span class="pre">str]</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">{}</span></code></dd>
+</dl>
+<p>Rule name to severity, <code class="docutils literal notranslate"><span class="pre">&quot;error&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;warning&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;ignore&quot;</span></code>,
+merged over the defaults (<code class="docutils literal notranslate"><span class="pre">&quot;warning&quot;</span></code> for <code class="docutils literal notranslate"><span class="pre">property-description</span></code>,
+<code class="docutils literal notranslate"><span class="pre">event-description</span></code>, <code class="docutils literal notranslate"><span class="pre">example</span></code> and <code class="docutils literal notranslate"><span class="pre">method-example</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;error&quot;</span></code>
+for the others). Rules: <code class="docutils literal notranslate"><span class="pre">description</span></code>, <code class="docutils literal notranslate"><span class="pre">method-description</span></code>,
+<code class="docutils literal notranslate"><span class="pre">property-description</span></code>, <code class="docutils literal notranslate"><span class="pre">event-description</span></code>, <code class="docutils literal notranslate"><span class="pre">inputs</span></code>,
+<code class="docutils literal notranslate"><span class="pre">outputs</span></code>, <code class="docutils literal notranslate"><span class="pre">name-value</span></code>, <code class="docutils literal notranslate"><span class="pre">example</span></code>, <code class="docutils literal notranslate"><span class="pre">method-example</span></code>,
+<code class="docutils literal notranslate"><span class="pre">sidecar-documented</span></code>, <code class="docutils literal notranslate"><span class="pre">sidecar-links</span></code>. A value that is
+not a dictionary, an unknown rule or an unknown severity is a
+<code class="docutils literal notranslate"><span class="pre">ConfigError</span></code>.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_api_check_enabled">
+<span class="sig-name descname"><span class="pre">matlab_api_check_enabled</span></span><a class="headerlink" href="#confval-matlab_api_check_enabled" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">bool</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">True</span></code></dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">False</span></code> checks nothing; the reports say so.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_api_check_ignore_patterns">
+<span class="sig-name descname"><span class="pre">matlab_api_check_ignore_patterns</span></span><a class="headerlink" href="#confval-matlab_api_check_ignore_patterns" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">list[str]</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">[]</span></code></dd>
+</dl>
+<p>Glob patterns, with the rules of
+<a class="reference internal" href="#confval-matlab_src_exclusion_patterns"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_exclusion_patterns</span></code></a>, of objects not to check,
+matched against the path references of files, methods
+(<code class="docutils literal notranslate"><span class="pre">+pkg/Cls.m.helper</span></code>) and sidecar docs.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_api_check_files">
+<span class="sig-name descname"><span class="pre">matlab_api_check_files</span></span><a class="headerlink" href="#confval-matlab_api_check_files" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">None</span></code>, <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> or <code class="docutils literal notranslate"><span class="pre">str</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">None</span></code></dd>
+</dl>
+<p>The files to check. <code class="docutils literal notranslate"><span class="pre">None</span></code> checks every indexed file. A list selects
+the files and sidecar docs whose path references match one of its
+entries: paths or glob patterns, relative to
+<a class="reference internal" href="#confval-matlab_src_code_project_root"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_code_project_root</span></code></a>, with the rules of
+<a class="reference internal" href="#confval-matlab_src_include_patterns"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_include_patterns</span></code></a>; an entry that ends in <code class="docutils literal notranslate"><span class="pre">/</span></code>
+selects the files below that folder. A file’s methods and properties
+are checked with it. <code class="docutils literal notranslate"><span class="pre">[]</span></code> selects no file. A string is a list
+separated by commas or line breaks, as <code class="docutils literal notranslate"><span class="pre">-D</span>
+<span class="pre">matlab_api_check_files=a.m,b.m</span></code> gives it; blank entries are dropped.
+It narrows only the check: the index, the pages and the links stay
+those of the whole project. An entry that selects no file is an error:
+the build exits with status 1 (see
+<a class="reference internal" href="#confval-matlab_api_check_ignore_unmatched"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_api_check_ignore_unmatched</span></code></a>). Any other type, or an
+entry that <a class="reference internal" href="#confval-matlab_src_include_patterns"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_include_patterns</span></code></a> would reject, is a
+<code class="docutils literal notranslate"><span class="pre">ConfigError</span></code>.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_api_check_files_from">
+<span class="sig-name descname"><span class="pre">matlab_api_check_files_from</span></span><a class="headerlink" href="#confval-matlab_api_check_files_from" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">str</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">None</span></code></dd>
+</dl>
+<p>The path of a UTF-8 text file with more entries for
+<a class="reference internal" href="#confval-matlab_api_check_files"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_api_check_files</span></code></a>, one per line, such as a list of
+changed files: <code class="docutils literal notranslate"><span class="pre">-D</span> <span class="pre">matlab_api_check_files_from=changed-files.txt</span></code>. A
+relative path is relative to the current folder. Blank lines and the
+spaces around a line are dropped; commas do not separate entries. Set
+alone, it selects only its lines (none for an empty file). A file that
+cannot be read, or a line that <a class="reference internal" href="#confval-matlab_src_include_patterns"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_include_patterns</span></code></a>
+would reject, is a <code class="docutils literal notranslate"><span class="pre">ConfigError</span></code>.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_api_check_ignore_unmatched">
+<span class="sig-name descname"><span class="pre">matlab_api_check_ignore_unmatched</span></span><a class="headerlink" href="#confval-matlab_api_check_ignore_unmatched" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">bool</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">False</span></code></dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">True</span></code> (<code class="docutils literal notranslate"><span class="pre">-D</span> <span class="pre">matlab_api_check_ignore_unmatched=1</span></code>): a selection entry
+that selects no file (a deleted file, a file that is not MATLAB code or
+is excluded) is listed in the reports as <code class="docutils literal notranslate"><span class="pre">ignored</span></code>, without an error
+or exit status 1.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_api_check_section_labels">
+<span class="sig-name descname"><span class="pre">matlab_api_check_section_labels</span></span><a class="headerlink" href="#confval-matlab_api_check_section_labels" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">dict[str,</span> <span class="pre">list[str]]</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">{}</span></code></dd>
+</dl>
+<p>Section to the labels it accepts, replacing its built-in labels (see
+<a class="reference internal" href="../user-guide/api-check.html"><span class="doc">Checking help text: matlab-api-check</span></a>); a section left out keeps them.
+Sections: <code class="docutils literal notranslate"><span class="pre">inputs</span></code>, <code class="docutils literal notranslate"><span class="pre">outputs</span></code>, <code class="docutils literal notranslate"><span class="pre">name-value</span></code>, <code class="docutils literal notranslate"><span class="pre">example</span></code>. A label
+is text without <code class="docutils literal notranslate"><span class="pre">:</span></code>, matched in any case, with any spaces between its
+words. The entry <code class="docutils literal notranslate"><span class="pre">&quot;&lt;built-in&gt;&quot;</span></code> stands for the built-in labels, so
+<code class="docutils literal notranslate"><span class="pre">[&quot;&lt;built-in&gt;&quot;,</span> <span class="pre">&quot;Eingaben&quot;]</span></code> extends them. <code class="docutils literal notranslate"><span class="pre">[]</span></code> accepts no label. A
+value that is not a dictionary of lists, an unknown section or a label
+that is not text is a <code class="docutils literal notranslate"><span class="pre">ConfigError</span></code>.</p>
+</dd></dl>
+
+</section>
+<section id="sphinx-matlab-apidoc">
+<h2><code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code><a class="headerlink" href="#sphinx-matlab-apidoc" title="Link to this heading">¶</a></h2>
+<p>Read by <code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code> (<a class="reference internal" href="cli.html"><span class="doc">Command-line tools</span></a>); the build ignores them,
+so changing them reads no page again. No flag overrides them. Paths are
+relative to the folder of <code class="docutils literal notranslate"><span class="pre">conf.py</span></code>.</p>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_apidoc_output_dir">
+<span class="sig-name descname"><span class="pre">matlab_apidoc_output_dir</span></span><a class="headerlink" href="#confval-matlab_apidoc_output_dir" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">str</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">None</span></code></dd>
+</dl>
+<p>The folder for the generated pages. Required.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_apidoc_group">
+<span class="sig-name descname"><span class="pre">matlab_apidoc_group</span></span><a class="headerlink" href="#confval-matlab_apidoc_group" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">str</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">&quot;namespace&quot;</span></code></dd>
+</dl>
+<p>How pages are grouped: <code class="docutils literal notranslate"><span class="pre">&quot;namespace&quot;</span></code>, one page per namespace (all its
+folders) plus Global for the files outside any namespace; or
+<code class="docutils literal notranslate"><span class="pre">&quot;folder&quot;</span></code>, one page per folder with files. Both list their pages flat
+on the root page (<a class="reference internal" href="../user-guide/apidoc.html"><span class="doc">Generating pages: sphinx-matlab-apidoc</span></a>). Any other value is a
+<code class="docutils literal notranslate"><span class="pre">ConfigError</span></code>.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_apidoc_page_size">
+<span class="sig-name descname"><span class="pre">matlab_apidoc_page_size</span></span><a class="headerlink" href="#confval-matlab_apidoc_page_size" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">int</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">100</span></code></dd>
+</dl>
+<p>The most entries (files and sidecar docs) on one namespace or folder
+page; a longer one gets several pages. Less than 1 is a
+<code class="docutils literal notranslate"><span class="pre">ConfigError</span></code>. Which page an entry is on, and so its address, can
+change when files are added or removed; anchors and inventory names do
+not (<a class="reference internal" href="../user-guide/linking-projects.html#library-changes"><span class="std std-ref">When the library changes</span></a>).</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_apidoc_private">
+<span class="sig-name descname"><span class="pre">matlab_apidoc_private</span></span><a class="headerlink" href="#confval-matlab_apidoc_private" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">bool</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">None</span></code></dd>
+</dl>
+<p>List the files of <code class="docutils literal notranslate"><span class="pre">private/</span></code> folders. <code class="docutils literal notranslate"><span class="pre">None</span></code>: namespace grouping
+leaves them out, folder grouping lists them; <code class="docutils literal notranslate"><span class="pre">True</span></code> lists them in both
+(in namespace grouping, with the folder above); <code class="docutils literal notranslate"><span class="pre">False</span></code> leaves them
+out of both. Sidecar docs in <code class="docutils literal notranslate"><span class="pre">private/</span></code> are listed either way.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_apidoc_separate">
+<span class="sig-name descname"><span class="pre">matlab_apidoc_separate</span></span><a class="headerlink" href="#confval-matlab_apidoc_separate" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">bool</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">False</span></code></dd>
+</dl>
+<p>One page per file; namespace and folder pages list them in toctrees.
+A file’s page is named by its path, so its address does not depend on
+<a class="reference internal" href="#confval-matlab_apidoc_page_size"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_apidoc_page_size</span></code></a>.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_apidoc_maxdepth">
+<span class="sig-name descname"><span class="pre">matlab_apidoc_maxdepth</span></span><a class="headerlink" href="#confval-matlab_apidoc_maxdepth" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">int</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">4</span></code></dd>
+</dl>
+<p>The <code class="docutils literal notranslate"><span class="pre">:maxdepth:</span></code> of the generated toctrees.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_apidoc_tocfile">
+<span class="sig-name descname"><span class="pre">matlab_apidoc_tocfile</span></span><a class="headerlink" href="#confval-matlab_apidoc_tocfile" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">str</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">&quot;index&quot;</span></code></dd>
+</dl>
+<p>The name of the root page, without suffix.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_apidoc_suffix">
+<span class="sig-name descname"><span class="pre">matlab_apidoc_suffix</span></span><a class="headerlink" href="#confval-matlab_apidoc_suffix" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">str</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">&quot;rst&quot;</span></code></dd>
+</dl>
+<p>The suffix of the generated files, with or without the dot.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_apidoc_templatedir">
+<span class="sig-name descname"><span class="pre">matlab_apidoc_templatedir</span></span><a class="headerlink" href="#confval-matlab_apidoc_templatedir" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">str</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">None</span></code></dd>
+</dl>
+<p>A folder with templates that replace the defaults (<a class="reference internal" href="templates.html"><span class="doc">sphinx-matlab-apidoc templates</span></a>).</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_apidoc_remove_old">
+<span class="sig-name descname"><span class="pre">matlab_apidoc_remove_old</span></span><a class="headerlink" href="#confval-matlab_apidoc_remove_old" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><code class="docutils literal notranslate"><span class="pre">bool</span></code></dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">True</span></code></dd>
+</dl>
+<p>Delete generated pages that are no longer pages, so the output stays
+accurate. Only files that start with the marker line are deleted.</p>
+</dd></dl>
+
+</section>
+<section id="removed">
+<h2>Removed<a class="headerlink" href="#removed" title="Link to this heading">¶</a></h2>
+<p>Setting one of these is a <code class="docutils literal notranslate"><span class="pre">ConfigError</span></code> that names the replacement
+(<a class="reference internal" href="../user-guide/migration.html"><span class="doc">Migrating from 0.22 and earlier</span></a>).</p>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_src_dir">
+<span class="sig-name descname"><span class="pre">matlab_src_dir</span></span><a class="headerlink" href="#confval-matlab_src_dir" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd">removed</dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">None</span></code></dd>
+</dl>
+<p>Use <a class="reference internal" href="#confval-matlab_src_code_project_root"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_code_project_root</span></code></a> (relative to the Sphinx
+source folder) and, to select files,
+<a class="reference internal" href="#confval-matlab_src_include_patterns"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_include_patterns</span></code></a> and
+<a class="reference internal" href="#confval-matlab_src_exclusion_patterns"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_exclusion_patterns</span></code></a>.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_keep_package_prefix">
+<span class="sig-name descname"><span class="pre">matlab_keep_package_prefix</span></span><a class="headerlink" href="#confval-matlab_keep_package_prefix" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd">removed</dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">None</span></code></dd>
+</dl>
+<p>Objects are referenced by path (which keeps the <code class="docutils literal notranslate"><span class="pre">+</span></code>); signatures show
+MATLAB names (without it).</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-matlab_short_links">
+<span class="sig-name descname"><span class="pre">matlab_short_links</span></span><a class="headerlink" href="#confval-matlab_short_links" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd">removed</dd>
+<dt class="field-even">Default<span class="colon">:</span></dt>
+<dd class="field-even"><code class="docutils literal notranslate"><span class="pre">None</span></code></dd>
+</dl>
+<p>Signatures show MATLAB names.</p>
+</dd></dl>
+
+</section>
+<section id="sphinx-and-autodoc-values">
+<h2>Sphinx and autodoc values<a class="headerlink" href="#sphinx-and-autodoc-values" title="Link to this heading">¶</a></h2>
+<p>The auto directives also read these values of Sphinx and
+<code class="docutils literal notranslate"><span class="pre">sphinx.ext.autodoc</span></code> (see their documentation):
+<code class="docutils literal notranslate"><span class="pre">autoclass_content</span></code>, <code class="docutils literal notranslate"><span class="pre">autodoc_docstring_signature</span></code>,
+<code class="docutils literal notranslate"><span class="pre">autodoc_member_order</span></code>, <code class="docutils literal notranslate"><span class="pre">autodoc_default_options</span></code>,
+<code class="docutils literal notranslate"><span class="pre">add_function_parentheses</span></code> and <code class="docutils literal notranslate"><span class="pre">primary_domain</span></code>.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="directives.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Directives, roles and indices</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="../user-guide/migration.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Migrating from 0.22 and earlier</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; Jørgen Cederberg and contributors
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Configuration values</a><ul>
+<li><a class="reference internal" href="#source-files">Source files</a><ul>
+<li><a class="reference internal" href="#confval-matlab_src_code_project_root"><code class="docutils literal notranslate"><span class="pre">matlab_src_code_project_root</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_src_include_patterns"><code class="docutils literal notranslate"><span class="pre">matlab_src_include_patterns</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_src_exclusion_patterns"><code class="docutils literal notranslate"><span class="pre">matlab_src_exclusion_patterns</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_src_sidecar_suffixes"><code class="docutils literal notranslate"><span class="pre">matlab_src_sidecar_suffixes</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_src_encoding"><code class="docutils literal notranslate"><span class="pre">matlab_src_encoding</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_src_cache_text"><code class="docutils literal notranslate"><span class="pre">matlab_src_cache_text</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#matlab-semantics">MATLAB semantics</a><ul>
+<li><a class="reference internal" href="#confval-matlab_version"><code class="docutils literal notranslate"><span class="pre">matlab_version</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_namelengthmax"><code class="docutils literal notranslate"><span class="pre">matlab_namelengthmax</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#output">Output</a><ul>
+<li><a class="reference internal" href="#confval-matlab_show_property_default_value"><code class="docutils literal notranslate"><span class="pre">matlab_show_property_default_value</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_show_property_specs"><code class="docutils literal notranslate"><span class="pre">matlab_show_property_specs</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_class_signature"><code class="docutils literal notranslate"><span class="pre">matlab_class_signature</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_add_namespace_names"><code class="docutils literal notranslate"><span class="pre">matlab_add_namespace_names</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_auto_link"><code class="docutils literal notranslate"><span class="pre">matlab_auto_link</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_external_names"><code class="docutils literal notranslate"><span class="pre">matlab_external_names</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_stable_urls"><code class="docutils literal notranslate"><span class="pre">matlab_stable_urls</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#matlab-api-check"><code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code></a><ul>
+<li><a class="reference internal" href="#confval-matlab_api_check_rules"><code class="docutils literal notranslate"><span class="pre">matlab_api_check_rules</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_api_check_enabled"><code class="docutils literal notranslate"><span class="pre">matlab_api_check_enabled</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_api_check_ignore_patterns"><code class="docutils literal notranslate"><span class="pre">matlab_api_check_ignore_patterns</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_api_check_files"><code class="docutils literal notranslate"><span class="pre">matlab_api_check_files</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_api_check_files_from"><code class="docutils literal notranslate"><span class="pre">matlab_api_check_files_from</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_api_check_ignore_unmatched"><code class="docutils literal notranslate"><span class="pre">matlab_api_check_ignore_unmatched</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_api_check_section_labels"><code class="docutils literal notranslate"><span class="pre">matlab_api_check_section_labels</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#sphinx-matlab-apidoc"><code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code></a><ul>
+<li><a class="reference internal" href="#confval-matlab_apidoc_output_dir"><code class="docutils literal notranslate"><span class="pre">matlab_apidoc_output_dir</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_apidoc_group"><code class="docutils literal notranslate"><span class="pre">matlab_apidoc_group</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_apidoc_page_size"><code class="docutils literal notranslate"><span class="pre">matlab_apidoc_page_size</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_apidoc_private"><code class="docutils literal notranslate"><span class="pre">matlab_apidoc_private</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_apidoc_separate"><code class="docutils literal notranslate"><span class="pre">matlab_apidoc_separate</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_apidoc_maxdepth"><code class="docutils literal notranslate"><span class="pre">matlab_apidoc_maxdepth</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_apidoc_tocfile"><code class="docutils literal notranslate"><span class="pre">matlab_apidoc_tocfile</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_apidoc_suffix"><code class="docutils literal notranslate"><span class="pre">matlab_apidoc_suffix</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_apidoc_templatedir"><code class="docutils literal notranslate"><span class="pre">matlab_apidoc_templatedir</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_apidoc_remove_old"><code class="docutils literal notranslate"><span class="pre">matlab_apidoc_remove_old</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#removed">Removed</a><ul>
+<li><a class="reference internal" href="#confval-matlab_src_dir"><code class="docutils literal notranslate"><span class="pre">matlab_src_dir</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_keep_package_prefix"><code class="docutils literal notranslate"><span class="pre">matlab_keep_package_prefix</span></code></a></li>
+<li><a class="reference internal" href="#confval-matlab_short_links"><code class="docutils literal notranslate"><span class="pre">matlab_short_links</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#sphinx-and-autodoc-values">Sphinx and autodoc values</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../_static/mat_urls.js?v=43922072"></script>
+    </body>
+</html>

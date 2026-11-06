@@ -1,0 +1,1390 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="prev" title="Roadmap" href="developer-guide/roadmap.html">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>Release notes - sphinxcontrib-matlabdomain</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">sphinxcontrib-matlabdomain</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <span class="sidebar-brand-text">sphinxcontrib-matlabdomain</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting-started/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting-started/quickstart.html">Quickstart</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/setting-up.html">Setting up a project: <code class="docutils literal notranslate"><span class="pre">sphinx-matlab-quickstart</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/documenting.html">Documenting MATLAB code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/referencing.html">Names, references and links</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/linking-projects.html">Linking between projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/help-text.html">Help text</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/apidoc.html">Generating pages: <code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/sidecars.html">Sidecar docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/api-check.html">Checking help text: <code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/warnings.html">Warnings</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/builds.html">Builds and performance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/projects-and-versions.html">Several projects and versions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/migration.html">Migrating from 0.22 and earlier</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="reference/configuration.html">Configuration values</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/directives.html">Directives, roles and indices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/cli.html">Command-line tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/templates.html"><code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code> templates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/api-check-report.html"><code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code> reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/warnings.html">Warnings</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="developer-guide/contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developer-guide/testing.html">Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developer-guide/architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developer-guide/debugging.html">Debugging and profiling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developer-guide/roadmap.html">Roadmap</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Project</span></p>
+<ul class="current">
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Release notes</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/CHANGES.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="release-notes">
+<h1>Release notes<a class="headerlink" href="#release-notes" title="Link to this heading">¶</a></h1>
+<section id="unreleased">
+<h2>1.0.0 (Unreleased)<a class="headerlink" href="#unreleased" title="Link to this heading">¶</a></h2>
+<p>The first stable release; from here on the project follows semantic
+versioning. It breaks with 0.x in many places: see “Migrating from 0.22 and
+earlier” in the documentation.</p>
+<ul class="simple">
+<li><p>Consolidate build, test and static-analysis policy in <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>;
+document repository configuration and check its inventory. Add a shared
+Ruff/basic-Pyright gate and portable editor settings without changing the
+supported test matrix or manual-only CI triggers.</p></li>
+<li><p>The documentation is rewritten: getting started, a user guide, a reference
+of every configuration value, directive, role, option and warning, and a
+developer guide. Examples are rendered by the documentation’s own build.</p></li>
+<li><p>Drop support for Python &lt;=3.10.</p></li>
+<li><p>Drop support for Sphinx &lt;=7.x.</p></li>
+<li><p><strong>Breaking:</strong> the <code class="docutils literal notranslate"><span class="pre">mat:classmethod</span></code> directive is removed. MATLAB has no
+class methods apart from static methods; use <code class="docutils literal notranslate"><span class="pre">mat:staticmethod</span></code>. No
+auto directive wrote it, so only hand-written pages change.</p></li>
+<li><p><strong>Breaking:</strong> a method in its own file of a class folder takes the
+attributes of its signature in the <code class="docutils literal notranslate"><span class="pre">classdef</span></code> (<code class="docutils literal notranslate"><span class="pre">methods</span> <span class="pre">(Static)</span></code> with
+<code class="docutils literal notranslate"><span class="pre">out</span> <span class="pre">=</span> <span class="pre">make(x)</span></code>): it is documented as <code class="docutils literal notranslate"><span class="pre">mat:staticmethod</span></code> when static,
+<code class="docutils literal notranslate"><span class="pre">mat:autoclass</span></code> leaves it out when it is private, protected,
+access-listed or hidden (unless an option adds it), and
+<code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code> checks it only when it is public, counting the first
+input of a static method. They were all public, non-static methods
+before, so a page that links to such a method needs the option that
+documents it (<code class="docutils literal notranslate"><span class="pre">:private-members:</span></code>, …), and a static one is in the
+inventory as <code class="docutils literal notranslate"><span class="pre">mat:staticmethod</span></code>.</p></li>
+<li><p><strong>Breaking:</strong> the signature of a static method keeps a first input named
+<code class="docutils literal notranslate"><span class="pre">obj</span></code> or <code class="docutils literal notranslate"><span class="pre">self</span></code> (<code class="docutils literal notranslate"><span class="pre">static</span> <span class="pre">make(obj,</span> <span class="pre">y)</span></code>): a static method has no
+object, so that input is a real one. Other methods still leave it out.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code> does not check a <code class="docutils literal notranslate"><span class="pre">Hidden</span></code> class or its members (it
+counts the class as <code class="docutils literal notranslate"><span class="pre">hidden</span></code> in the report), as for <code class="docutils literal notranslate"><span class="pre">Hidden</span></code>
+members.</p></li>
+<li><p>Signatures show MATLAB attributes: <code class="docutils literal notranslate"><span class="pre">abstract</span></code> and <code class="docutils literal notranslate"><span class="pre">sealed</span></code> classes and
+methods; <code class="docutils literal notranslate"><span class="pre">abstract</span></code>, <code class="docutils literal notranslate"><span class="pre">constant</span></code>, <code class="docutils literal notranslate"><span class="pre">dependent</span></code> and <code class="docutils literal notranslate"><span class="pre">read-only</span></code>
+properties (<code class="docutils literal notranslate"><span class="pre">SetAccess</span></code> stricter than the read access). New flag
+options of <code class="docutils literal notranslate"><span class="pre">mat:class</span></code>, <code class="docutils literal notranslate"><span class="pre">mat:method</span></code>, <code class="docutils literal notranslate"><span class="pre">mat:staticmethod</span></code> and
+<code class="docutils literal notranslate"><span class="pre">mat:attribute</span></code> (<code class="docutils literal notranslate"><span class="pre">:abstract:</span></code>, <code class="docutils literal notranslate"><span class="pre">:sealed:</span></code>, <code class="docutils literal notranslate"><span class="pre">:constant:</span></code>,
+<code class="docutils literal notranslate"><span class="pre">:dependent:</span></code>, <code class="docutils literal notranslate"><span class="pre">:read-only:</span></code>); the auto directives set them.</p></li>
+<li><p>Abstract methods (declared without a body) are documented, marked
+<code class="docutils literal notranslate"><span class="pre">abstract</span></code>, with their help found as for properties. <code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code>
+does not check them: MATLAB’s <code class="docutils literal notranslate"><span class="pre">help</span></code> shows no text for them.</p></li>
+<li><p>Enumeration values show their constructor arguments (<code class="docutils literal notranslate"><span class="pre">Red</span> <span class="pre">(1,</span> <span class="pre">0,</span> <span class="pre">0)</span></code>)
+when <a class="reference internal" href="reference/configuration.html#confval-matlab_show_property_default_value"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_show_property_default_value</span></code></a> is true.</p></li>
+<li><p>Events are documented: an “Event Summary” section in <code class="docutils literal notranslate"><span class="pre">mat:autoclass</span></code>,
+<code class="docutils literal notranslate"><span class="pre">mat:autoevent</span></code>, the <code class="docutils literal notranslate"><span class="pre">mat:event</span></code> directive and the <code class="docutils literal notranslate"><span class="pre">:mat:event:</span></code>
+role (inventory type <code class="docutils literal notranslate"><span class="pre">mat:event</span></code>). <code class="docutils literal notranslate"><span class="pre">ListenAccess</span></code> and <code class="docutils literal notranslate"><span class="pre">Hidden</span></code>
+filter them as <code class="docutils literal notranslate"><span class="pre">Access</span></code> and <code class="docutils literal notranslate"><span class="pre">Hidden</span></code> filter methods. New
+<code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code> rule <code class="docutils literal notranslate"><span class="pre">event-description</span></code> (a warning by default);
+reports count events (<code class="docutils literal notranslate"><span class="pre">event</span></code>).</p></li>
+<li><p>A property or event whose read access (<code class="docutils literal notranslate"><span class="pre">GetAccess</span></code>, <code class="docutils literal notranslate"><span class="pre">ListenAccess</span></code>)
+is a list of classes is left out of <code class="docutils literal notranslate"><span class="pre">mat:autoclass</span></code> unless
+<code class="docutils literal notranslate"><span class="pre">:access-list-members:</span></code> adds it, as with <code class="docutils literal notranslate"><span class="pre">Access</span></code> lists; it was
+shown.</p></li>
+<li><p>Attributes written <code class="docutils literal notranslate"><span class="pre">~Hidden</span></code> (<code class="docutils literal notranslate"><span class="pre">Hidden</span> <span class="pre">=</span> <span class="pre">false</span></code>) no longer make a class
+fail to parse (it was documented without content), and logical values
+written as numbers or with <code class="docutils literal notranslate"><span class="pre">~</span></code> (<code class="docutils literal notranslate"><span class="pre">Hidden</span> <span class="pre">=</span> <span class="pre">0</span></code>, <code class="docutils literal notranslate"><span class="pre">Static</span> <span class="pre">=</span> <span class="pre">~true</span></code>) are
+read as MATLAB reads them; they were read as <code class="docutils literal notranslate"><span class="pre">true</span></code>.</p></li>
+<li><p>An unknown <code class="docutils literal notranslate"><span class="pre">matlab_*</span></code> name is a <code class="docutils literal notranslate"><span class="pre">ConfigError</span></code> also when another
+extension sets it while the configuration is read (for example
+sphinx-multiproject’s <code class="docutils literal notranslate"><span class="pre">config</span></code> option), not only in <code class="docutils literal notranslate"><span class="pre">conf.py</span></code>.</p></li>
+<li><p>The documentation describes several projects, several versions
+(sphinx-multiversion), sphinx-multiproject and one search over several
+sites, with what was checked.</p></li>
+<li><p><strong>Breaking:</strong> <code class="docutils literal notranslate"><span class="pre">matlab_show_property_default_value</span></code> and
+<code class="docutils literal notranslate"><span class="pre">matlab_show_property_specs</span></code> default to <code class="docutils literal notranslate"><span class="pre">True</span></code>: properties show their
+default value, size, class and validators. Set them to <code class="docutils literal notranslate"><span class="pre">False</span></code> for the
+old output.</p></li>
+<li><p><strong>Breaking:</strong> <code class="docutils literal notranslate"><span class="pre">matlab_add_namespace_names</span></code> (default <code class="docutils literal notranslate"><span class="pre">True</span></code>) replaces
+Sphinx’s <code class="docutils literal notranslate"><span class="pre">add_module_names</span></code> for MATLAB signatures; the MATLAB domain no
+longer reads <code class="docutils literal notranslate"><span class="pre">add_module_names</span></code>.</p></li>
+<li><p>An auto directive that matches no object warns with the subtype
+<code class="docutils literal notranslate"><span class="pre">mat.not_found</span></code> and the page and line of the directive; its “matches
+several objects” warning gives the location too.</p></li>
+<li><p>Types in <code class="docutils literal notranslate"><span class="pre">:type</span> <span class="pre">x:</span></code> and <code class="docutils literal notranslate"><span class="pre">:vartype</span> <span class="pre">v:</span></code> fields (as written by
+<code class="docutils literal notranslate"><span class="pre">sphinx.ext.napoleon</span></code>) link to documented objects and are plain text
+otherwise; with <code class="docutils literal notranslate"><span class="pre">nitpicky</span></code> they no longer warn “reference target not
+found” (MATLAB types such as <code class="docutils literal notranslate"><span class="pre">double</span></code> are never documented).</p></li>
+<li><p>Use treesitter for parsing.</p></li>
+<li><p>Added new configuration: <code class="docutils literal notranslate"><span class="pre">matlab_version</span></code> (default <code class="docutils literal notranslate"><span class="pre">&quot;R2026a&quot;</span></code>, oldest
+supported <code class="docutils literal notranslate"><span class="pre">&quot;R2024a&quot;</span></code>). It selects version-dependent MATLAB naming rules.
+Scripts and functions in a subfolder of a class folder (<code class="docutils literal notranslate"><span class="pre">&#64;C/sub/x.m</span></code>) are
+callable before R2026a only.</p></li>
+<li><p>Added new configuration: <code class="docutils literal notranslate"><span class="pre">matlab_namelengthmax</span></code> (<code class="docutils literal notranslate"><span class="pre">63</span></code> or <code class="docutils literal notranslate"><span class="pre">2048</span></code>). The
+default <code class="docutils literal notranslate"><span class="pre">None</span></code> derives it from <code class="docutils literal notranslate"><span class="pre">matlab_version</span></code> (2048 from R2025a on).
+An explicit value always wins over the derived default.</p></li>
+<li><p><strong>Breaking:</strong> objects are identified by path reference, the path relative
+to the project root with its extension (<code class="docutils literal notranslate"><span class="pre">target/+package/ClassBar.m</span></code>,
+members <code class="docutils literal notranslate"><span class="pre">target/+package/ClassBar.m.myMethod</span></code>, folders
+<code class="docutils literal notranslate"><span class="pre">target/+package/</span></code>). Signatures and the inventory’s display names show
+the MATLAB name (<code class="docutils literal notranslate"><span class="pre">package.ClassBar</span></code>), formed like MATLAB does
+(<code class="docutils literal notranslate"><span class="pre">form_matlab_name</span></code>). Cross-references resolve an exact path reference, then
+relative to the current folder (including its <code class="docutils literal notranslate"><span class="pre">private/</span></code>), then a unique
+MATLAB name; an ambiguous name warns and lists the matching references.
+There is no found-first precedence.</p>
+<ul>
+<li><p>Anchors are <code class="docutils literal notranslate"><span class="pre">mat-</span></code> followed by the escaped path reference
+(<code class="docutils literal notranslate"><span class="pre">#mat-target/+package/ClassBar.m</span></code>); inventory names are path
+references. Legacy dotted anchors, <code class="docutils literal notranslate"><span class="pre">module-</span></code> anchors and aliases are
+gone, so existing deep links and intersphinx references change.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mat:module</span></code>, <code class="docutils literal notranslate"><span class="pre">mat:automodule</span></code>, <code class="docutils literal notranslate"><span class="pre">mat:currentmodule</span></code> and
+<code class="docutils literal notranslate"><span class="pre">:mat:mod:</span></code> are replaced by <code class="docutils literal notranslate"><span class="pre">mat:folder</span></code>, <code class="docutils literal notranslate"><span class="pre">mat:autofolder</span></code>,
+<code class="docutils literal notranslate"><span class="pre">mat:currentfolder</span></code> and <code class="docutils literal notranslate"><span class="pre">:mat:folder:</span></code>. A valid <code class="docutils literal notranslate"><span class="pre">+</span></code> folder shows
+<code class="docutils literal notranslate"><span class="pre">namespace</span> <span class="pre">&lt;name&gt;</span></code>, any other folder <code class="docutils literal notranslate"><span class="pre">folder</span> <span class="pre">&lt;path&gt;</span></code>; <code class="docutils literal notranslate"><span class="pre">&#64;Class</span></code>
+folders are documented through their class. The module index is now the
+folder index (<code class="docutils literal notranslate"><span class="pre">mat-folderindex.html</span></code>).</p></li>
+<li><p>New configuration <code class="docutils literal notranslate"><span class="pre">matlab_src_code_project_root</span></code> (relative to the Sphinx
+source directory). <code class="docutils literal notranslate"><span class="pre">matlab_src_dir</span></code> was removed: setting it raises a
+<code class="docutils literal notranslate"><span class="pre">ConfigError</span></code>.</p></li>
+<li><p>Setting <code class="docutils literal notranslate"><span class="pre">matlab_keep_package_prefix</span></code> or <code class="docutils literal notranslate"><span class="pre">matlab_short_links</span></code> raises a
+<code class="docutils literal notranslate"><span class="pre">ConfigError</span></code>; MATLAB names are always displayed. One error names every
+removed value set in <code class="docutils literal notranslate"><span class="pre">conf.py</span></code>.</p></li>
+<li><p>Files MATLAB cannot call for <code class="docutils literal notranslate"><span class="pre">matlab_version</span></code> (keyword namespaces,
+invalid names, <code class="docutils literal notranslate"><span class="pre">&#64;C/sub</span></code> files from R2026a, …) are documented by path
+with one <code class="docutils literal notranslate"><span class="pre">mat.not_callable</span></code> warning each (<code class="docutils literal notranslate"><span class="pre">suppress_warnings</span></code>) that
+says why; files below <code class="docutils literal notranslate"><span class="pre">private/</span></code> never warn.</p></li>
+</ul>
+</li>
+<li><p>References to another project’s MATLAB objects (<code class="docutils literal notranslate"><span class="pre">sphinx.ext.intersphinx</span></code>)
+resolve by MATLAB name too (<code class="docutils literal notranslate"><span class="pre">:mat:class:`geom.Circle`</span></code>), not only by
+path reference: in any inventory, or in the one named with <code class="docutils literal notranslate"><span class="pre">lib:</span></code> or
+<code class="docutils literal notranslate"><span class="pre">:external+lib:</span></code>. A MATLAB name that several objects have, or a path
+reference that several inventories have, warns with <code class="docutils literal notranslate"><span class="pre">mat.ambiguous</span></code>
+and stays unlinked. The new user-guide page “Linking
+between projects” gives the setup and explains which links follow an
+object that page splitting moves to another page.</p></li>
+<li><p>HTML builds write a stable address for every documented object,
+<code class="docutils literal notranslate"><span class="pre">mat/name/&lt;MATLAB</span> <span class="pre">name&gt;.html</span></code> (a list of the objects when several have
+the name) and <code class="docutils literal notranslate"><span class="pre">mat/ref/&lt;path</span> <span class="pre">reference&gt;.html</span></code>, which redirect to the
+page the object is on; the “¶” link of an object and its entry in
+<code class="docutils literal notranslate"><span class="pre">objects.inv</span></code> point to it, so other projects’ links survive page
+splitting even with an old inventory. A copied page address that no
+longer has the object, or a page that is gone (<code class="docutils literal notranslate"><span class="pre">404.html</span></code>), opens the
+object’s stable address. New <code class="docutils literal notranslate"><span class="pre">matlab_stable_urls</span></code> (default
+<code class="docutils literal notranslate"><span class="pre">True</span></code>) turns it off.</p></li>
+<li><p>Incremental HTML builds remove the pages whose <code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code>
+source is gone, and write again every page with a link to a MATLAB
+object when objects were added, removed or moved to other pages.</p></li>
+<li><p>Requires <code class="docutils literal notranslate"><span class="pre">tree-sitter-matlab</span></code> 1.3.2 (was 1.3.0 to 1.3.1).</p></li>
+<li><p>Fixed a segmentation fault (exit code 139) with tree-sitter 0.26.0 on
+standard CPython builds. Its <code class="docutils literal notranslate"><span class="pre">Point.row</span></code> getter corrupts reference counts,
+so point rows are now read by index.</p></li>
+<li><p><strong>Breaking:</strong> docstrings follow MATLAB <code class="docutils literal notranslate"><span class="pre">help</span></code> (R2026a). A comment block
+before a file’s <code class="docutils literal notranslate"><span class="pre">function</span></code> or <code class="docutils literal notranslate"><span class="pre">classdef</span></code> line wins over the block after
+it, so licence and copyright headers become the docstring. Blank lines
+between a declaration and its block are allowed. Methods keep using the
+block after their <code class="docutils literal notranslate"><span class="pre">function</span></code> line. Files with CRLF line endings keep all
+lines of a block. Like MATLAB <code class="docutils literal notranslate"><span class="pre">help</span></code>, the text is the first run of <code class="docutils literal notranslate"><span class="pre">%</span></code>
+lines, so a <code class="docutils literal notranslate"><span class="pre">%{</span> <span class="pre">...</span> <span class="pre">%}</span></code> block comment gives <code class="docutils literal notranslate"><span class="pre">{</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.m</span></code> files are classified by their first line of code (whole-word
+<code class="docutils literal notranslate"><span class="pre">function</span></code>/<code class="docutils literal notranslate"><span class="pre">classdef</span></code>, <code class="docutils literal notranslate"><span class="pre">classify()</span></code>); a script
+with local functions is now a script, not a function. New suppressible
+warnings: <code class="docutils literal notranslate"><span class="pre">mat.invalid_matlab</span></code> when that type and the tree-sitter parse
+disagree (likely invalid MATLAB), and <code class="docutils literal notranslate"><span class="pre">mat.empty_code_file</span></code> for empty
+files, which are documented as scripts. A help file (comments only) does
+not warn: it is documented as a script, or as a function when a MEX file
+of the same name is next to it (MATLAB runs the MEX file and shows the
+help of the <code class="docutils literal notranslate"><span class="pre">.m</span></code> file).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Contents.m</span></code>, <code class="docutils literal notranslate"><span class="pre">slblocks.m</span></code>, <code class="docutils literal notranslate"><span class="pre">sl_customization.m</span></code>, <code class="docutils literal notranslate"><span class="pre">pathdef.m</span></code>,
+<code class="docutils literal notranslate"><span class="pre">matlabrc.m</span></code> and <code class="docutils literal notranslate"><span class="pre">rtwmakecfg.m</span></code> are left out of <code class="docutils literal notranslate"><span class="pre">mat:autofolder</span></code>
+members and never warn; an explicit directive still documents them.</p></li>
+<li><p>Source files are found through a file-type handler registry (<code class="docutils literal notranslate"><span class="pre">.m</span></code>,
+<code class="docutils literal notranslate"><span class="pre">.mlapp</span></code>), the extension point for Simulink and Simscape files.</p></li>
+<li><p>Parsing is faster: tree-sitter queries are compiled once and the
+tree-sitter version is no longer looked up per file.</p></li>
+<li><p>One bad source file no longer stops the build. A file that cannot be read
+or parsed (permissions, a corrupt <code class="docutils literal notranslate"><span class="pre">.mlapp</span></code>, a parser error) gets one
+suppressible <code class="docutils literal notranslate"><span class="pre">mat.parse_error</span></code> warning (with the line of the first syntax
+error when tree-sitter finds one) and is documented without content;
+references to it still resolve. An unreadable folder or a file name that
+is not valid UTF-8 warns the same way.</p></li>
+<li><p>A <code class="docutils literal notranslate"><span class="pre">function</span></code> with a dotted name (<code class="docutils literal notranslate"><span class="pre">function</span> <span class="pre">y</span> <span class="pre">=</span> <span class="pre">vlt.plot.hist2d(...)</span></code>)
+no longer crashes the build: it is documented under its file name, as
+MATLAB names it, with a <code class="docutils literal notranslate"><span class="pre">mat.invalid_matlab</span></code> warning. <code class="docutils literal notranslate"><span class="pre">arguments</span></code>
+blocks with <code class="docutils literal notranslate"><span class="pre">~</span></code> entries no longer crash, and classes with <code class="docutils literal notranslate"><span class="pre">...</span></code> between
+<code class="docutils literal notranslate"><span class="pre">classdef</span></code>, the attributes, the name and the superclasses keep their
+superclasses, docstring and members.</p></li>
+<li><p><strong>Breaking:</strong> <code class="docutils literal notranslate"><span class="pre">matlab_src_encoding</span></code> is applied (it was ignored). A
+byte-order mark selects UTF-8/16/32; otherwise the configured codec, or by
+default UTF-8, where a file that is not valid UTF-8 uses the Windows ANSI
+code page on Windows or ISO-8859-1 elsewhere, like MATLAB R2026a, with a
+suppressible <code class="docutils literal notranslate"><span class="pre">mat.encoding</span></code> warning (it used to show backslash escapes).
+An unknown or non-text codec is a
+<code class="docutils literal notranslate"><span class="pre">ConfigError</span></code>. Cached environments from earlier versions are rebuilt.</p></li>
+<li><p>Large projects build fast: each build indexes the source files (reads and
+classifies each file once) and parses a file with tree-sitter only when a
+page needs it. Parses are cached by path, modification time and size;
+only pages that used a changed file are read again (when files are added,
+removed or change type, every page that looks up sources). Parallel builds
+(<code class="docutils literal notranslate"><span class="pre">-j</span></code>) are supported. New <code class="docutils literal notranslate"><span class="pre">matlab_src_cache_text</span></code> (default <code class="docutils literal notranslate"><span class="pre">True</span></code>)
+keeps the text read by the index for the parse during a build.</p></li>
+<li><p>New configuration <code class="docutils literal notranslate"><span class="pre">matlab_src_include_patterns</span></code> (default <code class="docutils literal notranslate"><span class="pre">[&quot;**/*&quot;]</span></code>;
+<code class="docutils literal notranslate"><span class="pre">[]</span></code> selects no files) and <code class="docutils literal notranslate"><span class="pre">matlab_src_exclusion_patterns</span></code> (default
+the root files <code class="docutils literal notranslate"><span class="pre">README.*</span></code>, <code class="docutils literal notranslate"><span class="pre">CHANGES.*</span></code>, <code class="docutils literal notranslate"><span class="pre">CHANGELOG.*</span></code>,
+<code class="docutils literal notranslate"><span class="pre">LICENSE.*</span></code>, <code class="docutils literal notranslate"><span class="pre">CONTRIBUTING.*</span></code>, <code class="docutils literal notranslate"><span class="pre">CODE_OF_CONDUCT.*</span></code> and
+<code class="docutils literal notranslate"><span class="pre">SECURITY.*</span></code>): globs relative to <code class="docutils literal notranslate"><span class="pre">matlab_src_code_project_root</span></code>, matched like
+<code class="docutils literal notranslate"><span class="pre">exclude_patterns</span></code>, case-sensitive. Patterns must stay below the root
+(<code class="docutils literal notranslate"><span class="pre">ConfigError</span></code> otherwise) and need <code class="docutils literal notranslate"><span class="pre">matlab_src_code_project_root</span></code>. A
+link below the root that leaves it is skipped with a <code class="docutils literal notranslate"><span class="pre">mat.outside_root</span></code>
+warning.</p></li>
+<li><p><strong>Breaking:</strong> <code class="docutils literal notranslate"><span class="pre">mat.invalid_matlab</span></code> and parse failures
+(<code class="docutils literal notranslate"><span class="pre">mat.parse_error</span></code>) are reported for the files that pages read in the
+build use, once per build; a file no page uses is not parsed. Index
+warnings (<code class="docutils literal notranslate"><span class="pre">mat.encoding</span></code>, <code class="docutils literal notranslate"><span class="pre">mat.empty_code_file</span></code>, <code class="docutils literal notranslate"><span class="pre">mat.not_callable</span></code>,
+unreadable files and folders) still appear on every build.</p></li>
+<li><p>New command <code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code> (also <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span>
+<span class="pre">sphinxcontrib.matlab_apidoc</span></code>): writes reST pages with <code class="docutils literal notranslate"><span class="pre">mat:auto*</span></code>
+directives for the MATLAB files of a project, from Jinja templates that
+can be replaced (<code class="docutils literal notranslate"><span class="pre">matlab_apidoc_templatedir</span></code>). By default
+(<code class="docutils literal notranslate"><span class="pre">matlab_apidoc_group</span> <span class="pre">=</span> <span class="pre">&quot;namespace&quot;</span></code>) it writes one page per namespace,
+merging all its folders, and Global for the files outside any namespace,
+listed flat on the root page (Global first); sections Functions,
+Classes, Scripts, Apps and the sidecar docs; at most
+<code class="docutils literal notranslate"><span class="pre">matlab_apidoc_page_size</span></code> entries (default 100) per page; <code class="docutils literal notranslate"><span class="pre">private/</span></code>
+files are left out (<code class="docutils literal notranslate"><span class="pre">matlab_apidoc_private</span> <span class="pre">=</span> <span class="pre">True</span></code> lists them with the
+folder above). <code class="docutils literal notranslate"><span class="pre">matlab_apidoc_group</span> <span class="pre">=</span> <span class="pre">&quot;folder&quot;</span></code> writes one page
+per folder with files, titled by path (<code class="docutils literal notranslate"><span class="pre">folder</span> <span class="pre">a/+ns/</span></code>), also listed
+flat on the root page (the root folder’s page first, named <code class="docutils literal notranslate"><span class="pre">root</span></code>).
+Its template context is a public
+interface: renaming or removing a key is a breaking change. See
+<code class="docutils literal notranslate"><span class="pre">examples/apidoc</span></code>. <code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span> <span class="pre">-c</span> <span class="pre">DIR</span></code> (default: the
+current folder) reads every setting from <code class="docutils literal notranslate"><span class="pre">DIR/conf.py</span></code>: the source
+settings of the build and the new <code class="docutils literal notranslate"><span class="pre">matlab_apidoc_*</span></code> values (output
+folder, grouping, page size, one page per file, toctree depth, root
+page, suffix, templates, removal of stale pages).
+Its flags only control a run: <code class="docutils literal notranslate"><span class="pre">-f</span></code>, <code class="docutils literal notranslate"><span class="pre">-n</span></code>, <code class="docutils literal notranslate"><span class="pre">--check</span></code>, <code class="docutils literal notranslate"><span class="pre">-q</span></code>.
+Generated pages (those that start with its marker line) are rewritten
+when they change and removed when they are no longer pages; <code class="docutils literal notranslate"><span class="pre">--check</span></code>
+exits with 1 when the pages are out of date. A page that differs only in
+line endings (a Windows checkout with <code class="docutils literal notranslate"><span class="pre">core.autocrlf</span></code>) is unchanged.
+Its summary line starts with <code class="docutils literal notranslate"><span class="pre">Check:</span></code> under <code class="docutils literal notranslate"><span class="pre">--check</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Dry</span> <span class="pre">run:</span></code> under <code class="docutils literal notranslate"><span class="pre">-n</span></code>.
+For full control, a script
+calls the Python API (<code class="docutils literal notranslate"><span class="pre">IndexSettings</span></code>, <code class="docutils literal notranslate"><span class="pre">build_index</span></code>, <code class="docutils literal notranslate"><span class="pre">generate</span></code>,
+<code class="docutils literal notranslate"><span class="pre">ApidocOptions</span></code>). The command does not run inside <code class="docutils literal notranslate"><span class="pre">sphinx-build</span></code>; run
+it before the build. It prints its warnings like the build and skips
+those named in <code class="docutils literal notranslate"><span class="pre">suppress_warnings</span></code>.</p></li>
+<li><p><strong>Breaking:</strong> a <code class="docutils literal notranslate"><span class="pre">matlab_*</span></code> name in <code class="docutils literal notranslate"><span class="pre">conf.py</span></code> that is not a
+configuration value (a typo, a value this version does not have, a helper
+variable) is a <code class="docutils literal notranslate"><span class="pre">ConfigError</span></code> in the build and in
+<code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code>, with the closest value as a suggestion; Sphinx
+ignores such names silently. <code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code> also rejects
+abbreviated options.</p></li>
+<li><p>The function files of a class folder <code class="docutils literal notranslate"><span class="pre">&#64;X/</span></code> are methods only if <code class="docutils literal notranslate"><span class="pre">X.m</span></code> is
+a classdef. In any other <code class="docutils literal notranslate"><span class="pre">&#64;</span></code> folder (an old-style class, a classdef named
+differently, no class file) they are documented as functions; before, the
+folder’s only classdef took them as methods, whatever its name. Cached
+environments from earlier versions are rebuilt.</p></li>
+<li><p>A script’s docstring is its first comment block. It used to be one of its
+top-level comment blocks, chosen by an unordered query result: often a later
+block (a live script’s <code class="docutils literal notranslate"><span class="pre">%[appendix]</span></code>), and not always the same one from
+build to build. Cached environments from earlier versions are rebuilt.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sphinxcontrib</span></code> is a native (PEP 420) namespace package, like in the
+other <code class="docutils literal notranslate"><span class="pre">sphinxcontrib-*</span></code> packages: <code class="docutils literal notranslate"><span class="pre">sphinxcontrib/__init__.py</span></code> is no
+longer shipped. It imported <code class="docutils literal notranslate"><span class="pre">pkg_resources</span></code>, so without setuptools the
+package, and Sphinx’s own <code class="docutils literal notranslate"><span class="pre">sphinxcontrib</span></code> extensions, failed to import.</p></li>
+<li><p><strong>Breaking:</strong> Python-domain features that do not apply to MATLAB are
+removed: the <code class="docutils literal notranslate"><span class="pre">mat:decorator</span></code>, <code class="docutils literal notranslate"><span class="pre">mat:decoratormethod</span></code>, <code class="docutils literal notranslate"><span class="pre">mat:exception</span></code>
+and <code class="docutils literal notranslate"><span class="pre">mat:autoexception</span></code> directives, the <code class="docutils literal notranslate"><span class="pre">:mat:exc:</span></code> role, and the
+<code class="docutils literal notranslate"><span class="pre">:special-members:</span></code> and <code class="docutils literal notranslate"><span class="pre">:inherited-members:</span></code> options of
+<code class="docutils literal notranslate"><span class="pre">mat:autoclass</span></code> (<code class="docutils literal notranslate"><span class="pre">:inherited-members:</span></code> crashed the build). Names in
+<code class="docutils literal notranslate"><span class="pre">:raises:</span></code> fields link to classes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sphinxcontrib.matlab</span></code> sets up <code class="docutils literal notranslate"><span class="pre">sphinx.ext.autodoc</span></code> itself; the
+<code class="docutils literal notranslate"><span class="pre">mat:auto*</span></code> directives failed when it was not in <code class="docutils literal notranslate"><span class="pre">extensions</span></code>. An
+invalid option of a <code class="docutils literal notranslate"><span class="pre">mat:auto*</span></code> directive is reported at the right file.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mat:autoclass</span></code> option <code class="docutils literal notranslate"><span class="pre">:access-list-members:</span></code> (MATLAB access lists:
+<code class="docutils literal notranslate"><span class="pre">Access</span> <span class="pre">=</span> <span class="pre">?Cls</span></code> or <code class="docutils literal notranslate"><span class="pre">{?A,</span> <span class="pre">?B}</span></code>) replaces <code class="docutils literal notranslate"><span class="pre">:friend-members:</span></code>, which is
+still accepted. Class names may be given with or without <code class="docutils literal notranslate"><span class="pre">?</span></code>.</p></li>
+<li><p>Fixed member selection of <code class="docutils literal notranslate"><span class="pre">mat:autoclass</span></code> and <code class="docutils literal notranslate"><span class="pre">mat:autofolder</span></code>:</p>
+<ul>
+<li><p>At the project root, members without help were listed without
+<code class="docutils literal notranslate"><span class="pre">:undoc-members:</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Access</span> <span class="pre">=</span> <span class="pre">'private'</span></code> (quoted) counted as public.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">:members:</span> <span class="pre">a,</span> <span class="pre">b</span></code> on a class warned “missing attribute” and documented
+nothing.</p></li>
+<li><p>Enumeration values were missing from “Enumeration Values”.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">autoclass_content</span> <span class="pre">=</span> <span class="pre">&quot;both&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;init&quot;</span></code> added “The type of the None
+singleton.” to a class without a constructor.</p></li>
+<li><p>With <code class="docutils literal notranslate"><span class="pre">matlab_auto_link</span></code>, a line without a name (such as <code class="docutils literal notranslate"><span class="pre">---</span></code>) after
+“See also” crashed the build.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mat:autofolder</span></code> with <code class="docutils literal notranslate"><span class="pre">:members:</span></code> listed files in the file system’s
+order, which differs between operating systems; they are sorted by name.</p></li>
+</ul>
+</li>
+<li><p>Help text and warnings follow MATLAB R2026a more closely: a lone CR ends a
+line; after <code class="docutils literal notranslate"><span class="pre">...</span></code> at the end of the superclasses, a comment on the
+continued line is not help (the next block is); an <code class="docutils literal notranslate"><span class="pre">arguments</span></code> entry
+ending with <code class="docutils literal notranslate"><span class="pre">;</span></code> takes the comment after it, like a property. A parse
+failure names the innermost syntax error, or no line when tree-sitter
+cannot locate it.</p></li>
+<li><p>New warnings: <code class="docutils literal notranslate"><span class="pre">mat.invalid_matlab</span></code> for a <code class="docutils literal notranslate"><span class="pre">.m</span></code> file with NUL bytes
+(likely binary), and <code class="docutils literal notranslate"><span class="pre">mat.parse_error</span></code> for a folder whose entries cannot
+be accessed (listed but not entered).</p></li>
+<li><p>A function file of an <code class="docutils literal notranslate"><span class="pre">&#64;</span></code> folder whose class file was removed is a
+function again in the next build; it stayed a method. Cached environments
+from earlier versions are rebuilt.</p></li>
+<li><p>A function’s or method’s help could be a later comment block before its
+first statement (a copyright line, a developer note), not always the same
+one from build to build. Nested functions no longer add their outputs,
+arguments and help to the enclosing function. Name-value arguments take
+the help of the last one every time. Cached environments from earlier
+versions are rebuilt.</p></li>
+<li><p>Fixed <code class="docutils literal notranslate"><span class="pre">matlab_auto_link</span></code>: a link next to a character that cannot border
+inline markup (<code class="docutils literal notranslate"><span class="pre">y=f(1)</span></code>) broke the reST (“start-string without
+end-string” warnings); names between <code class="docutils literal notranslate"><span class="pre">|</span></code> bars (MATLAB’s code markup) or
+next to <code class="docutils literal notranslate"><span class="pre">/</span></code> are no longer linked; links and “Bases:” entries resolved in
+the primary domain, so they did not link without
+<code class="docutils literal notranslate"><span class="pre">primary_domain</span> <span class="pre">=</span> <span class="pre">&quot;mat&quot;</span></code>.</p></li>
+<li><p>Help of only blank <code class="docutils literal notranslate"><span class="pre">%</span></code> lines crashed the build.</p></li>
+<li><p>An old-style property without a default (<code class="docutils literal notranslate"><span class="pre">p&#64;double</span> <span class="pre">vector</span></code>) lost its
+type and size.</p></li>
+<li><p>New builder <code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code> (<code class="docutils literal notranslate"><span class="pre">sphinx-build</span> <span class="pre">-b</span> <span class="pre">matlab-api-check</span></code>):
+checks the help text of every indexed function, class, public method,
+script and app (the H1 line; inputs, outputs and name-value sections, or
+<code class="docutils literal notranslate"><span class="pre">arguments</span></code>-block comments), logs each finding as <code class="docutils literal notranslate"><span class="pre">mat.api_check</span></code>,
+writes <code class="docutils literal notranslate"><span class="pre">api-check.txt</span></code> and <code class="docutils literal notranslate"><span class="pre">api-check.json</span></code>, and exits with status 1
+when a rule with severity <code class="docutils literal notranslate"><span class="pre">error</span></code> finds something. New configuration:
+<code class="docutils literal notranslate"><span class="pre">matlab_api_check_rules</span></code>, <code class="docutils literal notranslate"><span class="pre">matlab_api_check_enabled</span></code> and
+<code class="docutils literal notranslate"><span class="pre">matlab_api_check_ignore_patterns</span></code>. Cached environments from earlier
+versions are rebuilt.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code> has three new rules that warn by default:
+<code class="docutils literal notranslate"><span class="pre">example</span></code> and <code class="docutils literal notranslate"><span class="pre">method-example</span></code> (the help of a function, class, script
+or method, except a constructor, has an example section: <code class="docutils literal notranslate"><span class="pre">Example:</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Examples</span></code>, <code class="docutils literal notranslate"><span class="pre">Usage:</span></code>, <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">rubric::</span> <span class="pre">Examples</span></code>, …) and
+<code class="docutils literal notranslate"><span class="pre">property-description</span></code> (every public property has a comment). Reports
+count properties (<code class="docutils literal notranslate"><span class="pre">property</span></code>). Cached environments from earlier
+versions are rebuilt.</p></li>
+<li><p>New configuration <code class="docutils literal notranslate"><span class="pre">matlab_api_check_files</span></code> (default <code class="docutils literal notranslate"><span class="pre">None</span></code>, every
+file) and <code class="docutils literal notranslate"><span class="pre">matlab_api_check_files_from</span></code> (a text file of entries, one
+per line): <code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code> checks only the files whose path
+references match the entries (paths or glob patterns relative to the
+project root; <code class="docutils literal notranslate"><span class="pre">folder/</span></code> for the files below a folder; a
+comma-separated string from <code class="docutils literal notranslate"><span class="pre">-D</span></code>), for example the files a change
+touches. The index, the pages and the links are those of the whole
+project; files that are not selected are not parsed for the check. An
+empty selection checks nothing. An entry that selects no file is logged
+as an error and makes the exit status 1, unless the new
+<code class="docutils literal notranslate"><span class="pre">matlab_api_check_ignore_unmatched</span></code> is <code class="docutils literal notranslate"><span class="pre">True</span></code>. The reports count the
+files not selected (<code class="docutils literal notranslate"><span class="pre">not_selected</span></code>) and, in <code class="docutils literal notranslate"><span class="pre">api-check.json</span></code>,
+describe the selection (<code class="docutils literal notranslate"><span class="pre">selection</span></code>); without a selection they are
+unchanged.</p></li>
+<li><p>New configuration <code class="docutils literal notranslate"><span class="pre">matlab_api_check_section_labels</span></code>: the labels that
+the inputs, outputs, name-value and example sections of
+<code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code> accept, replacing the built-in ones for the sections
+it names (<code class="docutils literal notranslate"><span class="pre">&quot;&lt;built-in&gt;&quot;</span></code> adds them back).</p></li>
+<li><p><strong>Breaking:</strong> the auto directives accept only the options that do
+something. <code class="docutils literal notranslate"><span class="pre">mat:autofolder</span></code> no longer accepts <code class="docutils literal notranslate"><span class="pre">:inherited-members:</span></code>,
+<code class="docutils literal notranslate"><span class="pre">:special-members:</span></code>, <code class="docutils literal notranslate"><span class="pre">:imported-members:</span></code>, <code class="docutils literal notranslate"><span class="pre">:ignore-module-all:</span></code> and
+<code class="docutils literal notranslate"><span class="pre">:no-value:</span></code>; <code class="docutils literal notranslate"><span class="pre">mat:autodata</span></code> no longer accepts <code class="docutils literal notranslate"><span class="pre">:annotation:</span></code> and
+<code class="docutils literal notranslate"><span class="pre">:no-value:</span></code>; no auto directive accepts <code class="docutils literal notranslate"><span class="pre">:no-index-entry:</span></code>. They were
+inherited from Python’s autodoc and ignored. <code class="docutils literal notranslate"><span class="pre">mat:autofolder</span></code> accepts
+<code class="docutils literal notranslate"><span class="pre">:protected-members:</span></code>, <code class="docutils literal notranslate"><span class="pre">:hidden-members:</span></code> and
+<code class="docutils literal notranslate"><span class="pre">:access-list-members:</span></code>, which apply to the classes it documents. Every
+directive that takes <code class="docutils literal notranslate"><span class="pre">:noindex:</span></code> also takes <code class="docutils literal notranslate"><span class="pre">:no-index:</span></code>.</p></li>
+<li><p><strong>Breaking:</strong> the unused module <code class="docutils literal notranslate"><span class="pre">sphinxcontrib.mat_lexer</span></code> (a Pygments
+lexer, used by the parser before tree-sitter) is removed.</p></li>
+<li><p>The package metadata names the license in <code class="docutils literal notranslate"><span class="pre">LICENSE</span></code>, BSD-2-Clause (it
+said BSD-3-Clause).</p></li>
+<li><p>Sidecar docs: tutorials and notes as <code class="docutils literal notranslate"><span class="pre">.md</span></code> and <code class="docutils literal notranslate"><span class="pre">.rst</span></code> files
+among the MATLAB files, selected by the new
+<code class="docutils literal notranslate"><span class="pre">matlab_src_sidecar_suffixes</span></code> (default <code class="docutils literal notranslate"><span class="pre">[]</span></code>, off) and the include and
+exclusion patterns. The new directive <code class="docutils literal notranslate"><span class="pre">mat:autosidecar</span></code> renders one into
+a document, with relative images, downloads, includes and Markdown links
+(to sidecar docs, code and files) resolved from its folder; the new role
+<code class="docutils literal notranslate"><span class="pre">:mat:sidecar:</span></code> links to one. <code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span> <span class="pre">-c</span></code> writes a page
+for each (<code class="docutils literal notranslate"><span class="pre">guide.md</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">guide-md.rst</span></code>, new template
+<code class="docutils literal notranslate"><span class="pre">sidecar.rst.jinja</span></code>), lists them on their folder’s page and uses a
+folder’s README as its introduction (new template keys <code class="docutils literal notranslate"><span class="pre">sidecars</span></code> and
+<code class="docutils literal notranslate"><span class="pre">readme</span></code>). <code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code> has the new rules <code class="docutils literal notranslate"><span class="pre">sidecar-documented</span></code>
+and <code class="docutils literal notranslate"><span class="pre">sidecar-links</span></code>, and counts sidecar docs (<code class="docutils literal notranslate"><span class="pre">sidecar</span></code>) in its
+reports. Markdown
+needs the new <code class="docutils literal notranslate"><span class="pre">markdown</span></code> extra (myst-parser). New warning subtype
+<code class="docutils literal notranslate"><span class="pre">mat.sidecar</span></code>. Cached environments from earlier versions are rebuilt.</p></li>
+<li><p><strong>Breaking:</strong> relative paths in help text are relative to the folder of
+the code file, as in sidecar docs: images, figures, downloads,
+<code class="docutils literal notranslate"><span class="pre">literalinclude</span></code>, <code class="docutils literal notranslate"><span class="pre">include</span></code>, and hyperlinks (to a sidecar doc, a code
+file’s API entry, or a download). They were relative to the documentation
+page. Links with a URI scheme (an e-mail address, <code class="docutils literal notranslate"><span class="pre">matlab:</span></code>) are left
+as they are.</p></li>
+<li><p>New configuration <code class="docutils literal notranslate"><span class="pre">matlab_external_names</span></code>: regular expressions of names
+the project does not document. A <code class="docutils literal notranslate"><span class="pre">mat</span></code> reference to such a name that
+resolves to nothing is text, without a “reference target not found”
+warning. The default covers MATLAB’s own classes and namespaces
+(<code class="docutils literal notranslate"><span class="pre">handle</span></code>, <code class="docutils literal notranslate"><span class="pre">matlab.*</span></code>, <code class="docutils literal notranslate"><span class="pre">Simulink.*</span></code>, <code class="docutils literal notranslate"><span class="pre">double</span></code>, <code class="docutils literal notranslate"><span class="pre">datetime</span></code>,
+<code class="docutils literal notranslate"><span class="pre">containers.Map</span></code>, …), so “Bases: handle” no longer needs a
+<code class="docutils literal notranslate"><span class="pre">nitpick_ignore</span></code>.</p></li>
+<li><p>New command <code class="docutils literal notranslate"><span class="pre">sphinx-matlab-quickstart</span></code> (also <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span>
+<span class="pre">sphinxcontrib.matlab_quickstart</span></code>): sets up Sphinx documentation for a
+MATLAB project. It asks one question per choice, with defaults read from
+the project (the MATLAB release in its CI files and README, git
+submodules, the MATLAB project path, uv, Markdown notes next to the code,
+a survey of the help headings for <code class="docutils literal notranslate"><span class="pre">napoleon_custom_sections</span></code>), and
+writes <code class="docutils literal notranslate"><span class="pre">conf.py</span></code>, <code class="docutils literal notranslate"><span class="pre">index.rst</span></code>, <code class="docutils literal notranslate"><span class="pre">Makefile</span></code>, <code class="docutils literal notranslate"><span class="pre">make.bat</span></code>, a build
+guide and the API pages. In a uv project it adds the docs dependencies
+with <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">add</span> <span class="pre">--frozen</span> <span class="pre">--group</span> <span class="pre">docs</span></code>, the matlabdomain requirement
+copied from how matlabdomain is installed; it adds lines to
+<code class="docutils literal notranslate"><span class="pre">.gitignore</span></code> and <code class="docutils literal notranslate"><span class="pre">.gitattributes</span></code>, and stops if one of these files
+has uncommitted changes. <code class="docutils literal notranslate"><span class="pre">-n</span></code> writes nothing and prints what it would
+write; <code class="docutils literal notranslate"><span class="pre">--answers</span> <span class="pre">FILE</span></code> reads saved answers; <code class="docutils literal notranslate"><span class="pre">-q</span></code> asks nothing. It
+prints a report: the inventory, the help headings, the copyright blocks
+that run into help, and the next steps.</p></li>
+</ul>
+</section>
+<section id="id1">
+<h2>0.22.1 (2024-08-17)<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/262">Issue 262</a>. The API for
+<code class="docutils literal notranslate"><span class="pre">sphinx.environment.BuildEnvironment.doc2path</span></code> was changed to return a
+path-like object in Sphinx 8.0.2.</p></li>
+</ul>
+</section>
+<section id="id2">
+<h2>0.22.0 (2024-07-17)<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/249">Issue 249</a>. Parsing of multiline property default values.</p></li>
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/252">Issue 252</a>. Added missing class and method attributes.</p></li>
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/243">Issue 243</a>. Fixed issue with autolinking when the <em>short name</em> matches
+a module name.</p></li>
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/250">Issue 250</a>. Removed unused and undocumented
+<code class="docutils literal notranslate"><span class="pre">MatInstanceAttributeDocumentor</span></code>, which hindered <em>Napoleon</em> to apply styling
+to inline on property comments.</p></li>
+<li><p>Added new configuration: <code class="docutils literal notranslate"><span class="pre">matlab_show_property_specs</span></code>. When set to <code class="docutils literal notranslate"><span class="pre">True</span></code>
+it will print the property specification for class properties.</p></li>
+</ul>
+</section>
+<section id="id3">
+<h2>0.21.5 (2024-02-10)<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/240">Issue 240</a>, where links in literal blocks where not detected
+correctly.</p></li>
+</ul>
+</section>
+<section id="id4">
+<h2>0.21.4 (2024-01-04)<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed issue with warning if there is a mismatch between filename and
+classname, if the classname is a reserved word (like arguments).</p></li>
+<li><p>Fixed a problem with <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/pull/230">PR 230</a> introduced in solving <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/204">Issue 204</a>: when more
+than one (sub)directory in the project had the same name, a dict was added to
+<code class="docutils literal notranslate"><span class="pre">entities_table</span></code> that broke autolinking (see also <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/235">Issue 235</a>).</p></li>
+</ul>
+</section>
+<section id="id5">
+<h2>0.21.3 (2024-01-02)<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fix issue with parsing of MATLAB files, where keywords were used in <code class="docutils literal notranslate"><span class="pre">struct</span></code>
+fieldnames. E.g. <code class="docutils literal notranslate"><span class="pre">a</span> <span class="pre">=</span> <span class="pre">pkg.arguments</span></code>. These were mistaken as <code class="docutils literal notranslate"><span class="pre">keyword</span></code>
+tokens and could result in warnings with <code class="docutils literal notranslate"><span class="pre">Check</span> <span class="pre">if</span> <span class="pre">valid</span> <span class="pre">MATLAB</span> <span class="pre">code.</span></code>.</p></li>
+<li><p>Bump copyright to 2024.</p></li>
+</ul>
+</section>
+<section id="id6">
+<h2>0.21.2 (2023-12-17)<a class="headerlink" href="#id6" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Interpret <code class="docutils literal notranslate"><span class="pre">matlab_src_dir</span></code> relative to the Sphinx source directory to be
+compatible with <a class="reference external" href="https://pypi.org/project/sphinx-multiversion/">sphinx-multiversion</a>.</p></li>
+</ul>
+</section>
+<section id="id7">
+<h2>0.21.1 (2023-12-16)<a class="headerlink" href="#id7" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/204">Issue 204</a>, that caused an <code class="docutils literal notranslate"><span class="pre">AttributeError</span></code> to be thrown if a module
+was named the same as the short name for a class.</p></li>
+</ul>
+</section>
+<section id="id8">
+<h2>0.21.0 (2023-12-16)<a class="headerlink" href="#id8" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Allow <code class="docutils literal notranslate"><span class="pre">matlab_src_dir</span></code> to be a relative path of the <code class="docutils literal notranslate"><span class="pre">conf.py</span></code> file. See
+<a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/pull/224">PR 224</a> and <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/pull/225">PR 225</a>.</p></li>
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/220">Issue 220</a>. Parsing of property docstring could throw warning if there
+were blank lines between comments.</p></li>
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/221">Issue 221</a>. Using builtin’s in class folder definition for methods
+defined in other files, threw a parsing warning.</p></li>
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/225">Issue 225</a>. Empty <code class="docutils literal notranslate"><span class="pre">&#64;classfolder</span></code> would throw an assertion error.</p></li>
+</ul>
+</section>
+<section id="id9">
+<h2>0.20.2 (2023-09-15)<a class="headerlink" href="#id9" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/214">Issue 214</a> again. Any folder below a <code class="docutils literal notranslate"><span class="pre">&#64;classfolder</span></code> must be ignored.</p></li>
+</ul>
+</section>
+<section id="id10">
+<h2>0.20.1 (2023-09-14)<a class="headerlink" href="#id10" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/214">Issue 214</a>. After fixing <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/56">Issue 56</a>, we introduced a bug parsing
+<code class="docutils literal notranslate"><span class="pre">private</span></code> folders incorrectly.</p></li>
+</ul>
+</section>
+<section id="id11">
+<h2>0.20.0 (2023-09-13)<a class="headerlink" href="#id11" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/188">Issue 188</a> and <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/189">Issue 189</a>, which caused the extension to crash if
+the documentation contained <code class="docutils literal notranslate"><span class="pre">:exclude-members:</span></code>.</p></li>
+<li><p>Added a new configuration: <code class="docutils literal notranslate"><span class="pre">matlab_auto_links</span></code>. It will automatically
+convert the names of known entities (e.g. classes, functions, properties,
+methods) to links! This means that we can write class documentation as <a class="reference external" href="https://mathworks.com/help/matlab/matlab_prog/create-help-for-classes.html">MATLAB
+Class Help</a> suggests. Including property and methods lists in the class
+docstring.</p></li>
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/56">Issue 56</a>. <a class="reference external" href="https://mathworks.com/help/matlab/matlab_oop/organizing-classes-in-folders.html">MATLAB Folder Class definitions</a>, i.e. prefixed with
+<code class="docutils literal notranslate"><span class="pre">&#64;</span></code>, are now treated as normal classes. All methods defined in the class
+definition and in files in the <code class="docutils literal notranslate"><span class="pre">&#64;</span></code>-folder are available. Further, it can
+referenced by a shortened name. Before you had to explicitly write out the
+“module”, class and methods. Now you can just write the class name. Only
+caveat is that <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/44">Issue 44</a> still applies.</p></li>
+</ul>
+</section>
+<section id="id12">
+<h2>0.19.1 (2023-05-17)<a class="headerlink" href="#id12" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fix parsing of classes with trailing <code class="docutils literal notranslate"><span class="pre">;</span></code> after <code class="docutils literal notranslate"><span class="pre">end</span></code></p></li>
+<li><p>Fix bug if extension is included, but <code class="docutils literal notranslate"><span class="pre">matlab_src_dir</span></code> is not set.</p></li>
+</ul>
+</section>
+<section id="id13">
+<h2>0.19.0 (2023-05-16)<a class="headerlink" href="#id13" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Added new configuration: <code class="docutils literal notranslate"><span class="pre">matlab_short_links</span></code>. Finally, we are getting
+closer to render documentation closer to how MathWorks does it. The parsing of
+MATLAB functions, clasess, etc. was rewritten. We now parse all MATLAB files
+in <code class="docutils literal notranslate"><span class="pre">matlab_src_dir</span></code>. Further, you can now generate docs for files in the
+root folder (something that only worked for packages before).</p></li>
+<li><p>We also updated the class rendering to be closer to that of MathWorks. Instead
+of putting both properties and methods together, they are now grouped by:
+<em>Constructor Summary</em>, <em>Property Summary</em> and <em>Method Summary</em>.</p></li>
+</ul>
+</section>
+<section id="id14">
+<h2>0.18.0 (2023-04-14)<a class="headerlink" href="#id14" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Improved rendering of class property default values when
+<code class="docutils literal notranslate"><span class="pre">matlab_show_property_default_value</span> <span class="pre">=</span> <span class="pre">True</span></code>. Multiline default values are
+now truncated to one line. Excessive spacing is removed and values are just
+shown verbatim as they were parsed instead of in string.</p></li>
+</ul>
+</section>
+<section id="id15">
+<h2>0.17.1 (2023-04-12)<a class="headerlink" href="#id15" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fix issue with incorrect parsing of baseclasses with trailing comments.
+Reported in <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/172">Issue 172</a>.</p></li>
+</ul>
+</section>
+<section id="id16">
+<h2>0.17.0 (2023-03-24)<a class="headerlink" href="#id16" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Replace <code class="docutils literal notranslate"><span class="pre">directive.warn</span></code> (deprecated) with <code class="docutils literal notranslate"><span class="pre">logger.warning</span></code>. Reported in
+<a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/166">Issue 166</a>.</p></li>
+<li><p>Fix property validation parsing reported in
+<a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/167">Issue 167</a>.</p></li>
+<li><p>Updated Author to Jørgen Cederberg as agreed in
+<a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/164">Issue 164</a>.</p></li>
+</ul>
+</section>
+<section id="id17">
+<h2>0.16.0 (2023-03-15)<a class="headerlink" href="#id17" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Add new option, <code class="docutils literal notranslate"><span class="pre">matlab_show_property_default_value</span></code>. Default is now to not
+show property values. If a property value is <code class="docutils literal notranslate"><span class="pre">None</span></code>, is not shown anymore.</p></li>
+</ul>
+</section>
+<section id="id18">
+<h2>0.15.2 (2023-03-14)<a class="headerlink" href="#id18" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fix issue with not parsing property docstrings correctly with Pygments 2.13.
+<a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/152">Issue 152</a>.</p></li>
+</ul>
+</section>
+<section id="id19">
+<h2>0.15.1 (2023-02-06)<a class="headerlink" href="#id19" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fix being unable to document methods with name <code class="docutils literal notranslate"><span class="pre">get</span></code>.
+<a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/151">Issue 151</a>.</p></li>
+</ul>
+</section>
+<section id="id20">
+<h2>0.15.0 (2023-01-02)<a class="headerlink" href="#id20" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Pygments &gt;= 2.14.0 is now supported. Pygments tokenization changed to return
+<code class="docutils literal notranslate"><span class="pre">Token.Text.WhiteSpace</span></code> for newline characters. This resulted in a infinite
+loop when parsing MATLAB files.</p></li>
+</ul>
+</section>
+<section id="id21">
+<h2>0.14.1 (2022-09-02)<a class="headerlink" href="#id21" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fix parsing of overloaded class parameters with validation functions.
+<a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/145">Issue 145</a>.</p></li>
+<li><p>Fix link in readme file.</p></li>
+</ul>
+</section>
+<section id="id22">
+<h2>0.14.0 (2022-06-01)<a class="headerlink" href="#id22" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Sphinx &gt;= 5.0.0 is now supported. Fixed errors due to <a class="reference external" href="https://www.sphinx-doc.org/en/master/extdev/deprecated.html">deprecated Sphinx API</a>.</p></li>
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/134">https://github.com/sphinx-contrib/matlabdomain/issues/134</a>.
+JupyterBook complains if a domain doesn’t support <a class="reference external" href="https://www.sphinx-doc.org/en/master/extdev/domainapi.html?highlight=resolve_any_xref#sphinx.domains.Domain.resolve_any_xref">resolve_any_ref</a>.</p></li>
+</ul>
+</section>
+<section id="id23">
+<h2>0.13.0 (2022-02-13)<a class="headerlink" href="#id23" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Explicit set <code class="docutils literal notranslate"><span class="pre">parallel_read_safe</span></code> to <code class="docutils literal notranslate"><span class="pre">False</span></code> to avoid error in parallel
+builds.</p></li>
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/125">Issue 125</a>.
+Finally, we are able to support <em>long</em> docstrings for properties. It works as
+the same as MATLAB. Comment lines above a <code class="docutils literal notranslate"><span class="pre">property</span></code> are now treated as
+docstrings.</p></li>
+</ul>
+</section>
+<section id="id24">
+<h2>0.12.0 (2021-06-12)<a class="headerlink" href="#id24" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Only Sphinx &gt;= 4.0.0 is now supported.</p></li>
+<li><p>Only Python &gt;= 3.6 is supported.</p></li>
+<li><p>Fixed numerous warnings due to <a class="reference external" href="https://www.sphinx-doc.org/en/master/extdev/deprecated.html">deprecated Sphinx API</a>.
+* Use <code class="docutils literal notranslate"><span class="pre">sphinx.ext.autodoc.directive.DocumenterBridge.record_dependencies</span></code> instead of <code class="docutils literal notranslate"><span class="pre">sphinx.ext.autodoc.directive.DocumenterBridge.filename_set</span></code>.
+* Use <code class="docutils literal notranslate"><span class="pre">str.rpartition()</span></code> instead of <code class="docutils literal notranslate"><span class="pre">sphinx.util.rpartition()</span></code>
+* Remove use of <code class="docutils literal notranslate"><span class="pre">sphinx.util.force_decode()</span></code>.
+* Use <code class="docutils literal notranslate"><span class="pre">inspect.getmembers()</span></code> instead of <code class="docutils literal notranslate"><span class="pre">sphinx.util.inspect.safe_getmembers()</span></code>.
+* Remove use of encoding argument in <code class="docutils literal notranslate"><span class="pre">autodoc.Documenter.get_doc()</span></code>.</p></li>
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/101">Issue 101</a>.</p></li>
+<li><p>CI now tests on Python 3.6, 3.7, 3.8 and 3.9.</p></li>
+</ul>
+</section>
+<section id="id25">
+<h2>0.11.8 (2021-05-12)<a class="headerlink" href="#id25" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Limit to Sphinx &lt; 4.0.0, due to too many breaking changes.</p></li>
+<li><p>Last version to support Python 2.7</p></li>
+</ul>
+</section>
+<section id="id26">
+<h2>0.11.7 (2021-02-24)<a class="headerlink" href="#id26" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/117">Issue 117</a>.
+Parsing errors due to <cite>“…”</cite>.  Fix <cite>MatObject::_remove_line_continuations</cite>
+to take MATLAB strings into account.</p></li>
+</ul>
+</section>
+<section id="id27">
+<h2>0.11.6 (2021-02-23)<a class="headerlink" href="#id27" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/116">Issue 116</a>.
+Failure on parfor statements in class methods. Fix <cite>MatFunction</cite> class to
+also take <cite>parfor</cite> into account when counting <cite>end</cite>.</p></li>
+</ul>
+</section>
+<section id="id28">
+<h2>0.11.5 (2021-01-05)<a class="headerlink" href="#id28" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/114">Issue 114</a>.
+NoneType AttributeError in import_object. It was caused by a bug when parsing
+method names with trailing spaces.</p></li>
+</ul>
+</section>
+<section id="id29">
+<h2>0.11.4 (2020-11-30)<a class="headerlink" href="#id29" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Remove import of <code class="docutils literal notranslate"><span class="pre">six</span></code>.</p></li>
+</ul>
+</section>
+<section id="id30">
+<h2>0.11.3 (2020-10-10)<a class="headerlink" href="#id30" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/108">Issue 108</a>.
+Quote is not recognized as transpose after a closing curly brace.</p></li>
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/109">Issue 109</a>.
+Sphinx 3.1.1 changed API causing tests to fail.</p></li>
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/111">Issue 111</a>.
+fnable Function Arguments Support.</p></li>
+</ul>
+</section>
+<section id="id31">
+<h2>0.11.2 (2020-05-18)<a class="headerlink" href="#id31" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/103">Issue 103</a>.
+If a double quoted string was followed by a single quoted string, the lexer
+would produce incorrect token, causing the a parser warning. Fixed by merging
+parts from pygments.</p></li>
+</ul>
+</section>
+<section id="id32">
+<h2>0.11.1 (2020-01-07)<a class="headerlink" href="#id32" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed bug when Python and MATLAB sources are in the same base folder. Reported
+by Alec Weiss. Historically we stored parsed MATLAB objects in
+<code class="docutils literal notranslate"><span class="pre">sys.modules</span></code>. However, this conflicts with Python modules.</p></li>
+</ul>
+</section>
+<section id="id33">
+<h2>0.11.0 (2019-10-29)<a class="headerlink" href="#id33" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/93">Issue 93</a>.
+If a package class inherited from another package class, the link to the base
+class was incorrect. This is fixed now.</p></li>
+<li><p>Merged <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/pull/96">PR #96</a>,
+which adds the option <code class="docutils literal notranslate"><span class="pre">matlab_keep_package_prefix</span></code>. Setting this option,
+strips the <code class="docutils literal notranslate"><span class="pre">+</span></code> from package names. This gives far better rendering of
+documentation, as now closer resembles the actual usage for the end user.</p></li>
+<li><p>Merged <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/pull/97">PR #97</a>,
+which adds support for documenting MATLAB application files with a new
+directive <code class="docutils literal notranslate"><span class="pre">application</span></code>. They are referenced with <code class="docutils literal notranslate"><span class="pre">app</span></code></p></li>
+</ul>
+</section>
+<section id="id34">
+<h2>0.10.0 (2019-10-23)<a class="headerlink" href="#id34" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/63">Issue 63</a>.
+Finally, documents can have Python and MATLAB sources auto-documented
+together. Before, the MATLAB autodoc directives shadowed the Python
+directives, making it impossible for them to co-exist. The MATLAB modules now
+have their own module index generated.</p></li>
+</ul>
+</section>
+<section id="id35">
+<h2>0.9.0 (2019-05-29)<a class="headerlink" href="#id35" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Merge <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/pull/92">PR #92</a>
+Fix autodoc parsing error when source matlab file is not encoded as UTF-8.
+This adds the option <code class="docutils literal notranslate"><span class="pre">matlab_src_encoding</span></code>, where one can define a different
+source file encoding. Default is to use utf-8, where unknown characters are
+replaced with �. This fixes a long time issue with the parser failing with
+non utf-8 files.</p></li>
+</ul>
+</section>
+<section id="id36">
+<h2>0.8.0 (2019-05-11)<a class="headerlink" href="#id36" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/91">Issue 91</a>.
+Static methods in folder based classes.</p></li>
+<li><p>Replaced Pygments MATLAB lexer with own. Removes issues with functions being
+incorrectly parsed, handles double quoted string correctly.</p></li>
+</ul>
+</section>
+<section id="id37">
+<h2>0.7.1 (2019-04-03)<a class="headerlink" href="#id37" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/90">Issue 90</a>.
+Wrong function name parsed when method escapes first argument with ~.</p></li>
+</ul>
+</section>
+<section id="id38">
+<h2>0.7.0 (2019-03-29)<a class="headerlink" href="#id38" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Support for Sphinx &gt;=2.0.0. Fixes
+<a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/84">Issue 89</a>.</p></li>
+</ul>
+</section>
+<section id="id39">
+<h2>0.6.0 (2019-03-29)<a class="headerlink" href="#id39" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Limit to Sphinx &lt;2.0.0 as a temporary fix, until support for Sphinx 2.0.0 is fixed.</p></li>
+</ul>
+</section>
+<section id="id40">
+<h2>0.5.0 (2019-02-02)<a class="headerlink" href="#id40" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/84">Issue 84</a>.
+Undocumented members are always included regardless of :undoc-members:.</p></li>
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/65">Issue 85</a>.
+Matlab parsing “seems” to hang if code contains a bunch of “%” consecutively.
+Thanks to GulyasGergelyR for reporting and providing a much better solution.</p></li>
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/86">Issue 86</a>.
+Handles the <code class="docutils literal notranslate"><span class="pre">DeprecationWarning:</span> <span class="pre">`formatargspec`</span> <span class="pre">is</span> <span class="pre">deprecated</span> <span class="pre">since</span> <span class="pre">Python</span>
+<span class="pre">3.5.</span> <span class="pre">Use</span> <span class="pre">`signature`</span> <span class="pre">and</span> <span class="pre">the</span> <span class="pre">`Signature`</span> <span class="pre">object</span> <span class="pre">directly.</span></code></p></li>
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/87">Issue 87</a>.
+Strings in double quotes are not parsed correctly by pygments.</p></li>
+<li><p>Closed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/82">Issue 82</a>.
+Instead of renaming getter and setter functions to <cite>get_whatever</cite>, they are
+not documented anymore. This is in line with MATLAB documentation
+<a class="reference external" href="https://se.mathworks.com/help/matlab/matlab_oop/property-access-methods.html">https://se.mathworks.com/help/matlab/matlab_oop/property-access-methods.html</a>,
+as these functions cannot be called directly.</p></li>
+</ul>
+</section>
+<section id="id41">
+<h2>0.4.0 (2018-10-05)<a class="headerlink" href="#id41" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/69">Issue 69</a>.
+Autodoc for script header. Thanks to Hugo Leblanc for this contribution.</p></li>
+</ul>
+</section>
+<section id="id42">
+<h2>0.3.5 (2018-09-28)<a class="headerlink" href="#id42" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/79">Issue 79</a>.
+Enumerations and events cause premature end of m-file parsing.</p></li>
+</ul>
+</section>
+<section id="id43">
+<h2>0.3.4 (2018-09-13)<a class="headerlink" href="#id43" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Adapt to Sphinx 1.8.</p></li>
+</ul>
+</section>
+<section id="id44">
+<h2>0.3.3 (2018-07-13)<a class="headerlink" href="#id44" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed bug where a line continuation (…) in a string could cause the parser
+to fail.</p></li>
+<li><p>Fixed bug introduced in 0.3.2. The word ‘function’ was also replaced in
+docstrings.</p></li>
+</ul>
+</section>
+<section id="id45">
+<h2>0.3.2 (2018-07-12)<a class="headerlink" href="#id45" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed bug where a MATLAB class method containing a variable starting with
+‘function’ would cause the parser to fail.</p></li>
+</ul>
+</section>
+<section id="id46">
+<h2>0.3.1 (2018-07-12)<a class="headerlink" href="#id46" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed bug where a MATLAB script with only comments would cause an error.</p></li>
+</ul>
+</section>
+<section id="id47">
+<h2>0.3.0 (2018-04-10)<a class="headerlink" href="#id47" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/66">Issue 66</a>.
+Sphinx 1.7 broke autodoc :members: functionality.</p></li>
+<li><p>Changed the requirement to Sphinx &gt;= 1.7.2!</p></li>
+</ul>
+</section>
+<section id="id48">
+<h2>0.2.17 (2018-04-09)<a class="headerlink" href="#id48" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/66">Issue 66</a>.
+Sphinx 1.7 broke autodoc :members: functionality.</p></li>
+<li><p>In this release Sphinx is locked to versions below 1.7, the next release will
+require Sphinx &gt; 1.7.</p></li>
+<li><p>Added tests of autodoc capabilities.</p></li>
+</ul>
+</section>
+<section id="id50">
+<h2>0.2.16 (2018-03-05)<a class="headerlink" href="#id50" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/13">Issue 13</a>.
+crashes if filename and classname are different.</p></li>
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/19">Issue 19</a>.
+crashes if classdef docstring is not indented</p></li>
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/41">Issue #41</a>.
+Problem with non ascii characters.</p></li>
+</ul>
+</section>
+<section id="id51">
+<h2>0.2.15 (2018-02-25)<a class="headerlink" href="#id51" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/30">Issue #30</a>.
+Some definition of attributes for the “properties” or “methods” blocks causes
+Sphinx to crash.</p></li>
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/57">Issue #57</a>.
+Parser fails while parsing new syntax extensions for the class properties.</p></li>
+</ul>
+</section>
+<section id="id52">
+<h2>0.2.14 (2018-02-23)<a class="headerlink" href="#id52" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Merge <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/pull/60">PR #60</a>
+Dependency fix for Sphinx 1.7.</p></li>
+<li><p>Added cleobis to as contributor</p></li>
+</ul>
+</section>
+<section id="id53">
+<h2>0.2.13 (2018-01-12)<a class="headerlink" href="#id53" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fix bug when parsing a function without output and no parentheses.</p></li>
+<li><p>Better error messages during parsing of functions.</p></li>
+</ul>
+</section>
+<section id="id54">
+<h2>0.2.12 (2018-01-10)<a class="headerlink" href="#id54" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/27">Issue #27</a>.
+An “events” block in a class causes Sphinx to hang.</p></li>
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/52">Issue #52</a>.
+An “enumeration” block in a class causes Sphinx to hang</p></li>
+<li><p>Merge <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/pull/51">PR #51</a>
+better exception, when input args contains “…”</p></li>
+<li><p>Added Christoph Boeddeker as author.</p></li>
+</ul>
+</section>
+<section id="id55">
+<h2>0.2.11 (2017-11-28)<a class="headerlink" href="#id55" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/42">Issue #42</a>.
+Comment strings after a function docstring are not included in the docstring
+anymore.</p></li>
+<li><p>Fixed <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/issues/50">Issue #50</a>.
+Added Lukas Drude as author.</p></li>
+</ul>
+</section>
+<section id="id56">
+<h2>0.2.10 (2017-11-27)<a class="headerlink" href="#id56" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Add Jørgen Cederberg as maintainer.</p></li>
+<li><p>Change bitbucket links to github ditto.</p></li>
+</ul>
+</section>
+<section id="id57">
+<h2>0.2.9 (2017-11-23)<a class="headerlink" href="#id57" title="Link to this heading">¶</a></h2>
+<p>Development migrated to <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain">https://github.com/sphinx-contrib/matlabdomain</a></p>
+<ul class="simple">
+<li><p>Merge <a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain/pull/1">PR #1</a></p></li>
+</ul>
+</section>
+<section id="id58">
+<h2>0.2.8 (2016-12-15)<a class="headerlink" href="#id58" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>merge PR #2 nested functions</p></li>
+</ul>
+</section>
+<section id="id59">
+<h2>0.2.6 (2014-11-10)<a class="headerlink" href="#id59" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>fix issues #30</p></li>
+</ul>
+</section>
+<section id="id60">
+<h2>0.2.5 (2014-10-02)<a class="headerlink" href="#id60" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>fix issues #21</p></li>
+<li><p>changeset 8f18a8f adds [+&#64;]? to regular expression for matlab signatures</p></li>
+<li><p>add Octave to sphinx-contrib README and link to sphinxcontrib-matlabdomain on
+PyPI</p></li>
+<li><p>update and include CHANGES in README so they’re in PyPI documentation</p></li>
+</ul>
+</section>
+<section id="id61">
+<h2>0.2.4 (2014-02-21)<a class="headerlink" href="#id61" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>fix issues #17, #18</p></li>
+<li><p>vastly simplify regex used to remove ellipsis from function signatures</p></li>
+<li><p>save parsed mat_types in modules that are saved in sys.modules, and
+retrieve them instead of re-parsing mfiles every time!</p></li>
+</ul>
+</section>
+<section id="id62">
+<h2>0.2.3 (2014-02-20)<a class="headerlink" href="#id62" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>fix critical bug in class properties, arrays and expressions with ellipsis
+were incorrectly handled</p></li>
+</ul>
+</section>
+<section id="id63">
+<h2>0.2.2 (2014-01-26)<a class="headerlink" href="#id63" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>fix ellipsis in function in output arg</p></li>
+<li><p>fix bases getter method had no default, so crashing build</p></li>
+<li><p>add catchall warning if getter fails and no default in MatObject.getter()</p></li>
+<li><p>fix local path used to index sys.module, instead of full path, oops!</p></li>
+<li><p>fix left-strip dot if in basedir, root_mod is ‘’, so join yields “.test_data”</p></li>
+</ul>
+</section>
+<section id="id64">
+<h2>0.2.1 (2014-01-24)<a class="headerlink" href="#id64" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>allow property defaults to span multiple lines, even w/o ellipsis, and ignore
+ellipsis comments</p></li>
+<li><p>correct Pygments ellipsis not allowed in function signature error</p></li>
+<li><p>allow builtin names to be used as property names</p></li>
+<li><p>fix keyword-end counter bugs, add group incrementer counter, incl curly-braces</p></li>
+<li><p>fix module has no docstring attr bug in MatModuleAnalyzer</p></li>
+<li><p>allow empty property block</p></li>
+<li><p>allow no function return or empty input args</p></li>
+</ul>
+</section>
+<section id="id65">
+<h2>0.2 (2014-01-23)<a class="headerlink" href="#id65" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>add autodoc capabilities for MATLAB domain</p></li>
+</ul>
+</section>
+<section id="id66">
+<h2>0.1 (2013-04-25)<a class="headerlink" href="#id66" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>create a Sphinx domain for MATLAB</p></li>
+<li><p>override standard domain to remove py modules index</p></li>
+</ul>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          <a class="prev-page" href="developer-guide/roadmap.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Roadmap</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; Jørgen Cederberg and contributors
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Release notes</a><ul>
+<li><a class="reference internal" href="#unreleased">1.0.0 (Unreleased)</a></li>
+<li><a class="reference internal" href="#id1">0.22.1 (2024-08-17)</a></li>
+<li><a class="reference internal" href="#id2">0.22.0 (2024-07-17)</a></li>
+<li><a class="reference internal" href="#id3">0.21.5 (2024-02-10)</a></li>
+<li><a class="reference internal" href="#id4">0.21.4 (2024-01-04)</a></li>
+<li><a class="reference internal" href="#id5">0.21.3 (2024-01-02)</a></li>
+<li><a class="reference internal" href="#id6">0.21.2 (2023-12-17)</a></li>
+<li><a class="reference internal" href="#id7">0.21.1 (2023-12-16)</a></li>
+<li><a class="reference internal" href="#id8">0.21.0 (2023-12-16)</a></li>
+<li><a class="reference internal" href="#id9">0.20.2 (2023-09-15)</a></li>
+<li><a class="reference internal" href="#id10">0.20.1 (2023-09-14)</a></li>
+<li><a class="reference internal" href="#id11">0.20.0 (2023-09-13)</a></li>
+<li><a class="reference internal" href="#id12">0.19.1 (2023-05-17)</a></li>
+<li><a class="reference internal" href="#id13">0.19.0 (2023-05-16)</a></li>
+<li><a class="reference internal" href="#id14">0.18.0 (2023-04-14)</a></li>
+<li><a class="reference internal" href="#id15">0.17.1 (2023-04-12)</a></li>
+<li><a class="reference internal" href="#id16">0.17.0 (2023-03-24)</a></li>
+<li><a class="reference internal" href="#id17">0.16.0 (2023-03-15)</a></li>
+<li><a class="reference internal" href="#id18">0.15.2 (2023-03-14)</a></li>
+<li><a class="reference internal" href="#id19">0.15.1 (2023-02-06)</a></li>
+<li><a class="reference internal" href="#id20">0.15.0 (2023-01-02)</a></li>
+<li><a class="reference internal" href="#id21">0.14.1 (2022-09-02)</a></li>
+<li><a class="reference internal" href="#id22">0.14.0 (2022-06-01)</a></li>
+<li><a class="reference internal" href="#id23">0.13.0 (2022-02-13)</a></li>
+<li><a class="reference internal" href="#id24">0.12.0 (2021-06-12)</a></li>
+<li><a class="reference internal" href="#id25">0.11.8 (2021-05-12)</a></li>
+<li><a class="reference internal" href="#id26">0.11.7 (2021-02-24)</a></li>
+<li><a class="reference internal" href="#id27">0.11.6 (2021-02-23)</a></li>
+<li><a class="reference internal" href="#id28">0.11.5 (2021-01-05)</a></li>
+<li><a class="reference internal" href="#id29">0.11.4 (2020-11-30)</a></li>
+<li><a class="reference internal" href="#id30">0.11.3 (2020-10-10)</a></li>
+<li><a class="reference internal" href="#id31">0.11.2 (2020-05-18)</a></li>
+<li><a class="reference internal" href="#id32">0.11.1 (2020-01-07)</a></li>
+<li><a class="reference internal" href="#id33">0.11.0 (2019-10-29)</a></li>
+<li><a class="reference internal" href="#id34">0.10.0 (2019-10-23)</a></li>
+<li><a class="reference internal" href="#id35">0.9.0 (2019-05-29)</a></li>
+<li><a class="reference internal" href="#id36">0.8.0 (2019-05-11)</a></li>
+<li><a class="reference internal" href="#id37">0.7.1 (2019-04-03)</a></li>
+<li><a class="reference internal" href="#id38">0.7.0 (2019-03-29)</a></li>
+<li><a class="reference internal" href="#id39">0.6.0 (2019-03-29)</a></li>
+<li><a class="reference internal" href="#id40">0.5.0 (2019-02-02)</a></li>
+<li><a class="reference internal" href="#id41">0.4.0 (2018-10-05)</a></li>
+<li><a class="reference internal" href="#id42">0.3.5 (2018-09-28)</a></li>
+<li><a class="reference internal" href="#id43">0.3.4 (2018-09-13)</a></li>
+<li><a class="reference internal" href="#id44">0.3.3 (2018-07-13)</a></li>
+<li><a class="reference internal" href="#id45">0.3.2 (2018-07-12)</a></li>
+<li><a class="reference internal" href="#id46">0.3.1 (2018-07-12)</a></li>
+<li><a class="reference internal" href="#id47">0.3.0 (2018-04-10)</a></li>
+<li><a class="reference internal" href="#id48">0.2.17 (2018-04-09)</a></li>
+<li><a class="reference internal" href="#id50">0.2.16 (2018-03-05)</a></li>
+<li><a class="reference internal" href="#id51">0.2.15 (2018-02-25)</a></li>
+<li><a class="reference internal" href="#id52">0.2.14 (2018-02-23)</a></li>
+<li><a class="reference internal" href="#id53">0.2.13 (2018-01-12)</a></li>
+<li><a class="reference internal" href="#id54">0.2.12 (2018-01-10)</a></li>
+<li><a class="reference internal" href="#id55">0.2.11 (2017-11-28)</a></li>
+<li><a class="reference internal" href="#id56">0.2.10 (2017-11-27)</a></li>
+<li><a class="reference internal" href="#id57">0.2.9 (2017-11-23)</a></li>
+<li><a class="reference internal" href="#id58">0.2.8 (2016-12-15)</a></li>
+<li><a class="reference internal" href="#id59">0.2.6 (2014-11-10)</a></li>
+<li><a class="reference internal" href="#id60">0.2.5 (2014-10-02)</a></li>
+<li><a class="reference internal" href="#id61">0.2.4 (2014-02-21)</a></li>
+<li><a class="reference internal" href="#id62">0.2.3 (2014-02-20)</a></li>
+<li><a class="reference internal" href="#id63">0.2.2 (2014-01-26)</a></li>
+<li><a class="reference internal" href="#id64">0.2.1 (2014-01-24)</a></li>
+<li><a class="reference internal" href="#id65">0.2 (2014-01-23)</a></li>
+<li><a class="reference internal" href="#id66">0.1 (2013-04-25)</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="_static/mat_urls.js?v=43922072"></script>
+    </body>
+</html>

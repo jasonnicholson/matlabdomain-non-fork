@@ -1,0 +1,621 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="Installation" href="getting-started/installation.html">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>sphinxcontrib-matlabdomain</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="#"><div class="brand">sphinxcontrib-matlabdomain</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="#">
+  
+  <span class="sidebar-brand-text">sphinxcontrib-matlabdomain</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting-started/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting-started/quickstart.html">Quickstart</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/setting-up.html">Setting up a project: <code class="docutils literal notranslate"><span class="pre">sphinx-matlab-quickstart</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/documenting.html">Documenting MATLAB code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/referencing.html">Names, references and links</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/linking-projects.html">Linking between projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/help-text.html">Help text</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/apidoc.html">Generating pages: <code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/sidecars.html">Sidecar docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/api-check.html">Checking help text: <code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/warnings.html">Warnings</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/builds.html">Builds and performance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/projects-and-versions.html">Several projects and versions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/migration.html">Migrating from 0.22 and earlier</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="reference/configuration.html">Configuration values</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/directives.html">Directives, roles and indices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/cli.html">Command-line tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/templates.html"><code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code> templates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/api-check-report.html"><code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code> reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/warnings.html">Warnings</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="developer-guide/contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developer-guide/testing.html">Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developer-guide/architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developer-guide/debugging.html">Debugging and profiling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developer-guide/roadmap.html">Roadmap</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Project</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="CHANGES.html">Release notes</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/index.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="sphinxcontrib-matlabdomain">
+<h1>sphinxcontrib-matlabdomain<a class="headerlink" href="#sphinxcontrib-matlabdomain" title="Link to this heading">¶</a></h1>
+<p>If Sphinx is new to you, its <a class="reference external" href="https://www.sphinx-doc.org/en/master/glossary.html">glossary</a> explains terms such as
+directives, roles, domains and builders used in this documentation.</p>
+<p><strong>sphinxcontrib-matlabdomain</strong> is a <a class="reference external" href="https://www.sphinx-doc.org/">Sphinx</a> extension for <a class="reference external" href="https://www.mathworks.com/products/matlab.html">MATLAB</a> code. It
+adds a <code class="docutils literal notranslate"><span class="pre">mat</span></code> domain to Sphinx, with directives and roles for MATLAB
+functions, classes, scripts, apps and folders, and <em>auto</em> directives that
+read the help text from the <code class="docutils literal notranslate"><span class="pre">.m</span></code> and <code class="docutils literal notranslate"><span class="pre">.mlapp</span></code> files themselves, much like
+<code class="docutils literal notranslate"><span class="pre">sphinx.ext.autodoc</span></code> does for Python.</p>
+<p>It names objects the way MATLAB does: <code class="docutils literal notranslate"><span class="pre">+pkg</span></code> folders are namespaces,
+<code class="docutils literal notranslate"><span class="pre">&#64;Cls</span></code> folders hold a class and its methods, and help text is found where
+MATLAB’s <code class="docutils literal notranslate"><span class="pre">help</span></code> finds it. Three tools come with it:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">sphinx-matlab-quickstart</span></code> sets up the documentation of a MATLAB
+project: <code class="docutils literal notranslate"><span class="pre">conf.py</span></code>, the make files and the API pages, with defaults
+read from the project;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code> writes pages for every file of a project, so a
+large project needs no hand-written directives;</p></li>
+<li><p>the <code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code> builder checks that functions, classes and
+methods have help text, and that it describes their inputs, outputs and
+name-value arguments, for example in CI.</p></li>
+</ul>
+<p>A <code class="docutils literal notranslate"><span class="pre">conf.py</span></code> and a page that document one function:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">extensions</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;sphinxcontrib.matlab&quot;</span><span class="p">]</span>
+<span class="n">matlab_src_code_project_root</span> <span class="o">=</span> <span class="s2">&quot;../src&quot;</span>  <span class="c1"># relative to conf.py folder</span>
+</pre></div>
+</div>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="ow">mat:autofunction</span><span class="p">::</span> times_two
+</pre></div>
+</div>
+<p><a class="reference internal" href="getting-started/quickstart.html"><span class="doc">Quickstart</span></a> shows the result.</p>
+<p>It needs Python 3.11 or newer and Sphinx 8.0 or newer, and is tested on
+Linux, Windows and macOS. Start with <a class="reference internal" href="getting-started/installation.html"><span class="doc">Installation</span></a>.</p>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting-started/installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting-started/installation.html#requirements">Requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started/installation.html#what-gets-installed">What gets installed</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="getting-started/quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting-started/quickstart.html#with-sphinx-matlab-quickstart">With <code class="docutils literal notranslate"><span class="pre">sphinx-matlab-quickstart</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started/quickstart.html#by-hand">By hand</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started/quickstart.html#next-steps">Next steps</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/configuration.html">Configuration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/configuration.html#the-project-root">The project root</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/configuration.html#selecting-files">Selecting files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/configuration.html#the-matlab-release">The MATLAB release</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/configuration.html#file-encoding">File encoding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/configuration.html#how-things-are-shown">How things are shown</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/configuration.html#checking-help-text">Checking help text</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/configuration.html#memory">Memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/configuration.html#removed-settings">Removed settings</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/setting-up.html">Setting up a project: <code class="docutils literal notranslate"><span class="pre">sphinx-matlab-quickstart</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/setting-up.html#a-first-look">A first look</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/setting-up.html#the-questions">The questions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/setting-up.html#the-answers-file">The answers file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/setting-up.html#what-it-detects">What it detects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/setting-up.html#what-it-writes">What it writes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/setting-up.html#next-steps">Next steps</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/documenting.html">Documenting MATLAB code</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/documenting.html#auto-and-description-directives">Auto and description directives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/documenting.html#the-sample-project">The sample project</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/documenting.html#naming-what-to-document">Naming what to document</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/documenting.html#functions">Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/documenting.html#classes">Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/documenting.html#single-members">Single members</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/documenting.html#scripts-apps-and-private-files">Scripts, apps and private files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/documenting.html#folders-and-the-current-folder">Folders and the current folder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/documenting.html#adding-text">Adding text</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/documenting.html#writing-directives-by-hand">Writing directives by hand</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/referencing.html">Names, references and links</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/referencing.html#how-matlab-names-files">How MATLAB names files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/referencing.html#path-references">Path references</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/referencing.html#linking-with-roles">Linking with roles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/referencing.html#how-a-target-is-found">How a target is found</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/referencing.html#folders-and-namespaces">Folders and namespaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/referencing.html#files-matlab-cannot-call">Files MATLAB cannot call</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/referencing.html#link-anchors">Link anchors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/referencing.html#linking-from-other-projects">Linking from other projects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/referencing.html#coming-from-python">Coming from Python</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/linking-projects.html">Linking between projects</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/linking-projects.html#the-library">The library</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/linking-projects.html#the-consumer">The consumer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/linking-projects.html#references">References</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/linking-projects.html#when-the-library-changes">When the library changes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/help-text.html">Help text</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/help-text.html#which-comments-are-the-help">Which comments are the help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/help-text.html#what-kind-of-file-is-it">What kind of file is it?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/help-text.html#help-text-is-restructuredtext">Help text is reStructuredText</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/help-text.html#richer-help">Richer help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/help-text.html#paths-in-help-text">Paths in help text</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/help-text.html#links-in-help-text">Links in help text</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/apidoc.html">Generating pages: <code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/apidoc.html#a-worked-example">A worked example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/apidoc.html#what-the-pages-contain">What the pages contain</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/apidoc.html#settings">Settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/apidoc.html#output-file-names">Output file names</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/apidoc.html#running-it-again">Running it again</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/apidoc.html#run-it-before-each-build">Run it before each build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/apidoc.html#customizing-the-output">Customizing the output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/apidoc.html#write-your-own">Write your own</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/sidecars.html">Sidecar docs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/sidecars.html#turning-it-on">Turning it on</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/sidecars.html#which-files-are-sidecar-docs">Which files are sidecar docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/sidecars.html#rendering-a-sidecar-doc">Rendering a sidecar doc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/sidecars.html#paths-and-links">Paths and links</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/sidecars.html#sidecar-docs-with-sphinx-matlab-apidoc">Sidecar docs with <code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/sidecars.html#checking-sidecar-docs">Checking sidecar docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/sidecars.html#builds">Builds</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/api-check.html">Checking help text: <code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/api-check.html#running-it">Running it</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/api-check.html#what-is-checked">What is checked</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/api-check.html#the-rules">The rules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/api-check.html#section-headers">Section headers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/api-check.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/api-check.html#checking-selected-files">Checking selected files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/api-check.html#findings-and-reports">Findings and reports</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/api-check.html#in-ci">In CI</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/warnings.html">Warnings</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/warnings.html#turning-warnings-off">Turning warnings off</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/warnings.html#what-each-warning-means">What each warning means</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/warnings.html#when-warnings-appear">When warnings appear</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/warnings.html#other-warnings">Other warnings</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/builds.html">Builds and performance</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/builds.html#what-a-build-does">What a build does</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/builds.html#incremental-builds">Incremental builds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/builds.html#building-some-pages">Building some pages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/builds.html#parallel-builds">Parallel builds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/builds.html#large-projects">Large projects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/builds.html#working-with-other-tools">Working with other tools</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/projects-and-versions.html">Several projects and versions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/projects-and-versions.html#several-projects">Several projects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/projects-and-versions.html#several-versions">Several versions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="user-guide/migration.html">Migrating from 0.22 and earlier</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/migration.html#requirements">Requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/migration.html#conf-py"><code class="docutils literal notranslate"><span class="pre">conf.py</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/migration.html#directives-and-roles">Directives and roles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/migration.html#names">Names</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/migration.html#links-and-anchors">Links and anchors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/migration.html#what-the-docs-show">What the docs show</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/migration.html#the-first-build">The first build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/migration.html#comparing-with-the-0-x-docs">Comparing with the 0.x docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide/migration.html#new-tools">New tools</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="reference/configuration.html">Configuration values</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="reference/configuration.html#source-files">Source files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/configuration.html#matlab-semantics">MATLAB semantics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/configuration.html#output">Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/configuration.html#matlab-api-check"><code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/configuration.html#sphinx-matlab-apidoc"><code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/configuration.html#removed">Removed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/configuration.html#sphinx-and-autodoc-values">Sphinx and autodoc values</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reference/directives.html">Directives, roles and indices</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="reference/directives.html#auto-directives">Auto directives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/directives.html#sidecar-docs">Sidecar docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/directives.html#description-directives">Description directives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/directives.html#roles">Roles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/directives.html#indices">Indices</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reference/cli.html">Command-line tools</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="reference/cli.html#sphinx-matlab-quickstart"><code class="docutils literal notranslate"><span class="pre">sphinx-matlab-quickstart</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/cli.html#sphinx-matlab-apidoc"><code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reference/templates.html"><code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code> templates</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="reference/templates.html#namespace-rst-jinja"><code class="docutils literal notranslate"><span class="pre">namespace.rst.jinja</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/templates.html#root-rst-jinja"><code class="docutils literal notranslate"><span class="pre">root.rst.jinja</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/templates.html#folder-rst-jinja"><code class="docutils literal notranslate"><span class="pre">folder.rst.jinja</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/templates.html#object-rst-jinja"><code class="docutils literal notranslate"><span class="pre">object.rst.jinja</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/templates.html#sidecar-rst-jinja"><code class="docutils literal notranslate"><span class="pre">sidecar.rst.jinja</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reference/api-check-report.html"><code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code> reports</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="reference/api-check-report.html#api-check-txt"><code class="docutils literal notranslate"><span class="pre">api-check.txt</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/api-check-report.html#api-check-json"><code class="docutils literal notranslate"><span class="pre">api-check.json</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/api-check-report.html#exit-status">Exit status</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reference/warnings.html">Warnings</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Developer guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="developer-guide/contributing.html">Contributing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/contributing.html#setting-up">Setting up</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/contributing.html#writing-documentation">Writing documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/contributing.html#code-style">Code style</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/contributing.html#pull-requests">Pull requests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/contributing.html#versions-and-compatibility">Versions and compatibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/contributing.html#repository-configuration">Repository configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="developer-guide/testing.html">Testing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/testing.html#running-the-tests">Running the tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/testing.html#layout">Layout</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/testing.html#writing-tests">Writing tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/testing.html#coverage">Coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/testing.html#the-real-project-gauntlet">The real-project gauntlet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/testing.html#testing-on-linux-and-windows">Testing on Linux and Windows</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="developer-guide/architecture.html">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/architecture.html#modules">Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/architecture.html#two-stages-index-then-parse-on-demand">Two stages: index, then parse on demand</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/architecture.html#state-and-sphinx-s-lifecycle">State and Sphinx’s lifecycle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/architecture.html#names-and-references">Names and references</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/architecture.html#the-file-type-registry">The file-type registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/architecture.html#fault-tolerance">Fault tolerance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/architecture.html#the-shift-from-0-x">The shift from 0.x</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="developer-guide/debugging.html">Debugging and profiling</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/debugging.html#vs-code">VS Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/debugging.html#logging">Logging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/debugging.html#profiling-a-build">Profiling a build</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="developer-guide/roadmap.html">Roadmap</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/roadmap.html#more-file-types">More file types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/roadmap.html#sphinx-matlab-apidoc"><code class="docutils literal notranslate"><span class="pre">sphinx-matlab-apidoc</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/roadmap.html#help-text">Help text</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer-guide/roadmap.html#matlab-releases">MATLAB releases</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Project</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="CHANGES.html">Release notes</a></li>
+</ul>
+</div>
+<section id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="mat-folderindex.html"><span class="std std-ref">MATLAB Folder Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="getting-started/installation.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Installation</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; Jørgen Cederberg and contributors
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">sphinxcontrib-matlabdomain</a><ul>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="_static/mat_urls.js?v=43922072"></script>
+    </body>
+</html>
