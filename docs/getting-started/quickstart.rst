@@ -3,9 +3,8 @@ Quickstart
 
 This page sets up the documentation of a MATLAB project with one command,
 then shows what that command does by hand for a single function. If Sphinx
-is new to you, its `tutorial
-<https://www.sphinx-doc.org/en/master/tutorial/index.html>`_ explains the
-basics.
+is new to you, start with the :doc:`sphinx-primer` for shell commands and
+the :doc:`../reference/glossary` for terminology.
 
 With ``scmd quickstart``
 ------------------------
@@ -31,8 +30,9 @@ keep it):
    > API pages per namespace or per folder [namespace]:
    ...
 
-It writes the Sphinx source folder ``docs/`` (``conf.py``, ``index.rst``,
-the make files, a build guide and the API pages), adds the docs
+It writes the Sphinx :term:`source folder <source directory>` ``docs/``
+(``conf.py``, ``index.rst``, the make files, a build guide and the :term:`API`
+pages), adds the docs
 dependencies to ``pyproject.toml`` in a uv project, and prints a report of
 the project with the next steps. Build the site:
 
@@ -109,7 +109,7 @@ settings.
 4. Document the function
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Add an auto directive to ``docs/index.rst``:
+Add an auto :term:`directive` to ``docs/index.rst``:
 
 .. literalinclude:: ../snippets/quickstart.rst
    :language: rst
@@ -130,7 +130,7 @@ Open ``docs/_build/html/index.html``. The function looks like this:
 
 To make every warning an error (``-W``) and to warn about every link that
 does not resolve (``-n``), add them after the folders; with ``-M``, the
-builder name must come first:
+:term:`builder` name must come first:
 
 .. code-block:: console
 
@@ -138,7 +138,7 @@ builder name must come first:
 
 The help text was read from the comment block after the ``function`` line,
 the block MATLAB's ``help times_two`` shows. Its ``:param x:`` lines are
-reST field lists; :doc:`../user-guide/help-text` explains how help text is
+:term:`reST` field lists; :doc:`../user-guide/help-text` explains how help text is
 turned into documentation.
 
 Next steps
