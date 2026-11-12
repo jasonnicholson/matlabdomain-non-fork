@@ -31,7 +31,8 @@ all with ``"mat"``; ``scmd apidoc`` reads the same setting.
      - every build; pages when they are rendered
    * - ``mat.invalid_matlab``
      - a file whose first line of code and parse disagree, a dotted
-       ``function`` name, a ``.m`` file with NUL bytes
+       ``function`` name, a ``classdef`` named unlike its file, a ``.m``
+       file with NUL bytes
      - when a page uses the file (NUL bytes: every build)
    * - ``mat.empty_code_file``
      - an empty file (nothing but blank lines)
@@ -64,7 +65,8 @@ all with ``"mat"``; ``scmd apidoc`` reads the same setting.
    * - ``mat.duplicate``
      - an object described twice, or two objects that would get the same
        anchor
-     - where the second description is
+     - where the second description is (the line of the auto directive
+       for generated content)
    * - ``mat.sidecar``
      - a sidecar doc without a heading, a ``mat:autosidecar`` reference
        that is not an indexed sidecar doc, a project root on another drive

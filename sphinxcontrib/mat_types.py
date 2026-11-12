@@ -1346,7 +1346,9 @@ def outdated_docs(app, env, added, changed, removed):  # noqa: ARG001
 
 def note_read_docs(app, env, docnames):  # noqa: ARG001
     """``env-before-read-docs``: remember the documents this build reads."""
-    env.get_domain("mat").read_docnames = list(docnames)
+    dom = env.get_domain("mat")
+    dom.read_docnames = list(docnames)
+    dom.described_here = set()
 
 
 def warn_parsed_sources(app, env):  # noqa: ARG001
@@ -1700,6 +1702,22 @@ class MatObject:
                         decl_name.start_point.row,
                     )
                 )
+            if parsed == "class":
+                decl = cast(Node, declaration(tree.root_node))
+                class_name = decl.child_by_field_name("name")
+                if class_name is not None and class_name.text != name.encode("utf-8"):
+                    file_name = os.path.basename(mfile)
+                    warnings.append(
+                        (
+                            "invalid_matlab",
+                            f"declares the class "
+                            f"{cast(bytes, class_name.text).decode('utf-8', 'replace')}"
+                            f", but its file is {file_name}; MATLAB requires a "
+                            "classdef file to be named after its class. It is "
+                            "documented under its file name.",
+                            decl.start_point.row,
+                        )
+                    )
             parsed = parsed or "script"
         if source_type == "function" and parsed == "script" and is_help_only(text):
             # a help file of a MEX function: its comments are the help

@@ -27,7 +27,8 @@ Highlights
   It also covers several projects and versions (sphinx-multiversion,
   sphinx-multiproject) and one search over several sites. A Sphinx primer
   for MATLAB users and a glossary explain the command line and Sphinx's
-  terms; glossary links show their definitions on hover (sphinx-tippy).
+  terms; glossary links show their definitions on hover and on keyboard
+  focus (an extension of the docs, ``docs/_ext/glossary_tips.py``).
 
 Requirements
 ^^^^^^^^^^^^
@@ -272,7 +273,11 @@ Builds:
   at its next build. Parallel
   builds (``-j``) are supported (#147); an object or folder described on
   two pages links to the same page as in a serial build, with the same
-  ``mat.duplicate`` warning.
+  ``mat.duplicate`` warnings, at the same lines. A ``mat.duplicate``
+  warning for an object from an auto directive points at the line of that
+  directive on the page. An object or folder described on several pages
+  belongs to the same page after an incremental build as after a fresh
+  one, also when that page changes, drops the description or is removed.
 * One bad source file no longer stops the build. A file that cannot be
   read or parsed (permissions, a corrupt ``.mlapp``, a parser error) gets
   one suppressible ``mat.parse_error`` warning, with the line of the
@@ -284,7 +289,9 @@ Builds:
   ``mat.not_callable``) on every build.
 * New warnings: ``mat.invalid_matlab`` when the type of a ``.m`` file and
   its parse disagree, for a ``function`` with a dotted name (documented
-  under its file name, as MATLAB names it) and for a file with NUL bytes;
+  under its file name, as MATLAB names it), for a ``classdef`` named
+  unlike its file (also documented under its file name) and for a file
+  with NUL bytes;
   ``mat.empty_code_file`` for empty files, which are documented as
   scripts. A help file (comments only) is documented as a script, or as a
   function when a MEX file of the same name is next to it.
@@ -435,6 +442,10 @@ Fixes
 * The refusal of a DTD or entity declaration in a Simulink XML part or an
   ``.mlapp`` metadata part also holds for a UTF-16 part (it was parsed with
   its entities before).
+* The parts below ``metadata/`` of a ``.slx``, ``.mdl`` or ``.mlapp`` file
+  have a size limit of 16 MiB instead of 256 MiB (a 255 MiB
+  ``metadata/coreProperties.xml`` was accepted without a warning and took
+  about 1 GiB of memory to parse); the real ones are a few kilobytes.
 * The package metadata names the license in ``LICENSE``, BSD-2-Clause (it
   said BSD-3-Clause).
 

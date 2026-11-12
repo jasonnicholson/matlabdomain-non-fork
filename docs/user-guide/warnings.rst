@@ -32,7 +32,8 @@ What each warning means
    A file could not be read (no permission, for example) or parsed, an
    ``.mlapp`` file is not a valid App Designer file, a ``.slx`` or ``.mdl``
    file is not a Simulink model, library or subsystem file (or is a Git
-   LFS pointer, or exceeds the size limits), a folder could not be listed
+   LFS pointer, or exceeds the size limits, which are smaller for the
+   parts below ``metadata/``), a folder could not be listed
    or entered, or a file name is not valid UTF-8. A file that cannot be
    read or parsed is still indexed and documented, without content, so
    links to it work; it is tried again on every build. Where the parser
@@ -60,9 +61,12 @@ What each warning means
    The file is probably not valid MATLAB: its first line of code says one
    type and the parser found another (a ``classdef`` without its ``end``,
    ``function = 1;``), a ``function`` has a dotted name (``function y =
-   pkg.f(x)``, which MATLAB refuses to run outside a ``classdef``), or a
-   ``.m`` file contains NUL bytes (probably a binary file). It is
-   documented as far as it could be parsed.
+   pkg.f(x)``, which MATLAB refuses to run outside a ``classdef``), a
+   ``classdef`` names a class other than its file (``classdef Other`` in
+   ``Shape.m``, which MATLAB refuses; letter case counts), or a ``.m``
+   file contains NUL bytes (probably a binary file). It is documented as
+   far as it could be parsed. A dotted function or a misnamed class is
+   documented under its file name.
 
 ``mat.empty_code_file``
    The file is empty, or has only blank lines. It is documented as a
@@ -121,7 +125,10 @@ What each warning means
 ``mat.duplicate``
    The same object is described twice (add ``:no-index:`` to one of the
    descriptions), or two objects would get the same anchor, so the second
-   cannot be linked.
+   cannot be linked. It points at the second description: the line of its
+   directive on the page, or of the auto directive that generated it (a
+   method from ``:members:`` points at the ``mat:autoclass`` line). A
+   parallel build (``-j``) gives the same warnings as a serial one.
 
 ``mat.apidoc``
    ``scmd apidoc``: a file that cannot be read was left out, two
