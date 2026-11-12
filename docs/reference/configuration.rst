@@ -50,7 +50,8 @@ Source files
    the files to index. A file is indexed if its path reference matches one
    of them; ``[]`` selects no files. Patterns use ``/``, match like
    ``exclude_patterns`` (``**`` crosses folders, ``**/x`` also matches
-   ``x``) and are case-sensitive. A file that also matches
+   ``x``) and are case-sensitive; they are compared in Unicode NFC form. A
+   file that also matches
    :confval:`matlab_src_exclude_patterns` is left out: exclude wins over
    include. An absolute pattern, a drive, a ``\``, an
    empty pattern, or ``..`` that leaves the root or follows a wildcard is a
@@ -187,7 +188,8 @@ Output
    ``404.html`` send an address of a page that no longer has the object to
    it. ``False`` writes no such files and keeps "¶" and the inventory on
    the page (:ref:`library-changes`). This option applies only to HTML
-   builders other than EPUB; other output formats use their normal links.
+   builders that write ``.html`` pages, so not to EPUB, ``json`` or
+   ``pickle``; other output formats use their normal links.
    Disable it when the additional redirect files or their browser redirects
    are unsuitable for the host. A collision with an unowned stable-output
    file fails the build instead of overwriting it.
@@ -251,11 +253,13 @@ Output
    ``mat/simulinkDocumentationLinker.json`` in its output folder: the mode
    ``"server"`` and this address when it is set, else ``"local"``. So the
    Help links of Simulink files open the site of the last build. The build
-   also writes its output folder (``"local"``, when it is inside the
-   project root and not a sphinx-multiversion build), this address
-   (``"server"``) and ``html_baseurl`` (``"published"``, when set) into
-   that settings file, only when they changed; commit it. Any other value
-   than ``None`` or an ``http://`` or ``https://`` address is a
+   never writes the settings file itself, because a build writes only to
+   its output and doctree folders. When its output folder (``"local"``,
+   when it is inside the project root and not a sphinx-multiversion
+   build), this address (``"server"``) or ``html_baseurl``
+   (``"published"``, when set) differs from the file, it logs one
+   ``info`` line that names the values; edit the file by hand. Any other
+   value than ``None`` or an ``http://`` or ``https://`` address is a
    ``ConfigError``.
 
 ``matlab-api-check``

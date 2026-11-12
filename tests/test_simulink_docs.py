@@ -39,7 +39,9 @@ HID = (
             (
                 "Newline",
                 '""',
-                '"' + LINKER.format('\\"hid.mdl/Two\\" + newline + \\"Lines\\"') + '"',
+                '"'
+                + LINKER.format('\\"probeLib.slx/Two\\" + newline + \\"Lines\\"')
+                + '"',
             ),
         ]
     )
@@ -191,14 +193,17 @@ def test_help_links_and_hidden_parameters(make_app, tmp_path):
         f".. mat:autosimulink_library_block:: hid.mdl/{name}\n\n"
         for name in ("M", "Self", "Other", "Newline")
     )
-    index += ".. mat:autosimulink_model:: probeModel\n"
+    index += ".. mat:autosimulink_model:: probeModel\n\n"
+    index += ".. mat:autosimulink_library_block:: probeLib.slx/Two Lines\n"
     page, warnings = build(make_app, tmp_path, index)
     assert warnings == ""
     blocks = text(page).split("Simulink library block")[1:]
     assert 'href="https://example.org/help"' in page
     assert "Help" not in blocks[1]  # its own page
     assert 'href="#mat-probeModel.slx"' in page
-    assert "Help" not in blocks[3].split("Simulink model")[0]  # a newline in it
+    # a line break in the target: a link all the same
+    assert "Help: probeLib.slx/Two Lines" in blocks[3]
+    assert 'href="#mat-probeLib.slx/Two~0ALines"' in page
     assert "Mask type: a`b" in blocks[2]
     assert "Mask type" not in blocks[1]
     # hidden and unnamed parameters are left out; a value with ` is escaped
@@ -224,6 +229,18 @@ def test_hidden_mask_parameters_on_request(make_app, tmp_path, conf, option, sho
     page, warnings = build(make_app, tmp_path, index, conf)
     assert warnings == ""
     assert ("<strong>b</strong>" in page) is shown
+
+
+def test_ports_in_number_order_then_control_ports(make_app, tmp_path):
+    from test_mat_simulink import PORTS_OUT_OF_ORDER
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "ports.mdl").write_text(PORTS_OUT_OF_ORDER)
+    page, _ = build(make_app, tmp_path, ".. mat:autosimulink_model:: ports\n")
+    assert (
+        "Ports Port Name input 1 first input 2 second output 1 y "
+        "enable Enable trigger Trigger"
+    ) in text(page)
 
 
 def test_metadata_settings(make_app, tmp_path):
@@ -308,6 +325,34 @@ def test_library_members_and_links(make_app, tmp_path):
     assert "Lib Doc: simulink/Model-Wide Utilities/DocBlock" in lib
 
 
+def test_line_break_in_a_block_name_is_a_space(make_app, tmp_path):
+    # As in a role's target: "Two Lines" names the block "Two\nLines", and
+    # the anchor stays the block's own.
+    anchor = 'id="mat-probeLib.slx/Two~0ALines"'
+    page, warnings = build(
+        make_app,
+        tmp_path,
+        ".. mat:autosimulink_library:: probeLib\n"
+        "   :members: Two Lines, No Such Block\n",
+    )
+    assert page.count(anchor) == 1
+    assert "No Such Block" in warnings and "[mat.not_found]" in warnings
+
+    page, _ = build(
+        make_app,
+        tmp_path,
+        ".. mat:autosimulink_library:: probeLib\n"
+        "   :members:\n   :exclude-members: Two Lines\n",
+    )
+    assert anchor not in page and 'id="mat-probeLib.slx/v1.2"' in page
+
+    page, warnings = build(
+        make_app, tmp_path, ".. mat:autosimulink_library_block:: probeLib/Two Lines\n"
+    )
+    assert 'id="mat-probeLib.slx/Two~0ALines"' in page
+    assert "not_found" not in warnings
+
+
 def test_named_library_members(make_app, tmp_path):
     index = (
         ".. mat:autosimulink_library:: probeLib\n"
@@ -319,7 +364,7 @@ def test_named_library_members(make_app, tmp_path):
     )
     page, warnings = build(make_app, tmp_path, index, "nitpicky = True\n")
     assert 'id="mat-probeLib.slx/Gain~20Block"' in page
-    assert 'id="mat-probeLib.slx/A~2F~2FB"' not in page
+    assert 'id="mat-probeLib.slx/A//B"' not in page  # not named in :members:
     assert "Links to other blocks Lib Doc:" in text(page)
     # hid has no members: no list
     assert text(page).count("Links to other blocks") == 1

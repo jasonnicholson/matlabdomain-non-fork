@@ -51,13 +51,25 @@ class Node:
         return [c.text for c in self.findall("Cell")] + self.params.get("Cell", [])
 
 
+# The parser reads ASCII-compatible encodings and UTF-16 (little or big endian,
+# with or without a byte-order mark); the other encodings are invalid XML for it.
+# Each UTF-16 form is a plain byte string, so these are six byte searches.
+_DTD_MARKERS = tuple(
+    marker.encode(encoding)
+    for marker in ("<!DOCTYPE", "<!ENTITY")
+    for encoding in ("ascii", "utf-16-le", "utf-16-be")
+)
+
+
 def parse_xml(data: bytes, what: str) -> Node:
     """Parse an XML part; DTDs and entity declarations are refused."""
-    if b"<!DOCTYPE" in data or b"<!ENTITY" in data:
+    if any(marker in data for marker in _DTD_MARKERS):
         raise SimulinkFileError(f"has a DTD or entity declaration in {what}.")
     try:
         root = ET.fromstring(data)
-    except ET.ParseError as err:
+    # LookupError: the XML declaration names an unknown or non-text encoding;
+    # ValueError: a multi-byte one (utf-7) or one that cannot decode (idna).
+    except (ET.ParseError, LookupError, ValueError) as err:
         raise SimulinkFileError(f"has invalid XML in {what} ({err}).") from err
     return _from_element(root, 0, what)
 

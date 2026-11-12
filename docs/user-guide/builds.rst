@@ -41,6 +41,24 @@ Pages that only *link* to an :term:`object` with a :term:`role` are not read aga
 the object's file changes; this is Sphinx's usual behavior for
 cross-references.
 
+.. _builds-shared-doctrees:
+
+Builders that share a doctree folder
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Several builders can use one doctree folder (``-d``), in any order:
+``html`` and ``matlab-api-check``, ``html`` and ``dirhtml``, or two HTML
+output folders. The builder that runs first after an edit reads the changed
+pages; each other output then writes every page once at its next build,
+without reading them again, and from then on only what changed. An output
+counts as its builder and its output folder. The pages of documents below
+``matlab_apidoc_output_dir`` that are gone since an output's last build are
+removed from that output, whichever builder saw them go; other files there,
+such as your own, are kept. A build with ``-E`` starts a new
+:term:`environment` and forgets which pages each output has, so it keeps
+such pages, as Sphinx keeps the pages of removed documents; delete the output
+folder to drop them.
+
 Warnings found while reading a page appear only in the build that reads it:
 after a failed ``-W`` build, a rebuild may say that nothing is out of date.
 To see every warning again (for example after changing
@@ -81,6 +99,33 @@ Large projects
 For a sense of scale: the 14 open-source projects the extension is tested
 on (24,000 files, the largest 5,300 files) build with
 ``scmd apidoc`` pages in 1 to 60 seconds each.
+
+What a build trusts
+-------------------
+
+A build runs ``conf.py``, like every Sphinx build, so whoever can change the
+project can run code in the build. It trusts the files it reads in the same
+way:
+
+* Every file below :confval:`matlab_src_code_project_root` that
+  :confval:`matlab_src_include_patterns` and
+  :confval:`matlab_src_exclude_patterns` select. Help text, Simulink mask
+  descriptions, :doc:`sidecar docs <sidecars>` and Simulink documentation
+  files are read as reStructuredText with all its directives (``include``,
+  ``raw``, ``literalinclude``), exactly like your pages.
+* Code from elsewhere below the root (vendored toolboxes, submodules,
+  downloaded dependencies) the same way, unless a pattern excludes it, for
+  example ``matlab_src_exclude_patterns = ["README.*", "vendor/"]``.
+* The readers of ``.m``, ``.mlapp``, ``.slx`` and ``.mdl`` files never
+  run MATLAB and never execute the files. Their limits on size and
+  nesting protect a build from a corrupt or huge file; they are not a
+  security boundary.
+* The doctree folder (``-d``). Sphinx loads ``environment.pickle`` from it,
+  and loading a pickle can run code, so ``-d`` must not point at a folder
+  that someone else can write.
+
+A build writes only to its output folder and its doctree folder.
+``scmd apidoc`` and ``scmd quickstart`` write where you point them.
 
 Working with other tools
 ------------------------

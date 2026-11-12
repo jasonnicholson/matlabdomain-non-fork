@@ -8,17 +8,22 @@ environment pickling, cache reuse on rebuild, clear_doc and merge_domaindata.
 """
 
 import io
+import itertools
 import os
 import pickle
 import shutil
 import time
+from typing import Any, cast
 
 import pytest
 from sphinx.environment import CONFIG_OK
+from sphinx.util import console
 from tree_sitter import Node, Parser, Tree
 
 from sphinxcontrib import mat_types
 from sphinxcontrib.matlab import MATLABDomain
+
+strip_escape_sequences = cast(Any, console).strip_escape_sequences
 
 
 @pytest.fixture
@@ -88,7 +93,7 @@ def used_paths(srcdir, refs=USED):
 
 
 def test_initial_data_layout():
-    assert MATLABDomain.data_version == 28
+    assert MATLABDomain.data_version == 29
     assert set(MATLABDomain.initial_data) == {
         "objects",
         "folders",
@@ -103,6 +108,8 @@ def test_initial_data_layout():
         "parse_warnings",
         "entities_table",
         "matlab_names",
+        "in_step",
+        "api_pages",
     }
 
 
@@ -507,8 +514,88 @@ def test_note_object(make_app, srcdir):
     assert app.warning.getvalue() == warnings_before
 
     dom.note_object("some/Thing.m", "class", "Thing", location=("index_first", 3))
-    assert "duplicate object description of some/Thing.m" in app.warning.getvalue()
+    warning = app.warning.getvalue()
+    assert "duplicate object description of some/Thing.m" in warning
+    assert "[mat.duplicate]" in warning
     assert dom.data["objects"]["some/Thing.m"] == ("index_first", "class", "Thing")
+
+
+def _worker(docname, objects=(), folders=()):
+    """Domain data of a parallel-read worker that read ``docname``."""
+    data = {name: {} for name in MATLABDomain.initial_data}
+    data["objects"] = {ref: (docname, *entry) for ref, *entry in objects}
+    data["folders"] = {ref: (docname, *entry) for ref, *entry in folders}
+    return data
+
+
+def _merge_in_order(make_app, srcdir, workers, order):
+    """Merge ``workers`` (docname -> data) in ``order``, after a build that
+    read them in name order, as Sphinx does after clearing them.
+    """
+    app = build(make_app, srcdir)
+    dom = app.env.get_domain("mat")
+    dom.read_docnames = [*dom.read_docnames, *sorted(workers)]
+    app.warning.truncate(0)
+    app.warning.seek(0)
+    for docname in order:
+        dom.merge_domaindata({docname}, workers[docname])
+    dom.check_consistency()
+    # "<SRC>/doc.rst" on every OS (Windows writes the paths with "\").
+    warnings = [
+        line.replace(str(srcdir), "<SRC>").replace("<SRC>\\", "<SRC>/")
+        for line in strip_escape_sequences(app.warning.getvalue()).splitlines()
+        if "[mat.duplicate]" in line
+    ]
+    return dom, sorted(warnings)
+
+
+def test_merge_duplicate_object_like_serial(make_app, srcdir):
+    # A serial build reads doc_a, doc_b, doc_c in this order: the last one
+    # wins and each later description warns about the one before it.
+    workers = {
+        doc: _worker(doc, [("x/Obj.m", "class", "Obj")])
+        for doc in ("doc_a", "doc_b", "doc_c")
+    }
+    expected = [
+        f"<SRC>/{later}.rst: WARNING: [sphinxcontrib-matlabdomain] duplicate "
+        f"object description of x/Obj.m, other instance in <SRC>/{earlier}.rst, "
+        "use :no-index: for one of them [mat.duplicate]"
+        for earlier, later in (("doc_a", "doc_b"), ("doc_b", "doc_c"))
+    ]
+    for order in itertools.permutations(workers):
+        dom, warnings = _merge_in_order(make_app, srcdir, workers, order)
+        assert dom.data["objects"]["x/Obj.m"] == ("doc_c", "class", "Obj"), order
+        assert warnings == expected, order
+
+
+def test_merge_duplicate_folder_like_serial(make_app, srcdir):
+    # A folder may be described twice without a warning; the last one wins.
+    workers = {
+        doc: _worker(
+            doc,
+            [("x/", "folder", "x/")],
+            [("x/", f"from {doc}", "", False)],
+        )
+        for doc in ("doc_a", "doc_b")
+    }
+    for order in itertools.permutations(workers):
+        dom, warnings = _merge_in_order(make_app, srcdir, workers, order)
+        assert dom.data["objects"]["x/"] == ("doc_b", "folder", "x/"), order
+        assert dom.data["folders"]["x/"] == ("doc_b", "from doc_b", "", False)
+        assert warnings == [], order
+
+
+def test_merge_order_does_not_change_matches(make_app, srcdir):
+    # ``:any:`dup``` takes its role (a CSS class of a chooser link) from the
+    # first match.
+    workers = {
+        "doc_a": _worker("doc_a", [("a/dup.m", "function", "dup")]),
+        "doc_b": _worker("doc_b", [("b/dup.m", "class", "dup")]),
+    }
+    for order in itertools.permutations(workers):
+        dom, _ = _merge_in_order(make_app, srcdir, workers, order)
+        matches = dom.find_obj(None, None, "dup", None)
+        assert [ref for ref, _ in matches] == ["a/dup.m", "b/dup.m"], order
 
 
 if __name__ == "__main__":

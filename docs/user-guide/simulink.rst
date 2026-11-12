@@ -2,10 +2,9 @@ Simulink files
 ==============
 
 The :term:`extension` reads Simulink models, libraries and subsystem files
-(``.slx``, ``.mdl`` and ``.xml`` exported by ``save_system``) without
-MATLAB, from every release since R2006a, and documents them next to the
-code: description, mask, ports, metadata and a documentation file of your
-own. :doc:`../developer-guide/simulink-file-formats` describes the formats.
+(``.slx`` and ``.mdl``) without MATLAB, from every release since R2006a,
+and documents them next to the code: description, mask, ports, metadata
+and a documentation file of your own. :doc:`../developer-guide/simulink-file-formats` describes the formats.
 
 What is documented
 ------------------
@@ -25,21 +24,53 @@ Each page shows the description saved in the file or block (the mask
 description if it has none), then the documentation file, the mask type,
 description and Help, the metadata of :confval:`matlab_simulink_metadata`,
 the mask parameters (hidden ones with ``:hidden-mask-parameters:``) and a
-table of the ports. :doc:`../reference/directives` lists the options.
+table of the ports: inputs, outputs and physical connections by port
+number, then the enable, trigger and action ports.
+:doc:`../reference/directives` lists the options.
 
 Names
 -----
 
-A Simulink file is named the way Simulink runs it. Simulink loads models
-only from the global namespace, and not directly from a ``private/`` or
-``@`` class folder, so a file there has no MATLAB name (a
-``mat.not_callable`` warning) and is documented by its path reference
-(``+pkg/plant.slx``). Exported ``.xml`` files have no MATLAB name either.
+A Simulink file is named the way Simulink runs it. A file in a namespace
+folder (``+pkg/``), directly in ``private/`` or in an ``@`` class folder has
+no MATLAB name (a ``mat.not_callable`` warning) and is documented by its
+path reference (``+pkg/plant.slx``).
+
+.. _simulink-namespaces:
+
+Simulink files in namespace folders
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Keep Simulink files in the global namespace. Simulink's support for
+``.slx`` and ``.mdl`` files in ``+pkg/`` folders is partial and changes
+between releases (observed in R2024a, R2024b, R2026a and R2026b, the same
+for ``.slx`` and ``.mdl``):
+
+* **Works in every release:** ``load_system``, ``sim`` and ``save_system``
+  with the full path; ``sim(pkg.plant)`` written as an expression without
+  quotes (MATLAB resolves ``pkg.plant`` like a function call and passes the
+  model handle), also for ``pkg.inner.plant``.
+* **Works from R2026a:** ``load_system("pkg.plant")``. The model is loaded
+  under its short name ``plant``, so it can clash with a global model of
+  the same name.
+* **Never works:** ``sim("pkg.plant")``; a namespace name in a Model block,
+  Subsystem Reference block or library link; finding the file by its short
+  name, even after ``cd`` into ``+pkg``; ``load_system("pkg.inner.plant")``.
+* **Only when the target is loaded first:** a Model or Subsystem Reference
+  block that gives the short name ``plant``. Library links into ``+pkg/``
+  work that way in R2024a and R2024b and fail in R2026a and R2026b.
+
+Because a namespaced Simulink file cannot be used by name in a model, the
+extension gives it no MATLAB name: reference it by path
+(``:mat:simulink_model:`+pkg/plant.slx```).
 
 A block follows its file with its path in the library:
 ``lib.slx/Group/Gain`` or, by MATLAB name, ``lib/Group/Gain``. A ``/`` in a
-block name is doubled (``lib.slx/A//B``); a line break in a block name is a
-space in a :term:`role`'s target (``lib/Two Lines``).
+block name is doubled (``lib.slx/A//B``); a line break in a block name is
+written as a space (``lib/Two Lines``) in a :term:`role`'s target, an auto
+directive's argument, ``:members:`` and ``:exclude-members:``; the block's entry in ``objects.inv`` has that form,
+so another project links to it with the same text. A name in
+``:members:`` that is no documented block gets ``mat.not_found``.
 
 ``plant.slx`` and ``plant.m`` share a MATLAB name, like two ``plant.m`` in
 different folders: give the path reference, or see
@@ -145,6 +176,18 @@ livehtml`` while it runs (:confval:`matlab_simulink_autobuild_server`), or else 
 published site; ``help sphinxcontrib.matlabdomain.simulinkDocumentationLinker``
 describes the choice. The documentation shows such a Help as a link to the
 page.
+
+The settings file ``simulinkDocumentationLinker.json`` next to it names the
+folder of the local build, the server and the published site. ``scmd
+quickstart`` writes it once; a build never changes it, because a build
+writes only to its output folder and its doctree folder. When the output
+folder, the server or ``html_baseurl`` of a build differs from the file,
+the build logs one ``info`` line (not a warning, so ``-W`` builds and CI
+builds with another output folder are not affected) that names the values:
+edit ``local``, ``server`` or ``published`` by hand and commit the file.
+Each HTML build writes ``mat/simulinkDocumentationLinker.json`` in its
+output folder, which tells the function whether the last build was local or
+for a server.
 
 ``sphinxcontrib.matlabdomain.setSimulinkHelp`` writes these Help lines for
 every documented object of a file. It ships with this package; add its

@@ -61,7 +61,9 @@ from .mat_types import (
     is_source_object,
     lookup_reference,
     resolve,
+    same_block,
     simulink_accepts,
+    warn_ambiguous,
 )
 
 mat_ext_sig_re = re.compile(
@@ -181,6 +183,8 @@ class MatlabDocumenter(PyDocumenter):
                 "[sphinxcontrib-matlabdomain] Invalid signature for mat:auto%s (%r)",
                 self.objtype,
                 self.name,
+                type="mat",
+                subtype="directive",
             )
             return False
         target, args, retann = match.groups()
@@ -199,15 +203,7 @@ class MatlabDocumenter(PyDocumenter):
         if len(found) != 1:
             location = (self.env.docname, self.directive.lineno)
             if found:
-                logger.warning(
-                    "[sphinxcontrib-matlabdomain] %r matches several objects: %s; "
-                    "use a path reference",
-                    target,
-                    ", ".join(sorted(ref for ref, _ in found)),
-                    type="mat",
-                    subtype="ambiguous",
-                    location=location,
-                )
+                warn_ambiguous(target, [ref for ref, _ in found], location)
             else:
                 logger.warning(
                     "[sphinxcontrib-matlabdomain] don't know which object to "
@@ -611,6 +607,8 @@ class MatlabDocumenter(PyDocumenter):
                         ),
                         mname,
                         self.fullname,
+                        type="mat",
+                        subtype="not_found",
                     )
         else:
             # __dict__ contains only the members directly defined in
@@ -867,6 +865,8 @@ class MatFolderDocumenter(MatlabDocumenter, PyModuleDocumenter):
                     "signature arguments or return annotation given for autofolder %s"
                 ),
                 self.fullname,
+                type="mat",
+                subtype="directive",
             )
         return ret
 
@@ -911,6 +911,8 @@ class MatFolderDocumenter(MatlabDocumenter, PyModuleDocumenter):
                     " in :members: or __all__: folder %s, attribute %s",
                     safe_getattr(self.object, "__name__", "???"),
                     mname,
+                    type="mat",
+                    subtype="not_found",
                 )
         return False, ret
 
@@ -1583,6 +1585,9 @@ _PORT_KINDS = {
     "Inport": _("input"),
     "Outport": _("output"),
     "PMIOPort": _("connection"),
+    "EnablePort": _("enable"),
+    "TriggerPort": _("trigger"),
+    "ActionPort": _("action"),
 }
 # Port settings Simulink leaves to inheritance: shown as empty cells.
 _PORT_UNSET = {"data_type": "Inherit: auto", "dimensions": "-1", "unit": "inherit"}
@@ -1761,9 +1766,10 @@ class MatSimulinkDocumenter(MatModuleLevelDocumenter):
         kind, value = target
         if kind == "url":
             return [f"{label}`{value} <{value}>`__"]
-        if value == self.ref or "\n" in value:
+        if same_block(value, self.ref):
             return []
-        return [f"{label}:mat:obj:`{value}`"]
+        # A role's target writes a line break in a block name as a space.
+        return [f"{label}:mat:obj:`{' '.join(value.split())}`"]
 
     def metadata_lines(self, metadata):
         keys = self.options.metadata
@@ -1837,7 +1843,7 @@ class MatSimulinkDocumenter(MatModuleLevelDocumenter):
             # a bus element port: port.element
             name = ".".join(filter(None, (port.port_name, port.element))) or port.name
             kind = _PORT_KINDS.get(port.block_type, port.block_type)
-            lines.append(f"   * - {kind} {port.number}")
+            lines.append(f"   * - {kind} {port.number}".rstrip())
             lines.append(f"     - {_literal(name)}")
             for key, _title in columns:
                 text = value(port, key)
@@ -1867,12 +1873,26 @@ class MatSimulinkLibraryDocumenter(MatSimulinkDocumenter):
         """Return the blocks named by ``:members:`` (all if ``want_all``),
         without those of ``:exclude-members:``.
         """
+        named = [] if want_all else list(self.options.members or ())
         excluded = self.options.exclude_members or ()
+
+        def among(block, names):
+            return any(same_block(block.path, name) for name in names)
+
+        for name in named:
+            if not any(same_block(block.path, name) for block in blocks):
+                logger.warning(
+                    "[sphinxcontrib-matlabdomain] %s has no documented block %r",
+                    self.ref,
+                    name,
+                    type="mat",
+                    subtype="not_found",
+                    location=(self.env.docname, self.directive.lineno),
+                )
         return [
             block
             for block in blocks
-            if (want_all or block.path in (self.options.members or ()))
-            and block.path not in excluded
+            if (want_all or among(block, named)) and not among(block, excluded)
         ]
 
     def get_object_members(self, want_all):

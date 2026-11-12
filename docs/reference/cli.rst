@@ -107,8 +107,8 @@ Outside ``DOCS``, each only if the line is not there yet:
   ``ROOT/+sphinxcontrib/+matlabdomain/simulinkDocumentationLinker.m`` (the
   MATLAB function that Help links of Simulink files call; rewritten on
   each run) and its settings ``simulinkDocumentationLinker.json`` (written
-  once, then kept up to date by HTML builds,
-  :confval:`matlab_simulink_autobuild_server`); ``conf.py`` excludes
+  once; HTML builds do not change it, they only log when it differs from
+  the build, :confval:`matlab_simulink_autobuild_server`); ``conf.py`` excludes
   ``+sphinxcontrib/``.
 
 Before it writes anything it checks ``git status`` of these three files and
@@ -239,6 +239,12 @@ version or encoding, a missing ``conf.py`` or required value, an error in
 ``conf.py``, or a ``matlab_*`` name that is not a configuration value (a
 typo; :doc:`configuration`). Unknown and abbreviated options (``--dry``
 for ``--dry-run``) are usage errors.
+
+The command checks the values it uses: the source values
+(``matlab_src_*``, :confval:`matlab_version`) and the ``matlab_apidoc_*``
+values. It does not check the values that only the build or
+``matlab-api-check`` use, so it runs on a project that is not ready for
+those yet; they check their own values when they run.
 
 Output files
 ~~~~~~~~~~~~

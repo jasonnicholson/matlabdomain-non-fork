@@ -14,10 +14,14 @@ Modules
    * - Module
      - Role
    * - ``matlab.py``
-     - ``setup()``: configuration values, events, the :term:`builder`, the
+     - ``setup()``: events, the :term:`builder`, the
        auto :term:`directives <directive>`. ``MATLABDomain``: directives,
        :term:`roles <role>`, :term:`cross-reference` resolution, the folder
        index and the :term:`domain` data.
+   * - ``mat_config.py``
+     - Every ``matlab_*`` configuration value in one table (default,
+       rebuild, types) and the source checks that the build and
+       ``scmd apidoc`` share.
    * - ``mat_types.py``
      - The index stage (``IndexSettings``, ``build_index``, ``SourceIndex``,
        ``analyze``), the lazy parse (``resolve``), incremental-build hooks,
@@ -32,7 +36,7 @@ Modules
        the special files.
    * - ``mat_handlers.py``
      - The file-type registry: one handler per extension (``.m``,
-       ``.mlapp``, ``.slx``, ``.mdl``, exported Simulink ``.xml``).
+       ``.mlapp``, ``.slx``, ``.mdl``).
    * - ``mat_simulink/``
      - The Simulink file reader: layouts, limits, parsers and the
        format-neutral content (see :doc:`simulink-file-formats`).
@@ -143,9 +147,9 @@ layout or the cached objects change.
 
 The events ``setup()`` connects:
 
-* ``config-inited``: ``ensure_configuration`` (removed values, patterns,
-  version), ``check_encoding``, ``mat_sidecars.check_config`` (sidecar
-  suffixes;
+* ``config-inited``: ``ensure_configuration`` (``mat_config.check_sources``:
+  removed values, patterns, encoding, version; and ``matlab_auto_link``),
+  ``mat_sidecars.check_config`` (sidecar suffixes;
   with the root inside the source folder, the sidecar docs are added to
   ``exclude_patterns`` here, because a later change would make Sphinx
   read every page again on every build), ``mat_api_check.check_config``;

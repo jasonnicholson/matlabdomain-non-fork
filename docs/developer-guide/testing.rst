@@ -17,8 +17,7 @@ for a quiet run, override them:
 
 The suite takes about a minute. A few tests are skipped on some systems:
 those that need POSIX permissions, non-UTF-8 file names (Linux) or Windows
-device names, and the two oracle tests that need the MATLAB reference corpus
-(``../reference/matlab_names_reference.json``, outside the repository).
+device names.
 
 tox runs the suite against each supported Sphinx line, as CI does:
 
@@ -30,6 +29,14 @@ tox runs the suite against each supported Sphinx line, as CI does:
    $ uv run tox -e lint                 # Ruff, format check, basic Pyright
 
 Each tox run also builds ``tests/test_docs`` with Sphinx.
+
+The suite fails on a deprecation warning that Python attributes to this
+package's own modules (``filterwarnings`` in ``pyproject.toml``); warnings
+from other packages, such as ``myst_parser``, do not. This is the signal that
+a Sphinx, docutils or Python release now deprecates something the package
+uses, for example the autodoc ``Documenter`` classes. Read the warning, then
+move the code off the deprecated interface; only if that cannot happen yet,
+add a temporary ``ignore`` entry for that exact message, with a comment.
 The ``lint`` :term:`environment <virtual environment>` instead checks maintained Python without modifying it.
 Repository configuration and its documented inventory are checked by
 ``test_documentation.py``; see :ref:`repository-configuration`.
@@ -45,7 +52,7 @@ Layout
    ``test_domain_lifecycle.py``), fault tolerance, :term:`directives <directive>` and options,
    ``scmd apidoc`` (``test_apidoc.py``), links from another
    project through its :term:`inventory` and page splitting
-   (``test_intersphinx.py``), stable addresses (``test_stable_urls.py``),
+   (``test_intersphinx.py``), stable addresses (``test_stable_urls.py``, ``test_chooser_cache.py``),
    ``matlab-api-check``
    (``test_api_check.py``), ``scmd quickstart``
    (``test_quickstart.py``) and this documentation
@@ -121,9 +128,11 @@ explains how:
 
 .. code-block:: console
 
-   $ python test_slow/gauntlet/fetch.py
-   $ python test_slow/gauntlet/gauntlet.py --jobs
-   $ python test_slow/gauntlet/compare.py test_slow/gauntlet/summaries/phase9-linux.json test_slow/gauntlet/runs/latest
+   $ uv run python test_slow/gauntlet/gauntlet.py --fetch --jobs
+   $ uv run python test_slow/gauntlet/compare.py test_slow/gauntlet/summaries/linux.json test_slow/gauntlet/runs/latest
+
+It needs Git, network access the first time and about 4 GB of disk, and
+takes about 20 minutes on Linux.
 
 With ``--quickstart`` it runs ``scmd quickstart -q`` on a
 temporary ``git worktree`` of each project instead, then a ``-n`` build of

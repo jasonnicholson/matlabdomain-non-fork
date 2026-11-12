@@ -17,13 +17,13 @@ all with ``"mat"``; ``scmd apidoc`` reads the same setting.
      - a file or folder that cannot be read, an invalid ``.mlapp``, a
        ``.slx`` or ``.mdl`` file that is not a readable Simulink file (a Git
        LFS pointer, too large), a parser failure, a file name that is not
-       valid UTF-8, a page that cannot be read
+       valid UTF-8, two names in one folder that differ only by Unicode
+       form, a page that cannot be read
      - every build (reading); parse failures when a page uses the file
    * - ``mat.folder_name``
      - an error, not a warning (``suppress_warnings`` does not hide it): a
        folder named like a supported file (``.m``, ``.mlapp``, ``.slx``,
-       ``.mdl``, ``.xml``, ``.md``, ``.rst``, any case); it is not
-       documented
+       ``.mdl``, ``.md``, ``.rst``, any case); it is not documented
      - every build
    * - ``mat.encoding``
      - a file decoded with the fallback encoding or with replaced bytes; a
@@ -45,12 +45,26 @@ all with ``"mat"``; ``scmd apidoc`` reads the same setting.
    * - ``mat.outside_root``
      - a link below the project root that points outside it
      - every build
+   * - ``mat.link_cycle``
+     - a link that points to the folder it is in or a folder above it (a
+       cycle); it is not followed
+     - every build
    * - ``mat.ambiguous``
      - a name that matches several :term:`objects <object>`
      - where the name is used
    * - ``mat.not_found``
-     - an auto :term:`directive` whose argument matches no object
+     - an auto :term:`directive` whose argument matches no object; a name
+       in ``:members:`` that is not a member
      - where the directive is
+   * - ``mat.directive``
+     - a directive argument of the wrong kind: a class folder given to
+       ``mat:folder``, arguments or a return annotation given to
+       ``mat:autofolder``
+     - where the directive is
+   * - ``mat.duplicate``
+     - an object described twice, or two objects that would get the same
+       anchor
+     - where the second description is
    * - ``mat.sidecar``
      - a sidecar doc without a heading, a ``mat:autosidecar`` reference
        that is not an indexed sidecar doc, a project root on another drive
@@ -63,10 +77,6 @@ all with ``"mat"``; ``scmd apidoc`` reads the same setting.
    * - ``mat.stable_url``
      - a stable address file (:confval:`matlab_stable_urls`) that cannot be
        written, for example a path too long for Windows
-     - at the end of an HTML build
-   * - ``mat.simulink_documentation_linker_json``
-     - ``+sphinxcontrib/+matlabdomain/simulinkDocumentationLinker.json``
-       is not a JSON object, so the build cannot update it
      - at the end of an HTML build
    * - ``mat.simulink``
      - an unknown name in :confval:`matlab_simulink_metadata` or a

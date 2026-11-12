@@ -11,15 +11,20 @@ problem, so it can guard help text in CI.
 Running it
 ----------
 
-It is a Sphinx builder; the :term:`extension` adds it. Run it on the Sphinx project
-of your docs:
+It is a Sphinx builder; the :term:`extension` adds it. From your project
+root, run it on the Sphinx project of your docs:
 
 .. code-block:: console
 
    $ uv run sphinx-build -b matlab-api-check docs docs/_build/api-check
 
+For paths to use from inside ``docs``, see :doc:`FAQ`.
+
 It reads the pages like any builder; give it the ``-d`` folder of the HTML
-build (``-d docs/_build/doctrees``) to avoid reading them twice. (If the two
+build (``-d docs/_build/doctrees``) to avoid reading them twice, in either
+order. When the check runs between an edit and the HTML build, it reads the
+changed pages itself, and the next HTML build writes every page once without
+reading them again (see :ref:`builds-shared-doctrees`). (If the two
 builds use different options, such as ``-n`` for HTML only, Sphinx says the
 configuration changed and reads the pages again; that is harmless.) Then it
 checks every file the project indexes, whether a page documents it or not,

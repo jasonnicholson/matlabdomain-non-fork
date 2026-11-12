@@ -60,7 +60,10 @@ Exclude wins over include: a file that matches both lists is left out.
 Patterns match like Sphinx's ``exclude_patterns``: ``**`` matches across
 folders, ``*`` and ``?`` within one folder, and ``**/x`` also matches ``x``
 itself, so ``**/tests`` leaves out every ``tests`` folder with everything
-below it. Matching is case-sensitive on every system.
+below it. Matching is case-sensitive on every system. Patterns and names
+are compared in Unicode NFC form, so ``é`` typed as one character matches a
+name stored as ``e`` and an accent (as macOS may store it), and the other
+way round.
 
 Examples, for a project root with these files:
 
@@ -131,14 +134,23 @@ Some files and folders are never indexed or need care:
 
 * Folders whose names start with ``.`` are never searched (``.git``), nor
   is Sphinx output: the ``_build`` folder of the Sphinx source folder, and
-  any folder with a ``.buildinfo`` or ``environment.pickle`` file or with
-  a ``doctrees`` folder that has one (the output of another layout, such as
-  ``build/``). Folders whose names start with ``_`` are searched like
-  any other; exclude those without MATLAB code (``**/_assets/**``) when
-  they are large.
+  any folder with a ``.buildinfo`` or ``environment.pickle`` file, with
+  both ``objects.inv`` and ``searchindex.js`` (HTML output, also a copy
+  made with ``cp -r html/* public/``, which leaves out ``.buildinfo``), or
+  with a ``doctrees`` folder that has ``environment.pickle`` (the output of
+  another layout, such as ``build/``). Folders whose names start with
+  ``_`` are searched like any other; exclude those without MATLAB code
+  (``**/_assets/**``) when they are large.
 * A link or Windows junction below the root that points outside it is left
   out, with one ``mat.outside_root`` warning. Links that stay inside the
-  root are followed.
+  root are followed, and the files they lead to are documented at both
+  paths, except a link to the folder it is in or to a folder above it (up
+  to the root): it would repeat that folder without end, so it is not
+  followed, with one ``mat.link_cycle`` warning.
+* Two names in one folder that differ only by Unicode form (``é`` as one
+  character and as ``e`` and an accent) have the same path reference; the
+  first in the order of the names on disk is indexed, the other gets a
+  ``mat.parse_error`` warning that shows both names with escapes.
 * Generated data files can be large and slow to parse; exclude them
   (``**/data/**``) when they need no documentation.
 * Git submodules below the root are indexed like any folder when they are

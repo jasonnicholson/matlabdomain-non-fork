@@ -8,6 +8,7 @@ The MATLAB domain.
 """
 
 import functools
+import itertools
 import json
 import re
 import unicodedata
@@ -28,6 +29,7 @@ from sphinx.util.nodes import make_refnode
 
 from . import (
     mat_api_check,
+    mat_config,
     mat_directives,
     mat_naming,
     mat_sidecars,
@@ -35,8 +37,10 @@ from . import (
     mat_urls,
 )
 from . import mat_documenters as doc
+
+# Public: a conf.py extends it (matlab_external_names = [*DEFAULT_EXTERNAL_NAMES, ...]).
+from .mat_config import DEFAULT_EXTERNAL_NAMES as DEFAULT_EXTERNAL_NAMES
 from .mat_simulink import _linker as simulink_linker
-from .matlab_apidoc import _config as apidoc_config
 
 logger = getLogger("matlab-domain")
 
@@ -143,8 +147,8 @@ def _check_inventories(env, node, contnode):
                 found.setdefault(getattr(item, "uri", None) or item[2], name)
     if len(found) > 1:
         node["mat:ambiguous"] = True
-        labels = [(f"{name}:{target}",) for name in found.values()]
-        MATLABDomain._warn_ambiguous(target, labels, node, "write one of them")
+        labels = [f"{name}:{target}" for name in found.values()]
+        mat_types.warn_ambiguous(target, labels, node, "write one of them")
         return contnode
     if not found:
         return None
@@ -165,18 +169,8 @@ def _check_inventories(env, node, contnode):
     }
     prefix = "" if len(names) == 1 else f"{found_in}:"
     node["mat:ambiguous"] = True
-    MATLABDomain._warn_ambiguous(target, [(prefix + ref,) for ref in refs], node)
+    mat_types.warn_ambiguous(target, [prefix + ref for ref in refs], node)
     return contnode
-
-
-#: MATLAB's own classes and namespaces, never documented in a project
-DEFAULT_EXTERNAL_NAMES = [
-    r"handle|dynamicprops",
-    r"(matlab|Simulink|event|meta)\..+",
-    r"double|single|u?int(8|16|32|64)|logical|char|string|cell|struct",
-    r"function_handle|table|timetable|datetime|duration|calendarDuration",
-    r"categorical|containers\.Map|dictionary|MException|missing|timeseries",
-]
 
 
 @functools.cache
@@ -260,7 +254,7 @@ def _pseudo_parse_arglist(signode, arglist):
         signode += paramlist
 
 
-class MatObject(ObjectDescription):
+class MatObjectDirective(ObjectDescription):
     """Description of a general MATLAB object."""
 
     option_spec = {
@@ -402,20 +396,10 @@ class MatObject(ObjectDescription):
         # A directive written by hand: use the source file it names, if any.
         dom = self.env.get_domain("mat")
         folder = self.env.temp_data.get("mat:folder")
-        found = mat_types.find_source(dom, name, folder, accept)
-        if len(found) == 1:
-            ref = found[0][0]
-            return ref, mat_types.display_name(dom, ref)
+        location = (self.env.docname, self.lineno)
+        found = mat_types.find_one(dom, name, folder, accept, location)
         if found:
-            logger.warning(
-                "[sphinxcontrib-matlabdomain] %r matches several objects: %s; "
-                "use a path reference",
-                name,
-                ", ".join(sorted(ref for ref, _ in found)),
-                type="mat",
-                subtype="ambiguous",
-                location=(self.env.docname, self.lineno),
-            )
+            return found[0], mat_types.display_name(dom, found[0])
         return (mat_naming.join_reference(folder, name) if folder else name), name
 
     def get_index_text(self, folder, name_cls):  # pragma: no cover - abstract
@@ -447,6 +431,8 @@ class MatObject(ObjectDescription):
                 ", ".join(self.state.document.ids[target_id]["names"]) or "?",
                 target_id,
                 ref,
+                type="mat",
+                subtype="duplicate",
                 location=(self.env.docname, self.lineno),
             )
 
@@ -468,7 +454,7 @@ class MatObject(ObjectDescription):
         self.env.temp_data["mat:objfolder"] = self.previous_objfolder
 
 
-class MatModulelevel(MatObject):
+class MatModulelevel(MatObjectDirective):
     """Description of an object on folder level (functions, data, application)."""
 
     def needs_arglist(self):
@@ -485,14 +471,14 @@ class MatModulelevel(MatObject):
             return ""
 
 
-class MatSimulinkObject(MatObject):
+class MatSimulinkObject(MatObjectDirective):
     """Description of a Simulink model, library, subsystem file or library
     block. The signature is its name as Simulink shows it, without
     arguments; a ``:reference:`` with a newline is written as JSON text.
     """
 
     doc_field_types = [
-        *MatObject.doc_field_types,
+        *MatObjectDirective.doc_field_types,
         TypedField(
             "maskparameter",
             label=translation("Mask parameters"),
@@ -565,11 +551,14 @@ SIMULINK_LABELS = {
 }
 
 
-class MatClasslike(MatObject):
+class MatClasslike(MatObjectDirective):
     """Description of a class."""
 
     flags = ("abstract", "sealed")
-    option_spec = {**MatObject.option_spec, **dict.fromkeys(flags, directives.flag)}
+    option_spec = {
+        **MatObjectDirective.option_spec,
+        **dict.fromkeys(flags, directives.flag),
+    }
 
     def _object_hierarchy_parts(self, sig):
         """Return a tuple of strings, one entry for each part of the object's \
@@ -594,14 +583,14 @@ class MatClasslike(MatObject):
         return translation("%s (class in %s)") % (name_cls[1], folder)
 
     def before_content(self):
-        MatObject.before_content(self)
+        MatObjectDirective.before_content(self)
         # A class signature always parses (mat_sig_re matches any line).
         if self.names:  # pragma: no branch
             self.env.temp_data["mat:class"] = self.names[0]
             self.clsname_set = True
 
 
-class MatClassmember(MatObject):
+class MatClassmember(MatObjectDirective):
     """Description of a class member (methods, attributes)."""
 
     def needs_arglist(self):
@@ -625,7 +614,7 @@ class MatClassmember(MatObject):
         return kind % (member, clsname)
 
     def before_content(self):
-        MatObject.before_content(self)
+        MatObjectDirective.before_content(self)
         if self.names and not self.env.temp_data.get("mat:class"):
             ref, display = self.names[-1]
             if "." in display:
@@ -638,17 +627,23 @@ class MatMethodlike(MatClassmember):
     """Description of a method."""
 
     flags = ("abstract", "sealed")
-    option_spec = {**MatObject.option_spec, **dict.fromkeys(flags, directives.flag)}
+    option_spec = {
+        **MatObjectDirective.option_spec,
+        **dict.fromkeys(flags, directives.flag),
+    }
 
 
 class MatAttributelike(MatClassmember):
     """Description of a property or enumeration value."""
 
     flags = ("abstract", "constant", "dependent", "read-only")
-    option_spec = {**MatObject.option_spec, **dict.fromkeys(flags, directives.flag)}
+    option_spec = {
+        **MatObjectDirective.option_spec,
+        **dict.fromkeys(flags, directives.flag),
+    }
 
 
-class MatFolder(MatObject):
+class MatFolder(MatObjectDirective):
     """Description of a folder.
 
     A valid ``+`` folder shows ``namespace <MATLAB name>``; any other folder
@@ -674,6 +669,8 @@ class MatFolder(MatObject):
                 "[sphinxcontrib-matlabdomain] %s is a class folder; "
                 "document its class instead",
                 ref,
+                type="mat",
+                subtype="directive",
                 location=(self.env.docname, self.lineno),
             )
             raise ValueError
@@ -907,10 +904,18 @@ class MATLABDomain(Domain):
         "parse_warnings": {},  # (path, mtime_ns, size) -> parse-stage warnings
         "entities_table": {},  # path reference -> MatObject (files and folders)
         "matlab_names": {},  # MATLAB name -> path references
+        # Build state of the outputs that share this environment (one doctree
+        # folder), by (builder name, normalized absolute output folder);
+        # main process only (``mat_urls.pages_to_write``).
+        # the outputs that have written everything the environment holds
+        "in_step": set(),
+        # HTML outputs -> documents below matlab_apidoc_output_dir they have
+        # pages for
+        "api_pages": {},
     }
     # Bump when the layout of ``initial_data`` (the pickled domain data) or the
     # parsed objects it caches change, so Sphinx drops stale cached environments.
-    data_version = 28
+    data_version = 29
     indices = [
         MATLABFolderIndex,
     ]
@@ -919,13 +924,18 @@ class MATLABDomain(Domain):
         super().__init__(env)
         # display name -> references of documented objects (built lazily)
         self._displays = None
+        self._spaced: dict[str, str] = {}  # built with _displays
         # mat_urls.addresses (built lazily)
         self._stable_urls = None
         # sidecar reference -> the first document that renders it (built lazily)
         self._sidecar_docs = None
+        # reference -> documents of parallel-read workers that describe it,
+        # noted by merge_domaindata and warned by check_consistency
+        self._duplicates = {}
         # Documents read in this build (``env-before-read-docs``).
         self.read_docnames = ()
-        # Objects and removed documents before this build read (mat_urls).
+        # Objects and removed documents before this build read
+        # (``mat_urls.note_pages``).
         self.objects_before = {}
         self.removed_docs = set()
         self.reset_sources()
@@ -989,15 +999,20 @@ class MATLABDomain(Domain):
         """
         objects = self.data["objects"]
         if name in objects and location is not None:
-            logger.warning(
-                "duplicate object description of %s, other instance in %s, "
-                "use :noindex: for one of them",
-                name,
-                self.env.doc2path(objects[name][0]),
-                location=location,
-            )
+            self._warn_duplicate(name, objects[name][0], location)
         objects[name] = (self.env.docname, objtype, display or name)
         self._displays = self._stable_urls = None
+
+    def _warn_duplicate(self, name, other, location):
+        logger.warning(
+            "[sphinxcontrib-matlabdomain] duplicate object description of %s, "
+            "other instance in %s, use :no-index: for one of them",
+            name,
+            self.env.doc2path(other),
+            type="mat",
+            subtype="duplicate",
+            location=location,
+        )
 
     def clear_doc(self, docname):
         for ref, (fn, _, _) in list(self.data["objects"].items()):
@@ -1026,13 +1041,25 @@ class MATLABDomain(Domain):
     def merge_domaindata(self, docnames, otherdata):
         # Merge per-document registrations from a parallel-read worker, and
         # the files it parsed, so the next build need not parse them again.
-        # The index and the entities are built in the main process.
-        for ref, data in otherdata["objects"].items():
-            if data[0] in docnames:
-                self.data["objects"][ref] = data
-        for ref, data in otherdata["folders"].items():
-            if data[0] in docnames:
-                self.data["folders"][ref] = data
+        # The index and the entities are built in the main process, and the
+        # build state ("in_step", "api_pages") is kept there.
+        # An object or folder that another worker described too: the later in
+        # reading order wins, as in a serial build, whatever the merge order.
+        order = {docname: i for i, docname in enumerate(self.read_docnames)}
+        for name in ("objects", "folders"):
+            ours = self.data[name]
+            for ref, data in otherdata[name].items():
+                if data[0] not in docnames:
+                    continue
+                old = ours.get(ref)
+                if old is not None and old[0] in order and data[0] in order:
+                    # a folder description warns in neither build (note_object)
+                    if name == "objects" and data[1] != "folder":
+                        self._duplicates.setdefault(ref, set()).update(
+                            (old[0], data[0])
+                        )
+                    data = max(old, data, key=lambda entry: order[entry[0]])
+                ours[ref] = data
         for name in ("doc_sources", "sidecar_docs", "sidecar_issues", "xref_docs"):
             for docname, value in otherdata[name].items():
                 if docname in docnames:
@@ -1048,12 +1075,39 @@ class MATLABDomain(Domain):
         self._displays = self._stable_urls = None
         self._sidecar_docs = None
 
+    def check_consistency(self):
+        # Duplicates that parallel-read workers could not see: warn as a serial
+        # build does, each description about the one read before it.
+        order = {docname: i for i, docname in enumerate(self.read_docnames)}
+        for ref, docs in sorted(self._duplicates.items()):
+            pairs = itertools.pairwise(sorted(docs, key=order.__getitem__))
+            for earlier, later in pairs:
+                self._warn_duplicate(ref, earlier, (later, None))
+        self._duplicates = {}
+
     def _by_display(self, name):
         if self._displays is None:
             self._displays = {}
-            for ref, (_, _, display) in self.data["objects"].items():
+            # a block with a line break in its name, by its reference with
+            # spaces; the first of those that collapse to one form (in sorted
+            # order) has it
+            self._spaced = {}
+            # by reference: the merge order of a parallel read does not matter
+            for ref, (_, _, display) in sorted(self.data["objects"].items()):
                 self._displays.setdefault(display, []).append(ref)
+            for ref in sorted(self.data["objects"]):
+                if mat_naming.has_line_break(ref):
+                    self._spaced.setdefault(mat_naming.collapse_space(ref), ref)
         return self._displays.get(name, [])
+
+    def _documented(self, ref):
+        """Return the documented reference ``ref`` names: itself, or the block
+        it names with spaces for line breaks (as a role's target writes it).
+        """
+        if ref in self.data["objects"]:
+            return ref
+        self._by_display("")
+        return self._spaced.get(ref, ref)
 
     def _scope(self, reference):
         # Folder a documented object's MATLAB name is visible from.
@@ -1087,6 +1141,7 @@ class MATLABDomain(Domain):
             exact.append(f"{cls}.{name}")
         if folder:
             exact.append(mat_naming.join_reference(folder, name))
+        exact = [self._documented(r) for r in exact]
         # (candidates, first only): exact references are tried in order.
         steps = [([r for r in exact if r in objects], True)]
         if folder:
@@ -1118,13 +1173,13 @@ class MATLABDomain(Domain):
                 if refs:
                     return [(r, objects[r]) for r in refs]
         if searchmode == 1:
-            return [
+            return sorted(
                 (ref, entry)
                 for ref, entry in objects.items()
                 if entry[2].endswith(f".{name}")
                 and (objtypes is None or entry[1] in objtypes)
                 and not mat_naming.is_private_reference(ref)
-            ]
+            )
         return []
 
     def _refnode(self, builder, fromdocname, ref, entry, contnode):
@@ -1161,7 +1216,7 @@ class MATLABDomain(Domain):
             if self._shadowed(matches):
                 refs = [ref for ref, _ in matches]
                 return mat_urls.chooser_link(self, builder, fromdocname, refs, contnode)
-            self._warn_ambiguous(target, matches, node)
+            mat_types.warn_ambiguous(target, [m[0] for m in matches], node)
             # Unlinked, without a second "target not found" warning.
             return contnode
         ref, entry = matches[0]
@@ -1183,18 +1238,6 @@ class MATLABDomain(Domain):
         if anchor in slugs:
             anchor = slugs[anchor][1]
         return make_refnode(builder, fromdocname, docname, anchor, contnode)
-
-    @staticmethod
-    def _warn_ambiguous(target, matches, node, hint="use a path reference"):
-        logger.warning(
-            "[sphinxcontrib-matlabdomain] %r matches several objects: %s; %s",
-            target,
-            ", ".join(sorted(match[0] for match in matches)),
-            hint,
-            type="mat",
-            subtype="ambiguous",
-            location=node,
-        )
 
     def _shadowed(self, matches):
         """Return True for objects of one MATLAB name that the project accepts
@@ -1253,16 +1296,32 @@ class MATLABDomain(Domain):
                 len({name for name, _ in found}) == 1
             ):
                 return None
-            labels = [(label,) for label in found.values()]
             hint = "write one of them" if len(names) > 1 else "use a path reference"
-            self._warn_ambiguous(target, labels, node, hint)
+            mat_types.warn_ambiguous(target, found.values(), node, hint)
             return None
         return next(iter(found), (None, None))[1]
 
+    def inventory_name(self, ref):
+        """Return the name of ``ref`` in ``objects.inv``, or None when it has
+        none. That is ``ref``, but with spaces for the line breaks of a block's
+        name (one line of the file per entry): the form a role's target has.
+        When that form is another object's reference or the form of an earlier
+        block, the block has no entry.
+        """
+        if not mat_naming.has_line_break(ref):
+            return ref
+        name = mat_naming.collapse_space(ref)
+        return name if self._documented(name) == ref else None
+
     def get_objects(self):
         for ref, (docname, objtype, display) in self.data["objects"].items():
+            name = self.inventory_name(ref)
+            if name is None:
+                continue
+            if mat_naming.has_line_break(display):
+                display = mat_naming.collapse_space(display)
             yield (
-                ref,
+                name,
                 display,
                 objtype,
                 docname,
@@ -1281,7 +1340,7 @@ class MATLABDomain(Domain):
                 refs = [ref for ref, _ in matches]
                 link = mat_urls.chooser_link(self, builder, fromdocname, refs, contnode)
                 return [(f"mat:{role}", link)]
-            self._warn_ambiguous(target, matches, node)
+            mat_types.warn_ambiguous(target, [m[0] for m in matches], node)
             return [(f"mat:{role}", contnode)]
         return [
             (
@@ -1296,20 +1355,6 @@ def analyze(app):
     mat_types.analyze(app)
 
 
-_REMOVED_OPTIONS = {
-    "matlab_src_dir": (
-        "use matlab_src_code_project_root (relative to the Sphinx source "
-        "directory) and, to select files, matlab_src_include_patterns and "
-        "matlab_src_exclude_patterns"
-    ),
-    "matlab_keep_package_prefix": (
-        "objects are referenced by path (which keeps '+') and signatures show "
-        "MATLAB names (without '+')"
-    ),
-    "matlab_short_links": "signatures show MATLAB names by default",
-}
-
-
 def check_config_names(app, config):  # noqa: ARG001
     # vars(config): names another extension set earlier (sphinx-multiproject).
     names = {*config._raw_config, *vars(config)}
@@ -1317,31 +1362,9 @@ def check_config_names(app, config):  # noqa: ARG001
 
 
 def ensure_configuration(app, config):
-    removed = [
-        f"{name} was removed: {reason}."
-        for name, reason in _REMOVED_OPTIONS.items()
-        if getattr(config, name) is not None
-    ]
-    if removed:
-        them = "it" if len(removed) == 1 else "them"
-        raise ConfigError(" ".join(removed) + f" Remove {them} from conf.py.")
-
+    mat_config.check_sources(config, app.srcdir)
     if config.matlab_auto_link not in (None, "basic", "all"):
         raise ConfigError("matlab_auto_link must be None, 'basic', or 'all'.")
-
-    sources = mat_types.source_filter(config)
-    if config.matlab_src_code_project_root is not None:
-        root = mat_types.project_root(config, app.srcdir)
-        mat_types.check_pattern_folders(sources, root)
-
-    try:
-        mat_naming.validate_matlab_version(config.matlab_version)
-    except ValueError as err:
-        raise ConfigError(str(err)) from err
-
-
-def check_encoding(app, config):  # noqa: ARG001
-    mat_types.check_text_encoding(config.matlab_src_encoding, "matlab_src_encoding")
 
 
 def _get_version():
@@ -1358,7 +1381,6 @@ def setup(app):
     app.setup_extension("sphinx.ext.autodoc")
     app.connect("config-inited", check_config_names)
     app.connect("config-inited", ensure_configuration)
-    app.connect("config-inited", check_encoding)
     app.connect("config-inited", check_external_names)
     app.connect("config-inited", mat_sidecars.check_config)
     app.connect("config-inited", mat_api_check.check_config)
@@ -1375,78 +1397,13 @@ def setup(app):
     app.connect("html-collect-pages", mat_urls.chooser_pages)
     app.connect("builder-inited", mat_urls.add_script)
     app.connect("env-get-outdated", mat_urls.note_pages)
-    app.connect("env-get-updated", mat_urls.relink)
+    app.connect("env-get-updated", mat_urls.pages_to_write)
     app.connect("build-finished", mat_urls.write_redirects)
-    app.connect("build-finished", mat_urls.remove_stale_pages)
     app.connect("build-finished", simulink_linker.write_settings)
 
     app.add_domain(MATLABDomain)
     app.add_builder(mat_api_check.MatlabApiCheckBuilder)
-    # autodoc
-    # Relative paths are relative to the Sphinx source directory.
-    app.add_config_value("matlab_src_code_project_root", None, "env")
-    # Globs relative to matlab_src_code_project_root; [] selects no files.
-    app.add_config_value(
-        "matlab_src_include_patterns",
-        list(mat_types.DEFAULT_INCLUDE_PATTERNS),
-        "env",
-        [list, tuple],
-    )
-    app.add_config_value(
-        "matlab_src_exclude_patterns",
-        list(mat_types.DEFAULT_EXCLUSION_PATTERNS),
-        "env",
-        [list, tuple],
-    )
-    # Sidecar docs: [] is off; e.g. [".md", ".rst"] (plan.md 2.11).
-    app.add_config_value("matlab_src_sidecar_suffixes", [], "env", [list, tuple])
-    # Removed: setting it raises ConfigError.
-    app.add_config_value("matlab_src_dir", None, "env")
-    app.add_config_value("matlab_src_encoding", None, "env")
-    # Removed: setting it raises ConfigError.
-    app.add_config_value("matlab_keep_package_prefix", None, "env")
-    app.add_config_value("matlab_show_property_default_value", True, "env")
-    app.add_config_value("matlab_show_property_specs", True, "env")
-    # Removed: setting it raises ConfigError.
-    app.add_config_value("matlab_short_links", None, "env")
-    app.add_config_value("matlab_auto_link", None, "env")
-    app.add_config_value("matlab_class_signature", False, "env")
-    app.add_config_value("matlab_add_namespace_names", True, "env", bool)
-    # Regexes of names references to which are text, without a warning.
-    app.add_config_value(
-        "matlab_external_names", list(DEFAULT_EXTERNAL_NAMES), "html", [list, tuple]
-    )
-    app.add_config_value("matlab_version", mat_naming.DEFAULT_MATLAB_VERSION, "env")
-    # Stable addresses (mat/ref/, mat/name/) and "¶" links to them.
-    app.add_config_value("matlab_stable_urls", True, "html", bool)
-    # Several objects of one MATLAB name are intended: link to their chooser
-    # page, without mat.ambiguous.
-    app.add_config_value(
-        "matlab_link_shadowed_files_to_chooser_pages", False, "env", bool
-    )
-    # The sphinx-autobuild address for Simulink Help links (make livehtml).
-    app.add_config_value("matlab_simulink_autobuild_server", None, "")
-    # Metadata of Simulink files shown by default (directive option :metadata:).
-    app.add_config_value(
-        "matlab_simulink_metadata", ["release", "model_version"], "env", [list, tuple]
-    )
-    # Suffixes of documentation files next to Simulink files, by priority.
-    app.add_config_value(
-        "matlab_simulink_doc_suffixes", [".md", ".rst"], "env", [list, tuple]
-    )
-    # matlab-api-check: read by the builder only, so no page is read again.
-    # Rule -> severity, merged over mat_api_check.DEFAULT_RULES.
-    app.add_config_value("matlab_api_check_rules", {}, "", dict)
-    app.add_config_value("matlab_api_check_ignore_patterns", [], "", [list, tuple])
-    # None checks every file; a list (or, from -D, a comma-separated str) selects.
-    app.add_config_value("matlab_api_check_files", None, "")
-    # A text file of selection entries, one per line.
-    app.add_config_value("matlab_api_check_files_from", None, "")
-    app.add_config_value("matlab_api_check_ignore_unmatched", False, "", bool)
-    # Section -> the labels it accepts, replacing the built-in ones.
-    app.add_config_value("matlab_api_check_section_labels", {}, "", dict)
-    # Read by scmd apidoc only.
-    apidoc_config.add_config_values(app)
+    mat_config.add_config_values(app.add_config_value)
 
     app.registry.add_documenter("mat:folder", doc.MatFolderDocumenter)
     app.add_directive_to_domain(

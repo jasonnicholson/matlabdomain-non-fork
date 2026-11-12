@@ -14,10 +14,9 @@ import os
 import stat
 import sys
 import unicodedata
-import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, cast
-from zipfile import ZipFile
 
 from sphinx.environment import CONFIG_OK
 from sphinx.errors import ConfigError
@@ -33,7 +32,6 @@ from sphinxcontrib.mat_tree_sitter_parser import (
     MatScriptParser,
     declaration,
     first_error,
-    get_row,
     parsed_type,
 )
 
@@ -44,7 +42,6 @@ from .mat_classify import (
     UNKNOWN,
     classify,
     decode_source,
-    first_line_of_code,
     has_mex_file,
     is_help_only,
     is_hidden,
@@ -54,10 +51,14 @@ from .mat_naming import (
     ROOT_REFERENCE,
     folder_of,
     is_private_reference,
+    join_folder,
     join_reference,
     parse_reference,
+    split_folder,
 )
 from .mat_simulink import read_diagram
+from .mat_simulink._nodes import parse_xml
+from .mat_simulink._parts import read_members
 
 logger = getLogger("matlab-domain")
 
@@ -80,65 +81,6 @@ __all__ = [
     "MatSubsystemFile",
 ]
 
-
-# MATLAB attribute type dictionaries.
-
-# From:
-#  - http://www.mathworks.com/help/matlab/matlab_oop/class-attributes.html
-MATLAB_CLASS_ATTRIBUTE_TYPES = {
-    "Abstract": bool,
-    "AllowedSubclasses": list,
-    "ConstructOnLoad": bool,
-    "HandleCompatible": bool,
-    "Hidden": bool,
-    "InferiorClasses": list,
-    "Sealed": bool,
-    "SharedTestFixtures": list,
-    "TestTags": list,
-}
-
-# From:
-#  - https://mathworks.com/help/matlab/matlab_oop/property-attributes.html
-#  - https://mathworks.com/help/matlab/matlab_prog/define-property-attributes-1.htm
-#  - https://mathworks.com/help/matlab/ref/matlab.unittest.testcase-class.html
-MATLAB_PROPERTY_ATTRIBUTE_TYPES = {
-    "AbortSet": bool,
-    "Abstract": bool,
-    "Access": list,
-    "ClassSetupParameter": bool,
-    "Constant": bool,
-    "Dependent": bool,
-    "DiscreteState": bool,
-    "GetAccess": list,
-    "GetObservable": bool,
-    "Hidden": bool,
-    "MethodSetupParameter": bool,
-    "NonCopyable": bool,
-    "Nontunable": bool,
-    "PartialMatchPriority": bool,
-    "SetAccess": list,
-    "SetObservable": bool,
-    "TestParameter": bool,
-    "Transient": bool,
-}
-
-# From
-#  - https://mathworks.com/help/matlab/matlab_oop/method-attributes.html
-#  - https://mathworks.com/help/matlab/ref/matlab.unittest.testcase-class.html
-MATLAB_METHOD_ATTRIBUTE_TYPES = {
-    "Abstract": bool,
-    "Access": list,
-    "Hidden": bool,
-    "ParameterCombination": bool,
-    "Sealed": list,
-    "Static": bool,
-    "Test": bool,
-    "TestClassSetup": bool,
-    "TestClassTeardown": bool,
-    "TestMethodSetup": bool,
-    "TestMethodTeardown": bool,
-    "TestTags": list,
-}
 
 # The parsed-source model lives in ``env.domaindata['mat']`` and is pickled
 # with the environment (plan.md Sections 2.1 and 2.2):
@@ -172,7 +114,7 @@ class _DetachedEntityStore:
         return {}
 
     def resolve(self, ref):
-        parts = [] if ref == ROOT_REFERENCE else ref.rstrip("/").split("/")
+        parts = split_folder(ref)
         path = os.path.join(cast(str, MatObject.basedir), *parts)
         if ref.endswith("/"):
             top = os.path.join(cast(str, MatObject.basedir), parts[0]) if parts else ""
@@ -425,6 +367,15 @@ def _named(dom, name):
     The longest known prefix of ``name`` is the file or folder; the rest are
     members (``pkg.Cls.method``).
     """
+    # A block by the MATLAB name of its library: lib/Group/Gain.
+    head, slash, block = name.partition("/")
+    if slash:
+        refs = dom.data["matlab_names"].get(head, ())
+        return [
+            (f"{ref}/{block}", ref)
+            for ref in refs
+            if mat_naming.is_block_container(ref.rpartition("/")[2])
+        ]
     parts = name.split(".")
     for i in range(len(parts), 0, -1):
         refs = dom.data["matlab_names"].get(".".join(parts[:i]))
@@ -490,7 +441,17 @@ def _match(dom, ref, accept):
             exists = file in dom.source_paths()
         return (ref, None) if exists and (file[-1:] == "/") == folders else None
     obj = _member(resolve(dom, file), members)
-    return (ref, obj) if obj is not None and accept(obj) else None
+    if obj is None or not accept(obj):
+        return None
+    # A block named with spaces for its line breaks: its own reference.
+    return (getattr(obj, "ref", ref) if isinstance(obj, MatBlock) else ref), obj
+
+
+def same_block(path, name):
+    """Return True if ``name`` is the block path ``path``, any run of
+    whitespace (a line break in a block name) written as a space.
+    """
+    return " ".join(path.split()) == " ".join(name.split())
 
 
 def _resolved(dom, matches):
@@ -538,24 +499,37 @@ def find_source(dom, target, folder=None, accept=is_source_object):
     return []
 
 
+def warn_ambiguous(target, labels, location, hint="use a path reference"):
+    """Warn ``mat.ambiguous``: ``target`` matches every one of ``labels``."""
+    logger.warning(
+        "[sphinxcontrib-matlabdomain] %r matches several objects: %s; %s",
+        target,
+        ", ".join(sorted(labels)),
+        hint,
+        type="mat",
+        subtype="ambiguous",
+        location=location,
+    )
+
+
+def find_one(dom, target, folder=None, accept=is_source_object, location=None):
+    """``find_source``'s only ``(reference, object)``, or None: nothing
+    matches, or several do (then after a ``mat.ambiguous`` warning).
+    """
+    found = find_source(dom, target, folder, accept)
+    if len(found) > 1:
+        warn_ambiguous(target, [ref for ref, _ in found], location)
+    return found[0] if len(found) == 1 else None
+
+
 def folder_reference(dom, target, location=None):
     """Folder reference for a folder argument (path or namespace name)."""
     target = target.strip()
     if target in (".", ROOT_REFERENCE):
         return ROOT_REFERENCE
-    found = find_source(dom, target, accept=is_folder_object)
-    if len(found) == 1:
-        return found[0][0]
+    found = find_one(dom, target, accept=is_folder_object, location=location)
     if found:
-        logger.warning(
-            "[sphinxcontrib-matlabdomain] %r matches several folders: %s; "
-            "use a path reference",
-            target,
-            ", ".join(sorted(ref for ref, _ in found)),
-            type="mat",
-            subtype="ambiguous",
-            location=location,
-        )
+        return found[0]
     return target if target.endswith("/") else f"{target}/"
 
 
@@ -591,6 +565,9 @@ def file_like_folder(name):
 
 #: files Sphinx writes into its output folders: HTML builders and doctrees
 SPHINX_OUTPUT_MARKERS = frozenset((".buildinfo", "environment.pickle"))
+#: files an HTML output folder holds together, also in a copy without
+#: ``.buildinfo`` (``cp -r html/* public/`` skips dot files)
+SPHINX_HTML_FILES = frozenset(("objects.inv", "searchindex.js"))
 #: the build folder of the Makefile and make.bat of a Sphinx source folder
 BUILD_FOLDER = "_build"
 
@@ -598,10 +575,14 @@ BUILD_FOLDER = "_build"
 def sphinx_output(path, names):
     """Return True if the folder ``path`` with the entries ``names`` is Sphinx
     output, which holds copies of MATLAB files (``_downloads``): it has a
-    marker file, or a ``doctrees`` or ``.doctrees`` folder with one (the
-    output folder of any builder, ``_build`` of ``make``).
+    marker file, both ``objects.inv`` and ``searchindex.js`` (HTML output,
+    also copied without its ``.buildinfo``), or a ``doctrees`` or
+    ``.doctrees`` folder with ``environment.pickle`` (the output folder of
+    any builder, ``_build`` of ``make``).
     """
     if not SPHINX_OUTPUT_MARKERS.isdisjoint(names):
+        return True
+    if SPHINX_HTML_FILES.issubset(names):
         return True
     return any(
         name in names and os.path.isfile(os.path.join(path, name, "environment.pickle"))
@@ -697,11 +678,13 @@ _GLOB_CHARS = frozenset("*?[")
 
 
 def _normalize_pattern(pattern, option):
-    """``pattern`` relative to the project root, ``..`` resolved; a
-    ConfigError for a pattern that is not relative or leaves the root.
+    """``pattern`` relative to the project root, ``..`` resolved, in Unicode
+    NFC form like the references it matches; a ConfigError for a pattern that
+    is not relative or leaves the root.
     """
     if not isinstance(pattern, str) or not pattern:
         raise ConfigError(f"{option}: {pattern!r} is not a glob pattern.")
+    pattern = unicodedata.normalize("NFC", pattern)
     if "\\" in pattern:
         raise ConfigError(f"{option}: {pattern!r} must use '/' as the separator.")
     if pattern.startswith("/") or ntpath.splitdrive(pattern)[0]:
@@ -745,10 +728,13 @@ def _literal_folder(pattern):
 class SourceFilter:
     """Include and exclusion patterns below the project root (plan.md Section
     2.4), matched like Sphinx's ``exclude_patterns`` against path references
-    (case-sensitive on every OS).
+    (case-sensitive on every OS). Patterns are taken in Unicode NFC form, like
+    the references.
     """
 
     def __init__(self, include, exclude):
+        include = [unicodedata.normalize("NFC", p) for p in include]
+        exclude = [unicodedata.normalize("NFC", p) for p in exclude]
         #: the normalized ``(include, exclude)`` patterns
         self.patterns = (tuple(include), tuple(exclude))
         self.include = Matcher(include)
@@ -1058,23 +1044,28 @@ class _Indexer:
     def run(self):
         root = MatModule(os.path.basename(self.basedir), self.basedir, ROOT_REFERENCE)
         self.out.entities[ROOT_REFERENCE] = root
-        self.list(root)
+        chain = (os.path.normcase(self.real_root),)
+        self.list(root, chain)
         self.descend(root)
 
     def descend(self, mod):
         kept = []
         for name, ref in mod.members:
             if ref[-1:] == "/":
-                child = self.pending.pop(ref)
-                if not self.list(child):  # a Sphinx output folder
+                child, chain = self.pending.pop(ref)
+                if not self.list(child, chain):  # a Sphinx output folder
                     continue
                 self.out.entities[ref] = child
                 self.descend(child)
             kept.append((name, ref))
         mod.members = kept
 
-    def outside(self, path, ref):
-        real = os.path.realpath(path)
+    def outside(self, path, ref, real=None):
+        """Return True, with a warning, if the link ``path`` (real path
+        ``real``) leads out of the root.
+        """
+        if real is None:
+            real = os.path.realpath(path)
         if _within(real, self.real_root):
             return False
         _warn(
@@ -1084,13 +1075,53 @@ class _Indexer:
         )
         return True
 
-    def list(self, mod):
-        """List the folder ``mod`` into its members; return False, with no
-        members, if it is a Sphinx output folder.
+    def folder_chain(self, path, ref, key, chain):
+        """Return the real paths (``normcase``) of the folder ``path`` and the
+        folders above it on the walk, up to the root; None, with a warning, for
+        a link that leaves the root or leads back to one of those folders (a
+        cycle).
+        """
+        if not _is_link(path):
+            # The real path of a folder that is not a link: no system call.
+            return (*chain, os.path.join(chain[-1], os.path.normcase(key)))
+        real = os.path.realpath(path)
+        if self.outside(path, ref, real):
+            return None
+        normal = os.path.normcase(real)
+        if normal in chain:
+            _warn(
+                "link_cycle",
+                f"{ref} links to {real}, a folder that contains it; the link is "
+                "not followed.",
+            )
+            return None
+        return (*chain, normal)
+
+    @staticmethod
+    def twin(seen, key, ref):
+        """Return True, with a warning, if an entry listed before ``key`` in
+        its folder has the reference ``ref``: the names differ only by Unicode
+        form, so the second is not documented.
+        """
+        first = seen.setdefault(ref, key)
+        if first == key:
+            return False
+        _warn(
+            "parse_error",
+            f"{ref}: the names {first!a} and {key!a} in its folder "
+            f"differ only by Unicode form; {key!a} is not documented.",
+        )
+        return True
+
+    def list(self, mod, chain):
+        """List the folder ``mod`` into its members, in the order of the names
+        on disk; return False, with no members, if it is a Sphinx output
+        folder. ``chain`` holds the real paths of ``mod`` and the folders above
+        it on the walk.
         """
         mod.members = []
         try:
-            keys = os.listdir(mod.path)
+            keys = sorted(os.listdir(mod.path))
         except OSError as err:  # one bad folder must not stop the build
             _warn(
                 "parse_error",
@@ -1104,6 +1135,7 @@ class _Indexer:
             self.docs is not None and _within(mod.path, self.docs)
         )
         denied = []
+        seen = {}  # reference: the first name on disk that has it
         # documentation file candidates, and the stems of Simulink files
         loose, simulink_stems = [], set()
         for key in keys:
@@ -1141,9 +1173,10 @@ class _Indexer:
                         subtype="folder_name",
                     )
                     continue
-                if _is_link(path) and self.outside(path, ref):
+                child_chain = self.folder_chain(path, ref, key, chain)
+                if child_chain is None or self.twin(seen, key, ref):
                     continue
-                self.pending[ref] = MatModule(key, path, ref)
+                self.pending[ref] = (MatModule(key, path, ref), child_chain)
                 mod.members.append((key, ref))
                 continue
             handler = handler_for(path)
@@ -1156,7 +1189,9 @@ class _Indexer:
                 simulink_stems.add(os.path.splitext(key)[0])
             if self.sidecars_only or not self.sources.includes(ref):
                 continue
-            if _is_link(path) and self.outside(path, ref):
+            if (_is_link(path) and self.outside(path, ref)) or self.twin(
+                seen, key, ref
+            ):
                 continue
             self.index_file(handler, path, ref, st)
             mod.members.append((os.path.splitext(key)[0], ref))
@@ -1167,8 +1202,10 @@ class _Indexer:
             )
             if not (simulink_doc or (sidecars and suffix in self.sidecar_suffixes)):
                 continue
-            if not self.sources.includes(ref) or (
-                _is_link(path) and self.outside(path, ref)
+            if (
+                not self.sources.includes(ref)
+                or (_is_link(path) and self.outside(path, ref))
+                or self.twin(seen, key, ref)
             ):
                 continue
             record = {"reference": ref, "mtime": st.st_mtime_ns, "size": st.st_size}
@@ -1334,14 +1371,14 @@ def _scope(folder):
     The folder above its ``@class`` and ``+namespace`` folders; for
     ``private/`` the folder holding it.
     """
-    parts = [] if folder == ROOT_REFERENCE else folder.rstrip("/").split("/")
+    parts = split_folder(folder)
     if parts and parts[-1] == "private":
         parts.pop()
     else:
         parts = parts[: next((i for i, p in enumerate(parts) if p[:1] == "@"), None)]
         while parts and parts[-1][:1] == "+":
             parts.pop()
-    return "/".join(parts) + "/" if parts else ROOT_REFERENCE
+    return join_folder(parts)
 
 
 # Stands in for the project root (a plain folder), so folders above the root
@@ -1370,7 +1407,7 @@ def name_sources(source_index):
         ref = record["reference"]
         naming = getattr(handler_by_extension(path), "naming", "code")
         # a .slx that is no Simulink file (an LFS pointer) is nothing to call
-        if naming is None or (naming == "model" and record["type"] == UNKNOWN):
+        if naming == "model" and record["type"] == UNKNOWN:
             record.update(matlab_name=None, private=False, scope=None)
             continue
         filename = os.path.basename(path)
@@ -1456,10 +1493,10 @@ def placeholder(kind, name, folder) -> Any:
     obj.line = None
     if cls is MatClass:
         obj.attrs, obj.bases, obj.properties = {}, [], {}
-        obj.methods, obj.enumerations, obj.rem_tks = {}, {}, None
+        obj.methods, obj.enumerations = {}, {}
         obj.declarations, obj.events = {}, {}
     elif cls is MatFunction:
-        obj.retv, obj.args, obj.rem_tks = {}, {}, None
+        obj.retv, obj.args = {}, {}
         obj.name_value = {}
     else:
         obj.tokens = None
@@ -1503,11 +1540,10 @@ class MatObject:
     encoding = None
     sphinx_env = None
     sphinx_app: Any = None
-    #: index type (the handler's ``classify()``), tree-sitter's type (``.m``
-    #: only) and whether the file has code
+    #: index type (the handler's ``classify()``) and tree-sitter's type (``.m``
+    #: only)
     source_type: str | None = None
     parsed_type: str | None = None
-    has_code = True
     #: ``(subtype, message, row or None)`` found while parsing; the build
     #: warns them through ``parse_warnings``
     source_warnings: list[tuple[str, str, int | None]] | tuple = ()
@@ -1661,7 +1697,7 @@ class MatObject:
                         f"{cast(bytes, decl_name.text).decode('utf-8', 'replace')}; "
                         "MATLAB allows dotted names only in a classdef file. It is "
                         "documented under its file name.",
-                        get_row(decl_name.start_point),
+                        decl_name.start_point.row,
                     )
                 )
             parsed = parsed or "script"
@@ -1673,15 +1709,14 @@ class MatObject:
             obj, parsed = func, "function"
         obj.source_type = source_type
         obj.parsed_type = parsed
-        obj.has_code = source_type != "script" or bool(first_line_of_code(text))
         obj.source_warnings = warnings
         return obj
 
     @staticmethod
     def parse_mlappfile(mlappfile, name, path):
-        """Use ZipFile to read the metadata/appMetadata.xml file and
+        """Read the metadata/appMetadata.xml file and
         the metadata/coreProperties.xml file description tags.
-        Parses XML content using ElementTree.
+        Parses the XML with the guards of the Simulink reader.
 
         :param mlappfile: Full path of ``.mlapp`` file.
         :type mlappfile: str
@@ -1690,32 +1725,27 @@ class MatObject:
         :param path: Folder reference of the folder containing :class:`MatApplication`.
         :type path: str
         :returns: :class:`MatApplication` representing the application.
+        :raises SimulinkFileError: for a file or member over a size limit, or XML
+            with a DTD or nested too deep.
         """
         # Read contents of meta-data file
         # This might change in different Matlab versions
         # Note: `code` is a verbatim copy of the MATLAB source inside the App
         #       Variable `codeText` will contain the source.
-        with ZipFile(mlappfile, "r") as mlapp:
-            meta = ET.fromstring(mlapp.read("metadata/appMetadata.xml"))
-            core = ET.fromstring(mlapp.read("metadata/coreProperties.xml"))
+        # The size limits, the DTD refusal and the nesting limit of the
+        # Simulink reader; a violation is a SimulinkFileError.
+        meta_part, core_part = "metadata/appMetadata.xml", "metadata/coreProperties.xml"
+        meta_data, core_data = read_members(Path(mlappfile), (meta_part, core_part))
+        meta = parse_xml(meta_data, meta_part)
+        core = parse_xml(core_data, core_part)
 
-        metaNs = {"ns": "http://schemas.mathworks.com/appDesigner/app/2017/appMetadata"}
-        coreNs = {
-            "cp": "http://schemas.openxmlformats.org/package/2006/metadata/core-properties",
-            "dc": "http://purl.org/dc/elements/1.1/",
-            "dcmitype": "http://purl.org/dc/dcmitype/",
-            "dcterms": "http://purl.org/dc/terms/",
-            "xsi": "http://www.w3.org/2001/XMLSchema-instance",
-        }
-
-        coreDesc = core.find("dc:description", coreNs)
-        metaDesc = meta.find("ns:description", metaNs)
-
-        doc = []
-        if coreDesc is not None and coreDesc.text is not None:
-            doc.append(coreDesc.text)
-        if metaDesc is not None and metaDesc.text is not None:
-            doc.append(metaDesc.text)
+        # Names without namespaces: appMetadata's ``description`` and the
+        # Dublin Core ``dc:description`` of coreProperties.
+        doc = [
+            text
+            for text in (core.child_text("description"), meta.child_text("description"))
+            if text
+        ]
         docstring = "\n\n".join(doc)
 
         modname = path  # folder reference
@@ -1724,7 +1754,7 @@ class MatObject:
 
     @staticmethod
     def parse_simulink(path, name, folder) -> Any:
-        """Read a Simulink file (``.slx``, ``.mdl``, exported ``.xml``).
+        """Read a Simulink file (``.slx`` or ``.mdl``).
 
         :returns: :class:`MatModel`, :class:`MatLibrary` or
             :class:`MatSubsystemFile`.
@@ -1759,7 +1789,7 @@ class MatModule(MatObject):
         self.package = package
         self.ref = package
         #: ``(name, reference)`` of its files (name without extension) and
-        #: folders in listing order, set by the index stage
+        #: folders in the order of their names on disk, set by the index stage
         self.members = None
 
     def ref_role(self):
@@ -1869,8 +1899,6 @@ class MatFunction(MatObject):
         self.name_value = parsed_function.name_value
         #: line of the declaration (one-based)
         self.line = parsed_function.line
-        #: remaining tokens after main function is parsed
-        self.rem_tks = None
 
     def ref_role(self):
         """Return the role used for references and automatic links"""
@@ -1933,8 +1961,6 @@ class MatClass(MatObject):
         self.enumerations = parsed_class.enumerations
         #: ``{name: {"attrs", "docstring", "line"}}`` of the events
         self.events = parsed_class.events
-        #: remaining tokens after main class definition is parsed
-        self.rem_tks = None
 
     def ref_role(self):
         """Return the role used for references and automatic links"""
@@ -2208,9 +2234,11 @@ class MatLibrary(MatSimulinkFile):
 
     def getter(self, name, *defargs) -> Any:
         blocks = self.diagram.library_blocks if self.diagram is not None else ()
-        for block in blocks:
-            if block.path == name:
-                return MatBlock(block, self)
+        # The exact path first; else a space for a line break, as in a role.
+        for same in (lambda path: path == name, lambda path: same_block(path, name)):
+            for block in blocks:
+                if same(block.path):
+                    return MatBlock(block, self)
         return super().getter(name, *defargs)
 
 

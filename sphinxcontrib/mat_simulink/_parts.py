@@ -12,7 +12,8 @@ import zlib
 from collections.abc import Callable
 from pathlib import Path
 
-# Model files are untrusted input: bound everything that is read.
+# Model files may be corrupt or huge (project files are trusted): bound
+# everything that is read.
 MAX_FILE_BYTES = 1024 * 1024 * 1024
 MAX_ENTRIES = 100_000
 MAX_PART_BYTES = 256 * 1024 * 1024
@@ -35,9 +36,9 @@ def read_head(path: Path) -> bytes:
         return f.read(HEAD_BYTES)
 
 
-def sniff(path: Path, head: bytes) -> str:
-    """Return the layout of a file: ``zip``, ``opc``, ``classic``, ``xml``
-    or ``unknown``. A Git LFS pointer is a :class:`SimulinkFileError`.
+def sniff(head: bytes) -> str:
+    """Return the layout of a file: ``zip``, ``opc``, ``classic`` or
+    ``unknown``. A Git LFS pointer is a :class:`SimulinkFileError`.
     """
     if head.startswith(LFS_POINTER):
         raise SimulinkFileError("is a Git LFS pointer, not the model file.")
@@ -46,10 +47,6 @@ def sniff(path: Path, head: bytes) -> str:
     text = head.removeprefix(b"\xef\xbb\xbf").lstrip()
     if text.startswith(OPC_TEXT):
         return "opc"
-    if path.suffix.lower() == ".xml":
-        if re.match(rb"(?:<\?xml[^>]*\?>\s*)?<ModelInformation\b", text):
-            return "xml"
-        return "unknown"
     if _CLASSIC.match(text):
         return "classic"
     return "unknown"
@@ -120,6 +117,18 @@ def _read_entry(z: zipfile.ZipFile, info: zipfile.ZipInfo) -> bytes:
             f"has a part larger than {MAX_PART_BYTES} bytes: {info.filename}."
         )
     return z.read(info)
+
+
+def read_members(path: Path, names: tuple[str, ...]) -> list[bytes]:
+    """Read the members ``names`` of a zip file within the size limits. Other
+    members are not read. A zip or lookup error is raised as it is (for
+    ``.mlapp`` files).
+    """
+    check_size(path)
+    with zipfile.ZipFile(path) as z:
+        if len(z.infolist()) > MAX_ENTRIES:
+            raise SimulinkFileError(f"has more than {MAX_ENTRIES} entries.")
+        return [_read_entry(z, z.getinfo(name)) for name in names]
 
 
 def opc_text_parts(path: Path, wanted: Callable[[str], bool]) -> Parts:

@@ -33,15 +33,20 @@ What each warning means
    ``.mlapp`` file is not a valid App Designer file, a ``.slx`` or ``.mdl``
    file is not a Simulink model, library or subsystem file (or is a Git
    LFS pointer, or exceeds the size limits), a folder could not be listed
-   or entered, or a file name is not valid UTF-8. The file is still
-   indexed and documented, without content, so links to it work; a file
-   that cannot be read is tried again on every build. Where the parser
-   found a syntax error, the warning gives its line and column.
+   or entered, or a file name is not valid UTF-8. A file that cannot be
+   read or parsed is still indexed and documented, without content, so
+   links to it work; it is tried again on every build. Where the parser
+   found a syntax error, the warning gives its line and column. Two names
+   in one folder that differ only by Unicode form (``é`` as one character
+   and as ``e`` and an accent) have the same path reference: the first in
+   the order of the names on disk is documented, the other is left out, and
+   the warning shows both names with escapes (``'caf\xe9.m'``,
+   ``'cafe\u0301.m'``). Rename one of them.
 
 ``mat.folder_name``
    An error, which ``suppress_warnings`` does not hide: a folder is named
    like a file the extension reads (``.m``, ``.mlapp``, ``.slx``, ``.mdl``,
-   ``.xml``, ``.md``, ``.rst``, in any case), so references and output
+   ``.md``, ``.rst``, in any case), so references and output
    names could take it for a file. The folder and everything in it are not
    documented; the build goes on. Rename the folder.
 
@@ -68,10 +73,10 @@ What each warning means
    MATLAB cannot call the file for :confval:`matlab_version`, so it has no
    MATLAB name; it is documented and linked by path (:doc:`referencing`).
    The warning says why (an invalid name such as ``my-file``, a keyword,
-   a subfolder of a class folder, ...). Simulink runs and references
-   models, libraries and subsystem files only from the global namespace,
-   and does not load one directly in ``private/`` or a class folder, even
-   by its path, so these have no name. Their subfolders are plain folders
+   a subfolder of a class folder, ...). Simulink cannot reference a model,
+   library or subsystem file in a namespace folder by name
+   (:ref:`simulink-namespaces`), and does not load one directly in
+   ``private/`` or a class folder, even by its path, so these have no name. Their subfolders are plain folders
    for Simulink: a model in ``@C/sub/`` loads in every release, though
    ``.m`` files there are not callable from R2026a.
    Rename or move the file, or suppress the warning if that is intended.
@@ -79,6 +84,12 @@ What each warning means
 ``mat.outside_root``
    A link or Windows junction below the project root points outside it; it
    is not followed (:doc:`configuration`).
+
+``mat.link_cycle``
+   A link or Windows junction points to the folder it is in or to a folder
+   above it, up to the project root, so following it would list the same
+   files again and again. It is not followed; its folder is documented
+   once, at its own path (:doc:`configuration`).
 
 ``mat.ambiguous``
    A name in a :term:`directive`, :term:`role`, "See also" line or auto-link
@@ -99,7 +110,18 @@ What each warning means
    of the directive. Check the name, the current folder
    (:doc:`referencing`) and :confval:`matlab_src_code_project_root`.
    Description directives (``mat:function``) never read a file and never
-   get it (:doc:`documenting`).
+   get it (:doc:`documenting`). A name in ``:members:`` that the object
+   does not have gets it too.
+
+``mat.directive``
+   A directive got an argument of the wrong kind: ``mat:folder`` names a
+   class folder (document the class instead), or ``mat:autofolder`` has
+   arguments or a return annotation (a folder has neither).
+
+``mat.duplicate``
+   The same object is described twice (add ``:no-index:`` to one of the
+   descriptions), or two objects would get the same anchor, so the second
+   cannot be linked.
 
 ``mat.apidoc``
    ``scmd apidoc``: a file that cannot be read was left out, two
@@ -119,8 +141,8 @@ When warnings appear
 
 * On every build, for every indexed file: ``mat.encoding``,
   ``mat.empty_code_file``, ``mat.not_callable``, ``mat.outside_root``,
-  ``mat.invalid_matlab`` for NUL bytes, and ``mat.parse_error`` for a file
-  or folder that cannot be read.
+  ``mat.link_cycle``, ``mat.invalid_matlab`` for NUL bytes, and
+  ``mat.parse_error`` for a file or folder that cannot be read.
 * Once per build, for the files that the pages read in that build use:
   ``mat.invalid_matlab`` and ``mat.parse_error`` found while parsing. A file
   that no page uses is not parsed, so it does not get these (the
@@ -129,6 +151,6 @@ When warnings appear
 Other warnings
 --------------
 
-A few messages have no subtype: an unknown directive option, a folder
-directive given a class folder, and duplicate object descriptions. Fix the
-directive; they cannot be suppressed by subtype.
+Messages from docutils and Sphinx themselves, such as an unknown directive
+option, have no ``mat`` type. Fix the directive; ``suppress_warnings`` with
+``mat`` does not hide them.

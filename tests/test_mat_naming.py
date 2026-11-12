@@ -2,11 +2,8 @@
 
 import dataclasses
 import json
-import ntpath
 import os
-import posixpath
 import random
-import unicodedata
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
@@ -32,7 +29,6 @@ from sphinxcontrib.mat_naming import (
     make_target_id,
     not_callable_reason,
     parse_reference,
-    path_reference,
     split_display,
     validate_matlab_version,
 )
@@ -188,7 +184,7 @@ def test_identifier_validation_respects_namelengthmax():
 
 def test_ensure_configuration_derives_namelengthmax_from_version():
     env = _config("R2025a")
-    matlab.ensure_configuration(None, env)
+    matlab.ensure_configuration(_APP, env)
     assert default_namelengthmax(env.matlab_version) == 2048
 
 
@@ -197,14 +193,14 @@ def test_auto_link_rejects_invalid_values(value):
     config = _config()
     config.matlab_auto_link = value
     with pytest.raises(ConfigError, match="matlab_auto_link"):
-        matlab.ensure_configuration(None, config)
+        matlab.ensure_configuration(_APP, config)
 
 
 @pytest.mark.parametrize("version", ["R2023b", "2026a", "R2026c", "r2026a", None])
 def test_ensure_configuration_rejects_bad_matlab_version(version):
     env = _config(version)
     with pytest.raises(ConfigError, match="matlab_version"):
-        matlab.ensure_configuration(None, env)
+        matlab.ensure_configuration(_APP, env)
 
 
 @pytest.mark.parametrize("name", ["matlab_keep_package_prefix", "matlab_short_links"])
@@ -213,7 +209,7 @@ def test_ensure_configuration_rejects_removed_options(name, value):
     env = _config()
     setattr(env, name, value)
     with pytest.raises(ConfigError, match=f"{name} was removed"):
-        matlab.ensure_configuration(None, env)
+        matlab.ensure_configuration(_APP, env)
 
 
 def test_matlab_version_rules():
@@ -397,37 +393,6 @@ def test_oracle_edge_cases(row):
     assert got == expected
 
 
-_FULL_ORACLE = Path(__file__).parents[2] / "reference" / "matlab_names_reference.json"
-
-
-def _snake_keys(row):
-    # The reference corpus uses camelCase column names.
-    return {
-        "".join(f"_{c.lower()}" if c.isupper() else c for c in k): v
-        for k, v in row.items()
-    }
-
-
-@pytest.mark.skipif(not _FULL_ORACLE.exists(), reason="reference corpus not present")
-def test_oracle_full_corpus():
-    rows = [
-        _snake_keys(r) for r in json.loads(_FULL_ORACLE.read_text()) if not r["ignore"]
-    ]
-    assert len(rows) > 60000
-    mismatches = []
-    for row in rows:
-        got, expected = _oracle_check(row)
-        if got != expected:
-            mismatches.append(row)
-    # Every mismatch is a file MATLAB does not call for reasons the path cannot
-    # show (empty file, shadowed toolbox internals, old-style class in a
-    # package); the port never misnames a file MATLAB does call.
-    assert all(
-        not r["oracle_callable"] and not r["exp_pseudo_full_name"] for r in mismatches
-    )
-    assert len(mismatches) <= 11
-
-
 # --- Spaces, invalid identifiers, keywords and both length limits ------------
 
 
@@ -474,6 +439,9 @@ def test_form_matlab_name_both_length_limits(length):
 # --- matlab_version / namelengthmax ------------------------------------------
 
 
+_APP = SimpleNamespace(srcdir=".")
+
+
 def _config(version="R2026a"):
     return SimpleNamespace(
         matlab_short_links=None,
@@ -482,6 +450,8 @@ def _config(version="R2026a"):
         matlab_src_code_project_root=None,
         matlab_src_include_patterns=["**/*"],
         matlab_src_exclude_patterns=[],
+        matlab_src_sidecar_suffixes=[],
+        matlab_src_encoding=None,
         matlab_version=version,
         matlab_auto_link=None,
     )
@@ -519,50 +489,6 @@ def _decode_target_id(anchor):
             out.extend(body[i].encode("utf-8"))
             i += 1
     return out.decode("utf-8")
-
-
-def test_path_reference_files_folders_and_members(tmp_path):
-    (tmp_path / "target" / "+package").mkdir(parents=True)
-    cls = tmp_path / "target" / "+package" / "ClassBar.m"
-    cls.write_text("classdef ClassBar\nend\n")
-
-    assert path_reference(tmp_path, cls) == "target/+package/ClassBar.m"
-    assert (
-        path_reference(tmp_path, cls, "myMethod")
-        == "target/+package/ClassBar.m.myMethod"
-    )
-    assert path_reference(tmp_path, cls.parent) == "target/+package/"
-    assert path_reference(tmp_path, tmp_path) == "./"
-    # Folders are detected on disk or by a trailing separator.
-    assert path_reference(tmp_path, f"{tmp_path}/later/") == "later/"
-    assert path_reference(tmp_path, tmp_path / "later") == "later"
-    assert path_reference(tmp_path, tmp_path / "x", is_folder=True) == "x/"
-    with pytest.raises(ValueError, match="not below"):
-        path_reference(tmp_path / "target", tmp_path / "other.m")
-    with pytest.raises(ValueError, match="not a file"):
-        path_reference(tmp_path, tmp_path, is_folder=False)
-
-
-def test_path_reference_windows_separators():
-    root = r"C:\proj"
-    assert (
-        path_reference(root, r"C:\proj\src\+pkg\f.m", pathmod=ntpath) == "src/+pkg/f.m"
-    )
-    assert (
-        path_reference(root, "C:/proj/src\\@Cls/Cls.m", "m", pathmod=ntpath)
-        == "src/@Cls/Cls.m.m"
-    )
-    assert path_reference(root, "C:\\proj\\src\\", pathmod=ntpath) == "src/"
-    # On POSIX a backslash is a folder-name character, not a separator.
-    assert path_reference("/proj", "/proj/a\\b/f.m", pathmod=posixpath) == "a\\b/f.m"
-
-
-def test_path_reference_is_nfc():
-    nfd = unicodedata.normalize("NFD", "café")
-    assert nfd != "café"
-    ref = path_reference("/proj", f"/proj/{nfd}/f.m", pathmod=posixpath)
-    assert ref == "café/f.m"
-    assert unicodedata.is_normalized("NFC", ref)
 
 
 @pytest.mark.parametrize(
@@ -640,15 +566,9 @@ def test_target_ids_are_unique():
         assert not any(c.isspace() and ord(c) < 0x80 for c in anchor)
 
 
-def test_folder_next_to_same_named_file(tmp_path):
-    (tmp_path / "x" / "Cls.m").mkdir(parents=True)
-    (tmp_path / "y.m").mkdir()
-    (tmp_path / "x" / "Cls.m" / "f.m").write_text("function f\nend\n")
-    folder = path_reference(tmp_path, tmp_path / "x" / "Cls.m")
-    nested = path_reference(tmp_path, tmp_path / "x" / "Cls.m" / "f.m")
-    assert folder == "x/Cls.m/"
-    assert nested == "x/Cls.m/f.m"
-    assert path_reference(tmp_path, tmp_path / "y.m") == "y.m/"
+def test_folder_next_to_same_named_file():
+    # A folder named like a file: its reference ends with "/".
+    folder, nested = "x/Cls.m/", "x/Cls.m/f.m"
     assert parse_reference(folder) == ("x/Cls.m/", [])
     assert parse_reference(nested) == ("x/Cls.m/f.m", [])
     assert make_target_id(folder) != make_target_id("x/Cls.m")

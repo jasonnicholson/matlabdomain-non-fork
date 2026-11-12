@@ -54,14 +54,7 @@ MARKDOWN = ".md"
 LINK, IMAGE = "link", "image"
 
 
-def _warn(subtype, message, location=None):
-    logger.warning(
-        "[sphinxcontrib-matlabdomain] %s",
-        message,
-        type="mat",
-        subtype=subtype,
-        location=location,
-    )
+_warn = mat_types._warn
 
 
 def same_drive(a, b):
@@ -102,8 +95,6 @@ def check_config(app, config):
     if root is None or not (suffixes or simulink):
         return
     srcdir = os.path.normpath(os.fspath(app.srcdir))
-    if suffixes:
-        mat_types.sidecar_layout_error(root, srcdir)
     if not same_drive(root, srcdir):
         if suffixes:
             _warn(

@@ -74,8 +74,8 @@ Names and references:
   documented by path with one ``mat.not_callable`` warning each that says
   why; files below ``private/`` never warn.
 * A folder named like a file the extension reads (``.m``, ``.mlapp``,
-  ``.slx``, ``.mdl``, ``.xml``, ``.md``, ``.rst``, any case) is not
-  documented and logs the error ``mat.folder_name``.
+  ``.slx``, ``.mdl``, ``.md``, ``.rst``, any case) is not documented and
+  logs the error ``mat.folder_name``.
 
 Configuration:
 
@@ -234,11 +234,22 @@ Source files:
   ``CODE_OF_CONDUCT.*`` and ``SECURITY.*``) select the files: globs
   relative to the project root, matched like ``exclude_patterns``,
   case-sensitive (#271). A link below the root that leaves it is skipped
-  with a ``mat.outside_root`` warning.
+  with a ``mat.outside_root`` warning; a link to the folder it is in or a
+  folder above it (a cycle, which repeated the tree up to the operating
+  system's link limit, or without end for two such links) is skipped with
+  a ``mat.link_cycle`` warning.
+* Names and patterns are compared in Unicode NFC form: a pattern typed in
+  NFD matches. Two names in one folder that differ only by Unicode form
+  share one reference; the first in name order is indexed and the other
+  gets a ``mat.parse_error`` warning (two such folders stopped the build
+  with a ``KeyError``, two such files documented the one listed last).
+  A folder's entries are walked in the order of their names on disk.
 * Folders whose names start with ``_`` are documented like any other
   folder (#337). Hidden folders (``.git``) and Sphinx output are skipped:
   the ``_build`` folder of the Sphinx source folder, and folders with
-  Sphinx's ``.buildinfo``, ``environment.pickle`` or ``doctrees``.
+  Sphinx's ``.buildinfo``, ``environment.pickle`` or ``doctrees``, or with
+  both ``objects.inv`` and ``searchindex.js`` (a copy of HTML output
+  without ``.buildinfo``, whose ``_downloads`` made names ambiguous).
 * :confval:`matlab_version` (default ``"R2026a"``, oldest supported
   ``"R2024a"``) selects version-dependent MATLAB naming rules: scripts and
   functions in a subfolder of a class folder (``@C/sub/x.m``) are callable
@@ -255,8 +266,13 @@ Builds:
 * Each build indexes the source files (reads and classifies each file once)
   and parses a file with tree-sitter only when a page needs it. Parses are
   cached in the Sphinx environment by path, modification time and size;
-  only pages that used a changed file are read again (#282). Parallel
-  builds (``-j``) are supported (#147).
+  only pages that used a changed file are read again (#282). Builders
+  can share one doctree folder (``-d``) in any order: an output that did
+  not see another builder's reading of changed pages writes every page once
+  at its next build. Parallel
+  builds (``-j``) are supported (#147); an object or folder described on
+  two pages links to the same page as in a serial build, with the same
+  ``mat.duplicate`` warning.
 * One bad source file no longer stops the build. A file that cannot be
   read or parsed (permissions, a corrupt ``.mlapp``, a parser error) gets
   one suppressible ``mat.parse_error`` warning, with the line of the
@@ -314,8 +330,11 @@ Linking:
   and its entry in ``objects.inv`` point to it, so links survive page
   splitting. A copied address that no longer has the object, or a page
   that is gone (``404.html``), opens the object's stable address.
-  ``matlab_stable_urls`` (default ``True``) turns it off. Incremental HTML
-  builds remove the pages whose ``scmd apidoc`` source is gone.
+  ``matlab_stable_urls`` (default ``True``) turns it off. Builders that do
+  not write ``.html`` pages (EPUB, ``json``, ``pickle``) get none.
+  Incremental HTML builds remove the pages whose ``scmd apidoc`` source is
+  gone, also when another builder on the same doctree folder (``-d``) saw
+  it go.
 * :confval:`matlab_link_shadowed_files_to_chooser_pages`: a name of
   several objects (two global ``helper.m``, ``foo.m`` and ``foo.slx``)
   links to a page that lists them, locally and through intersphinx.
@@ -336,8 +355,7 @@ Linking:
 Simulink files:
 
 * The index reads Simulink models, libraries and subsystem files
-  (``.slx``, ``.mdl`` and ``.xml`` exported by ``save_system``) without
-  MATLAB, from every release since R2006a. They get MATLAB names as
+  (``.slx`` and ``.mdl``) without MATLAB, from every release since R2006a. They get MATLAB names as
   Simulink runs them, and a block of a library is referenced by its
   Simulink path after the file (``lib.slx/Group/Gain``).
 * New directives ``mat:autosimulink_model``, ``mat:autosimulink_library``,
@@ -357,6 +375,14 @@ Simulink files:
   model or block on the local build, the sphinx-autobuild server
   (:confval:`matlab_simulink_autobuild_server`) or the published site;
   ``sphinxcontrib.matlabdomain.setSimulinkHelp`` writes those Help fields.
+  The linker gives the address by the rules of the output names, including
+  the escaped leading ``_`` of a folder, except those that need the sibling
+  files (names that differ only by case, a folder named like a page file).
+  A build writes only to its output and doctree folders: it records its
+  state in ``mat/simulinkDocumentationLinker.json`` there, never changes
+  the committed ``simulinkDocumentationLinker.json`` (written once by
+  ``scmd quickstart``), and logs one ``info`` line when ``local``,
+  ``server`` or ``published`` of that file differ from the build.
 
 Sidecar docs:
 
@@ -399,6 +425,16 @@ Fixes
   it, like a property.
 * An invalid option of a ``mat:auto*`` directive is reported at the right
   file.
+* A corrupt or huge ``.mlapp`` file gives one ``mat.parse_error`` and the
+  build goes on: the reader has the size limits, the refusal of a DTD or
+  entity declaration and the nesting limit of the Simulink reader (a
+  300 MiB member took 1.2 GiB of memory before).
+* A Simulink XML part whose declaration names the encoding ``utf-7`` or
+  ``idna`` crashed the reader with a ``ValueError``; it is a
+  ``mat.parse_error`` now.
+* The refusal of a DTD or entity declaration in a Simulink XML part or an
+  ``.mlapp`` metadata part also holds for a UTF-16 part (it was parsed with
+  its entities before).
 * The package metadata names the license in ``LICENSE``, BSD-2-Clause (it
   said BSD-3-Clause).
 

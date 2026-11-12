@@ -20,7 +20,10 @@ docs = [
 test = [
     "pytest>=9",
     "pytest-cov",
-    "pytest-randomly"
+    "pytest-randomly",
+    # The Markdown tests need the renderer; keep the cap in step with the
+    # `markdown` extra.
+    "myst-parser>=4,<6"
 ]
 
 [project]
@@ -49,7 +52,7 @@ dependencies = [
     # Pin each dependency. Never trust the version number alone because it will break
     # our consumers.
     "tree-sitter-matlab==1.3.3",
-    "tree-sitter==0.26.0"
+    "tree-sitter==0.26.1"
 ]
 description = 'Sphinx "matlabdomain" extension'
 dynamic = ["version"]
@@ -108,6 +111,7 @@ relative_files = true
 source_pkgs = [
     "sphinxcontrib.mat_api_check",
     "sphinxcontrib.mat_classify",
+    "sphinxcontrib.mat_config",
     "sphinxcontrib.mat_directives",
     "sphinxcontrib.mat_documenters",
     "sphinxcontrib.mat_handlers",
@@ -144,6 +148,22 @@ typeCheckingMode = "basic"
 [tool.pytest]
 addopts = ["-ra", "--strict-config", "--strict-markers", "--show-capture=all", "--showlocals", "-s", "-vv"]
 doctest_optionflags = ["NORMALIZE_WHITESPACE", "ELLIPSIS"]
+# Deprecation tripwire (G4-F10): the extension builds on autodoc's Documenter
+# classes, which Sphinx keeps only for backwards compatibility. A deprecation
+# warning attributed to this package's own modules fails the suite. The module
+# field is a regular expression matched from the start of the module name, so
+# it ends with (\.|$) to exclude e.g. sphinxcontrib.matlabfoo. Warnings
+# attributed to other packages (myst_parser, sphinx, ...) are untouched.
+# Python attributes a warning to the frame that `stacklevel` selects, so only
+# warnings raised with that frame in our code are caught. Sphinx's
+# RemovedInSphinxNNWarning classes derive from DeprecationWarning (10) or
+# PendingDeprecationWarning (11); both are listed. When one fires, fix the
+# code or add a precise temporary "ignore" entry for that message after these
+# (later entries win).
+filterwarnings = [
+    "error::DeprecationWarning:sphinxcontrib\\.(matlab|mat_\\w+|matlab_\\w+)(\\.|$)",
+    "error::PendingDeprecationWarning:sphinxcontrib\\.(matlab|mat_\\w+|matlab_\\w+)(\\.|$)"
+]
 junit_family = "xunit2"
 log_cli_level = "INFO"
 minversion = "9.0"
@@ -279,7 +299,7 @@ commands = [
 dependency_groups = ["test", "docs"]
 deps = [
     { replace = "if", condition = "not factor.sphinxdev", then = ["myst-parser"], else = [], extend = true },
-    { replace = "if", condition = "factor.sphinxmin", then = ["myst-parser==4.0.*", "Sphinx==8.0.*", "tree-sitter==0.26.0", "tree-sitter-matlab==1.3.3"], else = [], extend = true },
+    { replace = "if", condition = "factor.sphinxmin", then = ["myst-parser==4.0.*", "Sphinx==8.0.*", "tree-sitter==0.26.1", "tree-sitter-matlab==1.3.3"], else = [], extend = true },
     { replace = "if", condition = "factor.sphinx82", then = ["Sphinx==8.2.*"], else = [], extend = true },
     { replace = "if", condition = "factor.sphinxlatest", then = ["Sphinx"], else = [], extend = true },
     { replace = "if", condition = "factor.sphinxdev", then = ["https://github.com/sphinx-doc/sphinx/archive/refs/heads/master.zip"], else = [], extend = true }

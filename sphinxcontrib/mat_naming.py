@@ -32,7 +32,6 @@ from __future__ import annotations
 import os
 import re
 import string
-import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -142,6 +141,18 @@ def is_valid_identifier(
     return name not in MATLAB_KEYWORDS
 
 
+def has_line_break(text: str) -> bool:
+    """Tell whether ``text`` has a line break an ``objects.inv`` line cannot."""
+    return "\n" in text or "\r" in text
+
+
+def collapse_space(text: str) -> str:
+    """Return ``text`` with each run of white space as one space, as a role
+    writes a target (a block name with a line break has this form there).
+    """
+    return " ".join(text.split())
+
+
 def make_target_id(reference: str) -> str:
     """Anchor for a path reference (see the module docstring)."""
     out = ["mat-"]
@@ -151,35 +162,6 @@ def make_target_id(reference: str) -> str:
         else:
             out.extend(f"~{byte:02X}" for byte in char.encode("utf-8"))
     return "".join(out)
-
-
-def path_reference(
-    root, path, member: str | None = None, *, is_folder=None, pathmod=os.path
-) -> str:
-    """Path reference of ``path`` (a file or folder below ``root``).
-
-    ``is_folder=None`` detects folders by a trailing separator or on disk.
-    ``pathmod`` is ``os.path`` or, e.g. in tests, ``ntpath``/``posixpath``.
-    ``member`` (``"method"`` or ``"Cls.method"``) is appended with ``.``.
-    """
-    root, path = os.fspath(root), os.fspath(path)
-    seps = tuple(sep for sep in (pathmod.sep, pathmod.altsep) if sep)
-    if is_folder is None:
-        is_folder = path.endswith(seps) or (pathmod is os.path and os.path.isdir(path))
-    rel = pathmod.relpath(pathmod.normpath(path), pathmod.normpath(root))
-    if pathmod.altsep:
-        rel = rel.replace(pathmod.altsep, pathmod.sep)
-    parts = [] if rel == pathmod.curdir else rel.split(pathmod.sep)
-    if parts and parts[0] == pathmod.pardir:
-        raise ValueError(f"{path} is not below the project root {root}")
-    reference = unicodedata.normalize("NFC", "/".join(parts))
-    if is_folder:
-        reference = f"{reference}/" if reference else ROOT_REFERENCE
-    elif not reference:
-        raise ValueError(f"{path} is the project root, not a file")
-    if member:
-        reference = f"{reference}.{member}"
-    return reference
 
 
 def parse_reference(
@@ -231,6 +213,16 @@ def is_block_container(name: str, block_extensions=None) -> bool:
     if block_extensions is None:
         block_extensions = mat_handlers.block_extensions()
     return any(len(name) > len(ext) and name.endswith(ext) for ext in block_extensions)
+
+
+def split_folder(folder: str) -> list[str]:
+    """Split a folder reference: ``"a/b/"`` -> ``["a", "b"]``, ``"./"`` -> ``[]``."""
+    return [] if folder == ROOT_REFERENCE else folder.rstrip("/").split("/")
+
+
+def join_folder(parts) -> str:
+    """Join folder names into a folder reference (the inverse of ``split_folder``)."""
+    return "/".join(parts) + "/" if parts else ROOT_REFERENCE
 
 
 def join_reference(folder: str, relative: str) -> str:
@@ -554,4 +546,8 @@ def model_not_callable_reason(
     stem = Path(filename).stem
     if not is_valid_identifier(stem, namelengthmax, allow_keywords=False):
         return f"its name {stem!r} {_name_problem(stem, namelengthmax)}"
-    return "Simulink runs and references models only from the global namespace"
+    return (
+        "in a namespace folder, Simulink cannot reference it by name and loads "
+        "it reliably only by its full path; keep Simulink files in the global "
+        "namespace"
+    )

@@ -146,7 +146,8 @@ with an old inventory links to the object's old page.
 Stable addresses
 ~~~~~~~~~~~~~~~~
 
-Every HTML build also writes a small file for each documented object
+Every HTML build also (not EPUB, ``json`` or ``pickle``, which write no
+``.html`` pages) writes a small file for each documented object
 that sends the browser to the page the object is on now
 (:confval:`matlab_stable_urls`):
 
@@ -182,7 +183,10 @@ replace a ``404.html`` of the project's own, for example from
 
 An incremental build in which objects were added, removed or moved to
 other pages also writes again every page that links to a MATLAB object,
-so the links between the library's own pages follow the objects.
+so the links between the library's own pages follow the objects. A build
+that writes no page renders the pages that list several objects again only
+when what they list changed or one of them is missing; ``mat/choosers.json``
+records what the pages on disk list.
 
 :confval:`matlab_apidoc_separate` gives each file a page named by its path
 (``api/util/scale.m.html``), so its page address does not depend on the

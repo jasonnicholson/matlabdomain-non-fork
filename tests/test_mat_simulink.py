@@ -2,10 +2,11 @@
 
 The fixtures in ``tests/simulink/fixtures`` were written by
 ``tests/simulink/make_fixtures.m``: one set per release where the file
-format changes, plus exported XML. ``tests/simulink/oracle.json`` holds what
+format changes. ``tests/simulink/oracle.json`` holds what
 the Simulink API reports for each fixture; the reader must agree.
 """
 
+import codecs
 import json
 import pickle
 import zipfile
@@ -110,20 +111,6 @@ def test_oracle_covers_every_layout():
     assert layouts == {"slx", "mdl-opc", "mdl-classic"}
 
 
-@pytest.mark.parametrize("name", ["probeLib", "probeModel", "probeRef", "probeSub"])
-def test_exported_xml_matches_its_slx_twin(name):
-    native = FIXTURES / "R2024a-native"
-    xml = read_diagram(native / "xml" / f"{name}.xml")
-    slx = read_diagram(native / "slx" / f"{name}.slx")
-    assert classify(native / "xml" / f"{name}.xml") == slx.kind
-    assert xml.layout == "xml"
-    # The export drops the system mask (spec: exported XML).
-    assert xml.system_mask is None
-    for field in ("name", "kind", "description", "ports", "references"):
-        assert getattr(xml, field) == getattr(slx, field), field
-    assert xml.library_blocks == slx.library_blocks
-
-
 def test_library_blocks_and_metadata():
     lib = read_diagram(FIXTURES / "R2026b" / "slx" / "probeLib.slx")
     by_path = {b.path: b for b in lib.library_blocks}
@@ -207,8 +194,8 @@ def test_lfs_pointer(tmp_path):
 
 
 def test_not_simulink(tmp_path):
-    other = tmp_path / "data.xml"
-    other.write_text('<?xml version="1.0"?>\n<config/>\n')
+    other = tmp_path / "data.mdl"
+    other.write_text('<?xml version="1.0"?>\n<config/>\n', encoding="utf-8")
     text = tmp_path / "notes.mdl"
     text.write_text("hello\n")
     for path in (other, text):
@@ -545,12 +532,124 @@ def test_classic_depth_limit(monkeypatch):
         _nodes.parse_xml(b"<a><b><c><d/></c></b></a>", "x")
 
 
+@pytest.mark.parametrize(
+    "data",
+    [
+        b'<?xml version="1.0" encoding="utf-O"?><a/>',  # unknown codec (fuzzing)
+        b'<?xml version="1.0" encoding="rot13"?><a/>',  # not a text codec
+        b'<?xml version="1.0" encoding="utf-7"?><a/>',  # a multi-byte codec
+        b'<?xml version="1.0" encoding="idna"?><a/>',  # a codec without "replace"
+    ],
+)
+def test_xml_with_a_bad_encoding_declaration(data):
+    with pytest.raises(SimulinkFileError, match="invalid XML in x"):
+        _nodes.parse_xml(data, "x")
+
+
+# Every encoding the XML parser accepts: ASCII-compatible ones (including a
+# byte-order mark) and UTF-16. UTF-32 and EBCDIC are invalid XML for it.
+_XML_ENCODINGS = [
+    ("utf-8", "utf-8", b""),
+    ("utf-8", None, b""),
+    ("utf-8", "utf-8", codecs.BOM_UTF8),
+    ("windows-1252", "windows-1252", b""),
+    ("latin-1", "iso-8859-1", b""),
+    ("shift_jis", None, b""),
+    ("utf-16-le", "utf-16", codecs.BOM_UTF16_LE),
+    ("utf-16-be", "utf-16", codecs.BOM_UTF16_BE),
+    ("utf-16-le", None, codecs.BOM_UTF16_LE),
+    ("utf-16-be", None, codecs.BOM_UTF16_BE),
+    ("utf-16-le", "utf-16", b""),
+    ("utf-16-be", "utf-16", b""),
+    ("utf-16-le", None, b""),
+    ("utf-16-be", None, b""),
+]
+
+
+def _xml_document(encoding, declared, bom, body):
+    declaration = f'<?xml version="1.0" encoding="{declared}"?>' if declared else ""
+    return bom + (declaration + body).encode(encoding)
+
+
+@pytest.mark.parametrize(("encoding", "declared", "bom"), _XML_ENCODINGS)
+@pytest.mark.parametrize(
+    "dtd",
+    [
+        '<!DOCTYPE a [<!ENTITY b "c">]><a>&b;</a>',
+        "<!DOCTYPE a><a/>",
+        '<a><!ENTITY b "c"></a>',
+    ],
+)
+def test_a_dtd_is_refused_in_every_encoding(encoding, declared, bom, dtd):
+    data = _xml_document(encoding, declared, bom, dtd)
+    with pytest.raises(SimulinkFileError, match="DTD or entity declaration"):
+        _nodes.parse_xml(data, "x")
+
+
+@pytest.mark.parametrize(("encoding", "declared", "bom"), _XML_ENCODINGS)
+def test_the_same_document_without_a_dtd_parses_in_every_encoding(
+    encoding, declared, bom
+):
+    body = '<a k="v"><!-- c --><P Name="n">t</P><b/></a>'
+    node = _nodes.parse_xml(_xml_document(encoding, declared, bom, body), "x")
+    assert node.tag == "a"
+    assert node.attrs == {"k": "v"}
+    assert node.params == {"n": ["t"]}
+    assert [c.tag for c in node.children] == ["b"]
+
+
 def test_classic_without_system(tmp_path):
     path = tmp_path / "x.mdl"
     path.write_text('Model {\n  Name "x"\n}\n')
     diagram = read_diagram(path)
     assert diagram.ports == ()
     assert diagram.release == ""
+
+
+PORTS_OUT_OF_ORDER = """\
+Model {
+  Name "ports"
+  System {
+    Block {
+      BlockType Outport
+      Name "y"
+    }
+    Block {
+      BlockType EnablePort
+      Name "Enable"
+    }
+    Block {
+      BlockType Inport
+      Name "second"
+      Port "2"
+    }
+    Block {
+      BlockType TriggerPort
+      Name "Trigger"
+    }
+    Block {
+      BlockType Inport
+      Name "first"
+    }
+  }
+}
+"""
+
+
+def test_ports_sorted_by_number_with_control_ports(tmp_path):
+    # Spec 4.4: sorted by port number; Enable/Trigger/Action ports listed by
+    # type, without a data type.
+    path = tmp_path / "ports.mdl"
+    path.write_text(PORTS_OUT_OF_ORDER)
+    ports = read_diagram(path).ports
+    assert [(p.block_type, p.number, p.name) for p in ports] == [
+        ("Inport", "1", "first"),
+        ("Inport", "2", "second"),
+        ("Outport", "1", "y"),
+        ("EnablePort", "", "Enable"),
+        ("TriggerPort", "", "Trigger"),
+    ]
+    assert ports[3].data_type == ports[3].dimensions == ""
 
 
 def test_decode_mdl():
@@ -575,17 +674,6 @@ def test_decode_mdl_limit(monkeypatch):
 
 def test_unescape():
     assert _nodes.unescape(r"a\nb\t\"c\\d\q") == 'a\nb\t"c\\d\\q'
-
-
-def test_xml_export_errors(tmp_path):
-    empty = tmp_path / "e.xml"
-    empty.write_text('<?xml version="1.0"?>\n<ModelInformation Version="1.0"/>\n')
-    assert classify(empty) == "unknown"
-    with pytest.raises(SimulinkFileError, match="empty ModelInformation"):
-        read_diagram(empty)
-    other = tmp_path / "o.xml"
-    other.write_text("<ModelInformation><Chart/></ModelInformation>")
-    assert classify(other) == "unknown"
 
 
 def test_classic_unknown_head(tmp_path, monkeypatch):

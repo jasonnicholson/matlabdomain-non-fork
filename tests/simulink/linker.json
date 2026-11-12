@@ -62,10 +62,6 @@
       "address": "mat/ref/src/lib.mdl~2FGr~C3~B6~C3~9Fe.html"
     },
     {
-      "reference": "src/lib.xml/v1.2",
-      "address": "mat/ref/src/lib.xml~2Fv1.2.html"
-    },
-    {
       "reference": "lib.slx/x",
       "address": "mat/ref/lib.slx~2Fx.html"
     },
@@ -80,6 +76,38 @@
     {
       "reference": "src/.slx/f.m",
       "address": "mat/ref/src/.slx/f.m.html"
+    },
+    {
+      "reference": "_u/lib.slx/G",
+      "address": "mat/ref/~5Fu/lib.slx~2FG.html"
+    },
+    {
+      "reference": "src/_pkg/_inner/f.m",
+      "address": "mat/ref/src/~5Fpkg/~5Finner/f.m.html"
+    },
+    {
+      "reference": "src/_x/lib.slx/Group/Gain",
+      "address": "mat/ref/src/~5Fx/lib.slx~2FGroup~2FGain.html"
+    },
+    {
+      "reference": "_u/",
+      "address": "mat/ref/~5Fu/index.html"
+    },
+    {
+      "reference": "src/_u/",
+      "address": "mat/ref/src/~5Fu/index.html"
+    },
+    {
+      "reference": "_f.m",
+      "address": "mat/ref/_f.m.html"
+    },
+    {
+      "reference": "src/_f.m",
+      "address": "mat/ref/src/_f.m.html"
+    },
+    {
+      "reference": "_u/_f.m",
+      "address": "mat/ref/~5Fu/_f.m.html"
     }
   ]
 }
