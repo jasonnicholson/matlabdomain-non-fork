@@ -1,0 +1,755 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Plan: a Sphinx site in the MATLAB help system" href="matlab-help-plan.html"><link rel="prev" title="Plan: MATLAB markup in help text" href="matlab-markup-plan.html">
+
+    <!-- Generated with Sphinx 9.2.0 and Furo 2025.12.19 -->
+        <title>Specification: a Sphinx site in the MATLAB help system - sphinxcontrib-matlabdomain</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/glossary-tips.css?v=62938efe" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">sphinxcontrib-matlabdomain</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <span class="sidebar-brand-text">sphinxcontrib-matlabdomain</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/sphinx-primer.html">Sphinx primer for MATLAB users</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/setting-up.html">Setting up a project: <code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">quickstart</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/documenting.html">Documenting MATLAB code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/referencing.html">Names, references and links</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/linking-projects.html">Linking between projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/help-text.html">Help text</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/apidoc.html">Generating pages: <code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">apidoc</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/sidecars.html">Sidecar docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/simulink.html">Simulink files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/api-check.html">Checking help text: <code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/warnings.html">Warnings</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/builds.html">Builds and performance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/projects-and-versions.html">Several projects and versions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/migration.html">Migrating from 0.22 and earlier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/FAQ.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../reference/configuration.html">Configuration values</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/glossary.html">Glossary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/directives.html">Directives, roles and indices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/cli.html">Command-line tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/templates.html"><code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">apidoc</span></code> templates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/api-check-report.html"><code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code> reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/warnings.html">Warnings</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing.html">Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="debugging.html">Debugging and profiling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="simulink-file-formats.html">Simulink file formats</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="roadmap.html">Roadmap</a><input aria-label="Toggle navigation of Roadmap" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="matlab-markup-spec.html">Specification: MATLAB markup in help text (docstrings)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="matlab-markup-plan.html">Plan: MATLAB markup in help text</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Specification: a Sphinx site in the MATLAB help system</a></li>
+<li class="toctree-l2"><a class="reference internal" href="matlab-help-plan.html">Plan: a Sphinx site in the MATLAB help system</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Project</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../CHANGES.html">Release notes</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../_sources/developer-guide/matlab-help-spec.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="specification-a-sphinx-site-in-the-matlab-help-system">
+<h1>Specification: a Sphinx site in the MATLAB help system<a class="headerlink" href="#specification-a-sphinx-site-in-the-matlab-help-system" title="Link to this heading">¶</a></h1>
+<p>Status: investigated, not scheduled (<a class="reference internal" href="roadmap.html"><span class="doc">Roadmap</span></a>).</p>
+<p>Question: can a <code class="docutils literal notranslate"><span class="pre">sphinxcontrib-matlabdomain</span></code> site become part of the
+MATLAB documentation, so that one search in MATLAB finds both the
+project’s pages and MathWorks pages? Can sites link to each other the way
+intersphinx links Sphinx projects? Plan: <a class="reference internal" href="matlab-help-plan.html"><span class="doc">Plan: a Sphinx site in the MATLAB help system</span></a>.</p>
+<p>Evidence (2026-11-07):</p>
+<ul class="simple">
+<li><p>MathWorks R2026b pages: “Display Custom Documentation”,
+“Display Custom Examples”, <code class="docutils literal notranslate"><span class="pre">builddocsearchdb</span></code>, <code class="docutils literal notranslate"><span class="pre">doc</span></code>, “Interactively
+Create and Share Packages”, <code class="docutils literal notranslate"><span class="pre">matlab.addons.toolbox.ToolboxOptions</span></code>.</p></li>
+<li><p>R2026b source read in <code class="docutils literal notranslate"><span class="pre">toolbox/matlab/helptools/+matlab/+internal/+doc</span></code>
+(<code class="docutils literal notranslate"><span class="pre">+project</span></code>, <code class="docutils literal notranslate"><span class="pre">+search</span></code>, <code class="docutils literal notranslate"><span class="pre">+services</span></code>, <code class="docutils literal notranslate"><span class="pre">+url</span></code>, <code class="docutils literal notranslate"><span class="pre">+reference</span></code>) and
+the page wrapper in <code class="docutils literal notranslate"><span class="pre">help/customdoc/</span></code> (<code class="docutils literal notranslate"><span class="pre">3pdoc.html</span></code>,
+<code class="docutils literal notranslate"><span class="pre">customdoc.js</span></code>, <code class="docutils literal notranslate"><span class="pre">customdoc_base.js</span></code>). Strings from the indexer binary
+<code class="docutils literal notranslate"><span class="pre">bin/win64/mwdocsearch.exe</span></code> (version 8.1.3 in R2026b, 6.2.9 in
+R2026a).</p></li>
+<li><p>Probe: the HTML build of this project’s documentation plus a
+hand-written <code class="docutils literal notranslate"><span class="pre">info.xml</span></code> and <code class="docutils literal notranslate"><span class="pre">helptoc.xml</span></code>, put on the path of R2026b
+and R2026a sessions, indexed, served and searched through the local doc
+server; synthetic pages to learn what the indexer reads. The probe
+scripts are not in the repository yet (plan task H9).</p></li>
+<li><p>Prior art: <code class="docutils literal notranslate"><span class="pre">ilent2/sphinx-matlabdoc-builder</span></code> (2019, BSD-2-Clause), read
+in full.</p></li>
+</ul>
+<p>Labels used below: <strong>verified</strong> (probe ran), <strong>source</strong> (read in the
+R2026b MATLAB code, not run), <strong>documented</strong> (MathWorks page only).</p>
+<section id="short-answer">
+<h2>1. Short answer<a class="headerlink" href="#short-answer" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Question</p></th>
+<th class="head"><p>Answer</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>The site shows inside the MATLAB documentation</p></td>
+<td><p><strong>Yes, cheap.</strong> “Supplemental Software” custom documentation: an
+<code class="docutils literal notranslate"><span class="pre">info.xml</span></code> on the MATLAB path, a <code class="docutils literal notranslate"><span class="pre">helptoc.xml</span></code> and HTML files.
+A Sphinx HTML build displays with its CSS and JavaScript (verified,
+R2026a and R2026b).</p></td>
+</tr>
+<tr class="row-odd"><td><p>The site is searchable from MATLAB</p></td>
+<td><p><strong>Yes, with</strong> <code class="docutils literal notranslate"><span class="pre">builddocsearchdb</span></code>. Results appear on a local
+“Supplemental Software” results page (verified, R2026a).</p></td>
+</tr>
+<tr class="row-even"><td><p>One search returns the site’s pages and MathWorks pages together</p></td>
+<td><p><strong>No.</strong> MATLAB keeps two result sets, MathWorks (<code class="docutils literal notranslate"><span class="pre">mw</span></code>) and
+Supplemental Software (<code class="docutils literal notranslate"><span class="pre">3p</span></code>). Each results page links to the
+other source; there is no merged, ranked list (source:
+<code class="docutils literal notranslate"><span class="pre">searchresults.js</span></code>, <code class="docutils literal notranslate"><span class="pre">DocPage.addSearchParam</span></code>). Not reachable
+from a third-party site: out of scope.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">doc</span> <span class="pre">myfunction</span></code> or F1 opens the site’s page</p></td>
+<td><p><strong>No.</strong> <code class="docutils literal notranslate"><span class="pre">doc</span></code> never shows third-party HTML for a function name;
+it renders the file’s help text (documented).
+<code class="docutils literal notranslate"><span class="pre">doc</span> <span class="pre">&quot;&lt;toolbox</span> <span class="pre">name&gt;&quot;</span></code> opens the landing page (source), and
+<code class="docutils literal notranslate"><span class="pre">helpview(&quot;&lt;path</span> <span class="pre">to</span> <span class="pre">page.html&gt;&quot;)</span></code> opens any page of the site
+(verified URL).</p></td>
+</tr>
+<tr class="row-even"><td><p>MathWorks pages link to the site</p></td>
+<td><p><strong>No.</strong> MathWorks content has no hook for third-party targets.
+Out of scope.</p></td>
+</tr>
+<tr class="row-odd"><td><p>The site links to MathWorks pages (like intersphinx)</p></td>
+<td><p><strong>Yes, built by this project.</strong> MathWorks publishes no
+<code class="docutils literal notranslate"><span class="pre">objects.inv</span></code> (verified 404). MATLAB installs a reference catalog
+(<code class="docutils literal notranslate"><span class="pre">help/docCatalog/referenceapi/*.json</span></code>: 78 products, 31,883
+entries in R2026b) from which a build can make one (Section 6).</p></td>
+</tr>
+<tr class="row-even"><td><p>The site links to another custom site in MATLAB help</p></td>
+<td><p><strong>Yes, by relative links.</strong> All custom sites are served under one
+root, at a path computed from the <code class="docutils literal notranslate"><span class="pre">info.xml</span></code> name (Section 2.2).</p></td>
+</tr>
+<tr class="row-odd"><td><p>MATLAB Online</p></td>
+<td><p><strong>No.</strong> Custom documentation and <code class="docutils literal notranslate"><span class="pre">builddocsearchdb</span></code> are not
+supported there (documented).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Merged search is not possible and is out of scope. Embedding the site,
+with its own search on the MATLAB side, takes a small builder plus a
+MATLAB step (<a class="reference internal" href="matlab-help-plan.html"><span class="doc">Plan: a Sphinx site in the MATLAB help system</span></a>).</p>
+</section>
+<section id="how-matlab-custom-documentation-works">
+<h2>2. How MATLAB custom documentation works<a class="headerlink" href="#how-matlab-custom-documentation-works" title="Link to this heading">¶</a></h2>
+<section id="discovery">
+<h3>2.1 Discovery<a class="headerlink" href="#discovery" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>MATLAB looks for <code class="docutils literal notranslate"><span class="pre">info.xml</span></code> and <code class="docutils literal notranslate"><span class="pre">demos.xml</span></code> on the path
+(<code class="docutils literal notranslate"><span class="pre">matlab.internal.doc.project.getFiles</span></code>) and rebuilds its list when
+the set of files changes (<code class="docutils literal notranslate"><span class="pre">getCustomToolboxes</span></code>, source). Adding the
+folder that holds <code class="docutils literal notranslate"><span class="pre">info.xml</span></code> was enough in the probe; the HTML folder
+itself was not on the path (verified). The MathWorks page asks for the
+HTML folder on the path too (documented); not needed by the code read.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">info.xml</span></code> elements, in this order: <code class="docutils literal notranslate"><span class="pre">matlabrelease</span></code> (not used),
+<code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">type</span></code>, <code class="docutils literal notranslate"><span class="pre">icon</span></code> (empty, required), <code class="docutils literal notranslate"><span class="pre">help_location</span></code> (folder
+with <code class="docutils literal notranslate"><span class="pre">helptoc.xml</span></code>, relative to <code class="docutils literal notranslate"><span class="pre">info.xml</span></code>), optional
+<code class="docutils literal notranslate"><span class="pre">help_contents_icon</span></code>. Schema:
+<code class="docutils literal notranslate"><span class="pre">matlabroot/sys/namespace/info/v1/info.xsd</span></code>. MATLAB reads it with
+<code class="docutils literal notranslate"><span class="pre">readstruct</span></code>; only <code class="docutils literal notranslate"><span class="pre">name</span></code> and <code class="docutils literal notranslate"><span class="pre">help_location</span></code> are required by the
+code (source).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">helptoc.xml</span></code>: <code class="docutils literal notranslate"><span class="pre">&lt;toc</span> <span class="pre">version=&quot;2.0&quot;&gt;</span></code> with nested
+<code class="docutils literal notranslate"><span class="pre">&lt;tocitem</span> <span class="pre">target=&quot;page.html&quot;&gt;Title</span></code>. The first <code class="docutils literal notranslate"><span class="pre">tocitem</span></code> is the
+landing page. Targets may carry anchors (<code class="docutils literal notranslate"><span class="pre">page.html#id</span></code>) and an
+<code class="docutils literal notranslate"><span class="pre">image</span></code> attribute (<code class="docutils literal notranslate"><span class="pre">HelpIcon.FUNCTION</span></code>, <code class="docutils literal notranslate"><span class="pre">USER_GUIDE</span></code>,
+<code class="docutils literal notranslate"><span class="pre">EXAMPLES</span></code>, <code class="docutils literal notranslate"><span class="pre">BLOCK</span></code>, <code class="docutils literal notranslate"><span class="pre">GETTING_STARTED</span></code>, <code class="docutils literal notranslate"><span class="pre">DEMOS</span></code>,
+<code class="docutils literal notranslate"><span class="pre">RELEASE_NOTES</span></code>), from MATLAB’s template
+<code class="docutils literal notranslate"><span class="pre">help/techdoc/matlab_env/examples/templates/helptoc_template.xml</span></code>.
+Without <code class="docutils literal notranslate"><span class="pre">helptoc.xml</span></code> the site is dropped silently (source; warnings
+only with the debug switch <code class="docutils literal notranslate"><span class="pre">setDebugProjectDoc</span></code>).</p></li>
+<li><p>Display name: <code class="docutils literal notranslate"><span class="pre">name</span></code>, plus “ Toolbox” when <code class="docutils literal notranslate"><span class="pre">type</span></code> is <code class="docutils literal notranslate"><span class="pre">toolbox</span></code>,
+plus “ Blockset” when it is <code class="docutils literal notranslate"><span class="pre">blockset</span></code> (source). The MathWorks pages
+list the allowed types as <code class="docutils literal notranslate"><span class="pre">matlab</span></code>, <code class="docutils literal notranslate"><span class="pre">package</span></code>, <code class="docutils literal notranslate"><span class="pre">simulink</span></code>,
+<code class="docutils literal notranslate"><span class="pre">blockset</span></code>, <code class="docutils literal notranslate"><span class="pre">links_targets</span></code>, <code class="docutils literal notranslate"><span class="pre">other</span></code> (R2026b renamed toolboxes to
+packages).</p></li>
+</ul>
+</section>
+<section id="serving-and-urls">
+<h3>2.2 Serving and URLs<a class="headerlink" href="#serving-and-urls" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Short name: <code class="docutils literal notranslate"><span class="pre">lower(regexprep(displayName,'\W','_'))</span></code>; unique id
+<code class="docutils literal notranslate"><span class="pre">3ptoolbox::&lt;shortName&gt;</span></code>; URL path
+<code class="docutils literal notranslate"><span class="pre">3ptoolbox/&lt;shortName</span> <span class="pre">without</span> <span class="pre">underscores&gt;/doc/</span></code> (source,
+<code class="docutils literal notranslate"><span class="pre">buildToolboxStruct.m</span></code>). The path must be alphanumeric after that, or
+the site is dropped. Example: “Sphinx Probe Docs” →
+<code class="docutils literal notranslate"><span class="pre">3ptoolbox/sphinxprobedocs/doc/</span></code> (verified).</p></li>
+<li><p>Two servers, same layout below <code class="docutils literal notranslate"><span class="pre">.../help/</span></code>: the MATLAB connector
+(<code class="docutils literal notranslate"><span class="pre">https://127.0.0.1:&lt;port&gt;/help/3ptoolbox/...</span></code>, route added by
+<code class="docutils literal notranslate"><span class="pre">connector.addStaticContentOnPath</span></code>) and the search server
+<code class="docutils literal notranslate"><span class="pre">mwdocsearch</span></code> (<code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:&lt;port&gt;/static/help/3ptoolbox/...</span></code>)
+when the system browser is used without the connector (R2024b and
+later default; source <code class="docutils literal notranslate"><span class="pre">InstalledDocHandler</span></code>). Relative links between
+two custom sites work in both, as both live under <code class="docutils literal notranslate"><span class="pre">3ptoolbox/</span></code>.</p></li>
+<li><p>Each page is shown inside MATLAB’s wrapper
+(<code class="docutils literal notranslate"><span class="pre">help/customdoc/3pdoc.html</span></code>): a header with a search box, the
+<code class="docutils literal notranslate"><span class="pre">helptoc.xml</span></code> tree on the left, and the page in a same-origin
+<code class="docutils literal notranslate"><span class="pre">iframe</span></code> with id <code class="docutils literal notranslate"><span class="pre">doc_center_content</span></code> (source, verified visually).
+The wrapper:</p>
+<ul>
+<li><p>sets the iframe height to the page’s <code class="docutils literal notranslate"><span class="pre">body.scrollHeight</span></code>
+(<code class="docutils literal notranslate"><span class="pre">updateContentSize</span></code>), so the page should not scroll itself;</p></li>
+<li><p>rewrites links once, when the page loads: same-host links get
+<code class="docutils literal notranslate"><span class="pre">target=&quot;_parent&quot;</span></code>, other hosts <code class="docutils literal notranslate"><span class="pre">target=&quot;_blank&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">#fragment</span></code>
+links scroll inside the iframe, <code class="docutils literal notranslate"><span class="pre">matlab:</span></code> links run after a
+confirmation dialog (<code class="docutils literal notranslate"><span class="pre">showMatlabDialog</span></code>);</p></li>
+<li><p>scrolls to the URL fragment after 300 ms.</p></li>
+</ul>
+</li>
+<li><p>A page that navigates itself with JavaScript (<code class="docutils literal notranslate"><span class="pre">location.replace</span></code>)
+loads a second wrapper inside the iframe: verified with a stable address
+page (<code class="docutils literal notranslate"><span class="pre">mat/ref/...</span></code>, <a class="reference internal" href="../reference/configuration.html#confval-matlab_stable_urls"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_stable_urls</span></code></a>), which showed the
+wrapper twice. Links that JavaScript adds after load (Sphinx
+<code class="docutils literal notranslate"><span class="pre">search.html</span></code> results) are not rewritten and do the same (source).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">doc</span> <span class="pre">&quot;&lt;display</span> <span class="pre">name&gt;&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">doc</span> <span class="pre">&lt;shortName&gt;</span></code> or the unique id opens the
+landing page (<code class="docutils literal notranslate"><span class="pre">getReferencePage</span></code> → <code class="docutils literal notranslate"><span class="pre">checkForProductOrToolbox</span></code> →
+<code class="docutils literal notranslate"><span class="pre">CustomDocPage</span></code>; source). <code class="docutils literal notranslate"><span class="pre">helpview(&lt;absolute</span> <span class="pre">path</span> <span class="pre">of</span> <span class="pre">an</span> <span class="pre">html</span>
+<span class="pre">file&gt;)</span></code> maps the file to its served URL (<code class="docutils literal notranslate"><span class="pre">parseDocPage</span></code>; verified
+URL). Both <code class="docutils literal notranslate"><span class="pre">CustomDocPage</span></code> and the local search pages support only
+the <code class="docutils literal notranslate"><span class="pre">INSTALLED</span></code> doc location, served locally, also when MathWorks
+pages come from the web (source).</p></li>
+</ul>
+</section>
+<section id="search-index">
+<h3>2.3 Search index<a class="headerlink" href="#search-index" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">builddocsearchdb(folder)</span></code> writes <code class="docutils literal notranslate"><span class="pre">custom_toolbox.json</span></code> into the
+HTML folder, then runs <code class="docutils literal notranslate"><span class="pre">mwdocsearch</span> <span class="pre">customdocindex</span> <span class="pre">-d</span> <span class="pre">&lt;folder&gt;</span></code>
+(source, <code class="docutils literal notranslate"><span class="pre">+customdocindexer/index.m</span></code>). The result is a Bleve “scorch”
+index in <code class="docutils literal notranslate"><span class="pre">helpsearch-v4_&lt;lang&gt;/</span></code> (<code class="docutils literal notranslate"><span class="pre">index_meta.json</span></code>, <code class="docutils literal notranslate"><span class="pre">root.bolt</span></code>,
+<code class="docutils literal notranslate"><span class="pre">*.zap</span></code>; verified). R2021b and older write <code class="docutils literal notranslate"><span class="pre">helpsearch-v3</span></code>; ship
+both to cover both (documented).</p></li>
+<li><p>The crawl root is <code class="docutils literal notranslate"><span class="pre">LocationOnDisk</span></code> in <code class="docutils literal notranslate"><span class="pre">custom_toolbox.json</span></code>, not the
+<code class="docutils literal notranslate"><span class="pre">-d</span></code> folder (verified: a staging copy indexed the original folder
+until the JSON was rewritten).</p></li>
+<li><p>What the custom indexer stores per <code class="docutils literal notranslate"><span class="pre">*.html</span></code> file (verified with
+<code class="docutils literal notranslate"><span class="pre">customdocindex</span> <span class="pre">-o</span> <span class="pre">json</span></code> and searches):</p>
+<ul>
+<li><p>every <code class="docutils literal notranslate"><span class="pre">.html</span></code> below the root, at any depth, <code class="docutils literal notranslate"><span class="pre">_static/</span></code> included;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">title</span></code> from <code class="docutils literal notranslate"><span class="pre">&lt;title&gt;</span></code>; <code class="docutils literal notranslate"><span class="pre">body</span></code> = all text of <code class="docutils literal notranslate"><span class="pre">&lt;body&gt;</span></code>:
+sidebars, navigation and footers included;</p></li>
+<li><p>nothing else: <code class="docutils literal notranslate"><span class="pre">summary</span></code>, <code class="docutils literal notranslate"><span class="pre">description</span></code>, <code class="docutils literal notranslate"><span class="pre">infotype</span></code>,
+<code class="docutils literal notranslate"><span class="pre">breadcrumb</span></code> stay empty. <code class="docutils literal notranslate"><span class="pre">&lt;meta</span> <span class="pre">name=&quot;description&quot;&gt;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&lt;meta</span> <span class="pre">name=&quot;infotype&quot;&gt;</span></code>, <code class="docutils literal notranslate"><span class="pre">&lt;meta</span> <span class="pre">name=&quot;refentity&quot;&gt;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&lt;meta</span> <span class="pre">name=&quot;robots&quot;</span> <span class="pre">content=&quot;noindex&quot;&gt;</span></code> and a
+<code class="docutils literal notranslate"><span class="pre">&lt;section</span> <span class="pre">id=&quot;doc_center_content&quot;&gt;</span></code> wrapper are ignored. (The binary
+holds those XPaths for MathWorks product indexing, not for custom
+docs.)</p></li>
+<li><p>redirect stubs and pages with an empty body are indexed (the MathWorks
+page says untitled pages and pages whose text equals the title are
+skipped; not so in R2026b).</p></li>
+</ul>
+</li>
+<li><p>Hence: no “Refine by Type” facets (functions, classes), no snippet
+under a result, and one hit per page (no anchor-level hits). Relevance
+rests on page titles and page text only.</p></li>
+<li><p><strong>Excluding pages works by staging</strong>: copy the HTML without the pages
+to drop, point <code class="docutils literal notranslate"><span class="pre">custom_toolbox.json</span></code> at the copy, index it, move
+<code class="docutils literal notranslate"><span class="pre">helpsearch-v4_en</span></code> into the real folder. Stored paths are relative.
+Verified end to end (R2026a served the filtered index: stubs,
+<code class="docutils literal notranslate"><span class="pre">genindex.html</span></code> and <code class="docutils literal notranslate"><span class="pre">_static</span></code> gone from the results).</p></li>
+<li><p>Cross-release reading (verified): an index written by R2026b was
+searched by the R2024a and R2026a <code class="docutils literal notranslate"><span class="pre">mwdocsearch</span> <span class="pre">search</span></code> command and
+served by R2026a MATLAB. The MathWorks page says a database matches the
+release that built it; v4 has held since R2022a.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mwdocsearch</span></code> is a standalone executable with <code class="docutils literal notranslate"><span class="pre">customdocindex</span></code>,
+<code class="docutils literal notranslate"><span class="pre">search</span></code>, <code class="docutils literal notranslate"><span class="pre">server</span></code> and <code class="docutils literal notranslate"><span class="pre">prodindex</span></code> commands: an index can be built
+without starting MATLAB (no license check seen), but the command line
+is internal and undocumented.</p></li>
+</ul>
+</section>
+<section id="search-user-interface">
+<h3>2.4 Search user interface<a class="headerlink" href="#search-user-interface" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Web documentation (MathWorks pages from mathworks.com, the default
+when documentation is not installed): when custom docs exist, MATLAB
+adds <code class="docutils literal notranslate"><span class="pre">searchPort=&lt;port&gt;</span></code> to the doc URLs it opens (source,
+<code class="docutils literal notranslate"><span class="pre">DocPage.addSearchParam</span></code>). The mathworks.com results page then shows
+“Search for X in Supplemental Software”, which opens
+<code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:&lt;port&gt;/static/help/customdoc/searchresults.html</span></code>
+(source, <code class="docutils literal notranslate"><span class="pre">searchresults.js</span></code>: “search is two completely separate
+processes”).</p></li>
+<li><p>That local page with <code class="docutils literal notranslate"><span class="pre">selectedsource=3p</span></code> lists the site’s hits with
+“Refine by Product” (one entry per custom site) and an empty “Refine by
+Type”; each hit opens the page in the wrapper (verified, R2026a). The
+search box in the wrapper header asks
+<code class="docutils literal notranslate"><span class="pre">/help/search/suggest?...&amp;selectedsource=3p</span></code>: an empty reply in
+R2026a; in R2026b the <code class="docutils literal notranslate"><span class="pre">mwdocsearch</span></code> process exited during that probe
+and the session’s doc search stayed down (observed once; not
+reproduced).</p></li>
+<li><p>Installed documentation: one local results page with a source selector
+(<code class="docutils literal notranslate"><span class="pre">mw</span></code> or <code class="docutils literal notranslate"><span class="pre">3p</span></code>), still one source at a time (source; documented as
+“Refine by Source”). Not probed (no installed documentation here).</p></li>
+</ul>
+</section>
+</section>
+<section id="a-sphinx-html-build-against-these-rules">
+<h2>3. A Sphinx HTML build against these rules<a class="headerlink" href="#a-sphinx-html-build-against-these-rules" title="Link to this heading">¶</a></h2>
+<p>From the probe of this project’s documentation (Furo theme, 176 files):</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 40.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Sphinx output</p></th>
+<th class="head"><p>Effect in MATLAB help</p></th>
+<th class="head"><p>Needed</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Theme sidebar with the whole toctree, header, footer</p></td>
+<td><p>Indexed in every page body: every page matches every title word;
+the iframe shows two navigations (theme and <code class="docutils literal notranslate"><span class="pre">helptoc.xml</span></code>)</p></td>
+<td><p>A help build without sidebars and chrome</p></td>
+</tr>
+<tr class="row-odd"><td><p>Theme layout with its own scrolling (Furo, PyData)</p></td>
+<td><p>Inner scrollbar inside an auto-height iframe</p></td>
+<td><p>A flow layout (the body scrolls)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&lt;title&gt;</span></code> = “Page - Project”</p></td>
+<td><p>Every hit ends in the project name</p></td>
+<td><p>Page title only</p></td>
+</tr>
+<tr class="row-odd"><td><p>Stable addresses <code class="docutils literal notranslate"><span class="pre">mat/name/</span></code>, <code class="docutils literal notranslate"><span class="pre">mat/ref/</span></code>
+(<a class="reference internal" href="../reference/configuration.html#confval-matlab_stable_urls"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_stable_urls</span></code></a>) and the <code class="docutils literal notranslate"><span class="pre">mat/refs.js</span></code> redirector</p></td>
+<td><p>Duplicate hits with the object name; clicking one nests the wrapper</p></td>
+<td><p>Off in the help build; object entries in <code class="docutils literal notranslate"><span class="pre">helptoc.xml</span></code> point to
+anchors instead</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">genindex.html</span></code>, <code class="docutils literal notranslate"><span class="pre">search.html</span></code>, <code class="docutils literal notranslate"><span class="pre">404.html</span></code>,
+<code class="docutils literal notranslate"><span class="pre">mat-folderindex.html</span></code></p></td>
+<td><p>Indexed; <code class="docutils literal notranslate"><span class="pre">search.html</span></code> result links nest the wrapper</p></td>
+<td><p>Not written, or left out of the index</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">_sources/</span></code>, <code class="docutils literal notranslate"><span class="pre">_static/</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_static/*.html</span></code> indexed if any</p></td>
+<td><p>Out of the index</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">+pkg</span></code>, <code class="docutils literal notranslate"><span class="pre">&#64;Class</span></code> folders below the HTML folder</p></td>
+<td><p>Harmless: the HTML folder need not be on the path (2.1); if it is,
+they sit below it, not on it</p></td>
+<td><p>Keep the HTML folder off the path, or verify</p></td>
+</tr>
+<tr class="row-odd"><td><p>Relative links, anchors, CSS, JavaScript, dark mode</p></td>
+<td><p>Work (verified)</p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>Search query <code class="docutils literal notranslate"><span class="pre">?searchHighlight=</span></code> on hits</p></td>
+<td><p>Ignored by the site’s pages</p></td>
+<td><p>-</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="prior-art-sphinx-matlabdoc-builder">
+<h2>4. Prior art: <code class="docutils literal notranslate"><span class="pre">sphinx-matlabdoc-builder</span></code><a class="headerlink" href="#prior-art-sphinx-matlabdoc-builder" title="Link to this heading">¶</a></h2>
+<p>A <code class="docutils literal notranslate"><span class="pre">StandaloneHTMLBuilder</span></code> subclass named <code class="docutils literal notranslate"><span class="pre">matlabdoc</span></code> (based on
+Sphinx’s <code class="docutils literal notranslate"><span class="pre">htmlhelp</span></code> builder): <code class="docutils literal notranslate"><span class="pre">embedded</span> <span class="pre">=</span> <span class="pre">True</span></code> (no sidebar),
+<code class="docutils literal notranslate"><span class="pre">search</span> <span class="pre">=</span> <span class="pre">False</span></code>, <code class="docutils literal notranslate"><span class="pre">add_permalinks</span> <span class="pre">=</span> <span class="pre">False</span></code>, <code class="docutils literal notranslate"><span class="pre">copysource</span> <span class="pre">=</span> <span class="pre">False</span></code>;
+at <code class="docutils literal notranslate"><span class="pre">handle_finish</span></code> it walks the resolved root toctree and writes
+<code class="docutils literal notranslate"><span class="pre">helptoc.xml</span></code> (CHM-style escaping). It writes no <code class="docutils literal notranslate"><span class="pre">info.xml</span></code>, no
+search database, no exclusions, no icons; last change 2019. The approach
+fits; the code is small enough to rewrite rather than depend on.</p>
+</section>
+<section id="proposed-shape">
+<h2>5. Proposed shape<a class="headerlink" href="#proposed-shape" title="Link to this heading">¶</a></h2>
+<p>A <code class="docutils literal notranslate"><span class="pre">matlab-help</span></code> builder in <code class="docutils literal notranslate"><span class="pre">sphinxcontrib-matlabdomain</span></code> (next to
+<code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code>, <a class="reference internal" href="../user-guide/api-check.html"><span class="doc">Checking help text: matlab-api-check</span></a>), output:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>_build/matlab-help/
+  info.xml                 # name, type, help_location = html
+  html/
+    helptoc.xml            # from the toctree; object entries with anchors
+    index.html ...         # content pages only
+    helpsearch-v4_en/      # added by the index step (MATLAB or mwdocsearch)
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Builder: HTML builder with <code class="docutils literal notranslate"><span class="pre">embedded</span></code>, no search page, no general
+index, no stable addresses or redirector, no source copies, page
+titles without the project suffix, a flow-layout theme (default:
+derived from Sphinx <code class="docutils literal notranslate"><span class="pre">basic</span></code>; any theme allowed).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">helptoc.xml</span></code>: global toctree from the root document; optionally one
+entry per documented object (anchor targets) with <code class="docutils literal notranslate"><span class="pre">HelpIcon.FUNCTION</span></code>
+under API sections.</p></li>
+<li><p>Index step: <code class="docutils literal notranslate"><span class="pre">builddocsearchdb</span></code> through <code class="docutils literal notranslate"><span class="pre">matlab</span> <span class="pre">-batch</span></code> (documented
+route) or <code class="docutils literal notranslate"><span class="pre">mwdocsearch</span> <span class="pre">customdocindex</span></code> (no MATLAB start; internal).
+The builder already leaves out what the index must not see, so no
+staging is needed.</p></li>
+<li><p>Packaging: the folder with <code class="docutils literal notranslate"><span class="pre">info.xml</span></code> goes on the package path
+(<code class="docutils literal notranslate"><span class="pre">ToolboxMatlabPath</span></code> or the package task); no install hook exists, so
+the index ships prebuilt.</p></li>
+</ul>
+</section>
+<section id="links-to-other-documentation">
+<h2>6. Links to other documentation<a class="headerlink" href="#links-to-other-documentation" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>To MathWorks</strong>: build an <code class="docutils literal notranslate"><span class="pre">objects.inv</span></code> from the local catalog
+<code class="docutils literal notranslate"><span class="pre">help/docCatalog/referenceapi/&lt;product&gt;.json</span></code> (<code class="docutils literal notranslate"><span class="pre">refItems[].href</span></code>,
+<code class="docutils literal notranslate"><span class="pre">refentity[].name/type</span></code> such as <code class="docutils literal notranslate"><span class="pre">function</span></code>, <code class="docutils literal notranslate"><span class="pre">method</span></code>, <code class="docutils literal notranslate"><span class="pre">class</span></code>,
+<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">refpurpose</span></code>; <code class="docutils literal notranslate"><span class="pre">helpLocation</span></code> per product). URL:
+<code class="docutils literal notranslate"><span class="pre">https://www.mathworks.com/help/&lt;helpLocation&gt;/&lt;href&gt;</span></code> (or
+<code class="docutils literal notranslate"><span class="pre">/help/releases/&lt;R&gt;/...</span></code> for a fixed release). Generate it at build
+time from the user’s installation; do not ship MathWorks data. In the
+help build the same targets can be <code class="docutils literal notranslate"><span class="pre">matlab:doc</span> <span class="pre">&lt;name&gt;</span></code> links instead,
+which open the page for the user’s release (behind MATLAB’s
+confirmation dialog).</p></li>
+<li><p><strong>To another custom site</strong> (two projects documented with this extension
+installed side by side): intersphinx with a relative base
+<code class="docutils literal notranslate"><span class="pre">../../&lt;urlpath&gt;/doc/</span></code>, where <code class="docutils literal notranslate"><span class="pre">&lt;urlpath&gt;</span></code> follows 2.2 from the other
+site’s display name. Needs a check that Sphinx resolves a relative
+intersphinx base per document depth.</p></li>
+<li><p><strong>From MathWorks or from</strong> <code class="docutils literal notranslate"><span class="pre">doc</span></code> <strong>or F1 to the site</strong>: no hook
+(Section 1).</p></li>
+<li><p><strong>From help text to the site</strong>: help text may hold
+<code class="docutils literal notranslate"><span class="pre">&lt;a</span> <span class="pre">href=&quot;matlab:helpview(...)&quot;&gt;</span></code> links; not planned.</p></li>
+</ul>
+</section>
+<section id="limits-and-risks">
+<h2>7. Limits and risks<a class="headerlink" href="#limits-and-risks" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>The URL rule, the wrapper, <code class="docutils literal notranslate"><span class="pre">searchPort</span></code> and the <code class="docutils literal notranslate"><span class="pre">mwdocsearch</span></code>
+command line are internal and may change in any release; the
+documented surface is <code class="docutils literal notranslate"><span class="pre">info.xml</span></code>, <code class="docutils literal notranslate"><span class="pre">helptoc.xml</span></code>, the HTML folder and
+<code class="docutils literal notranslate"><span class="pre">builddocsearchdb</span></code>.</p></li>
+<li><p>Custom search has no snippets, types or anchor hits; MATLAB’s own
+search user interface cannot be extended.</p></li>
+<li><p>R2024a and older use the help browser inside MATLAB (the system browser
+since R2024b); not probed.</p></li>
+<li><p>One <code class="docutils literal notranslate"><span class="pre">mwdocsearch</span></code> exit in R2026b during a suggestion request (2.4).</p></li>
+</ul>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="matlab-help-plan.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Plan: a Sphinx site in the MATLAB help system</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="matlab-markup-plan.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Plan: MATLAB markup in help text</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; the sphinxcontrib-matlabdomain team (see AUTHORS)
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Specification: a Sphinx site in the MATLAB help system</a><ul>
+<li><a class="reference internal" href="#short-answer">1. Short answer</a></li>
+<li><a class="reference internal" href="#how-matlab-custom-documentation-works">2. How MATLAB custom documentation works</a><ul>
+<li><a class="reference internal" href="#discovery">2.1 Discovery</a></li>
+<li><a class="reference internal" href="#serving-and-urls">2.2 Serving and URLs</a></li>
+<li><a class="reference internal" href="#search-index">2.3 Search index</a></li>
+<li><a class="reference internal" href="#search-user-interface">2.4 Search user interface</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#a-sphinx-html-build-against-these-rules">3. A Sphinx HTML build against these rules</a></li>
+<li><a class="reference internal" href="#prior-art-sphinx-matlabdoc-builder">4. Prior art: <code class="docutils literal notranslate"><span class="pre">sphinx-matlabdoc-builder</span></code></a></li>
+<li><a class="reference internal" href="#proposed-shape">5. Proposed shape</a></li>
+<li><a class="reference internal" href="#links-to-other-documentation">6. Links to other documentation</a></li>
+<li><a class="reference internal" href="#limits-and-risks">7. Limits and risks</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../_static/mat_urls.js?v=fdbe6872"></script>
+    <script defer="defer" src="../_static/glossary-tips.js?v=c9cc35f1"></script>
+    </body>
+</html>

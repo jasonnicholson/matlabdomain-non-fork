@@ -1,0 +1,8 @@
+{
+ "builder": "html",
+ "marker": "<!-- sphinxcontrib-matlabdomain stable address -->",
+ "matlabdomain": "0.22.2.dev301+g7dd0dc46e",
+ "pages": 0,
+ "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+ "sphinx": "9.2.0"
+}

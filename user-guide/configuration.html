@@ -1,0 +1,752 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Setting up a project: scmd quickstart" href="setting-up.html"><link rel="prev" title="Sphinx primer for MATLAB users" href="../getting-started/sphinx-primer.html">
+
+    <!-- Generated with Sphinx 9.2.0 and Furo 2025.12.19 -->
+        <title>Configuration - sphinxcontrib-matlabdomain</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/glossary-tips.css?v=62938efe" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">sphinxcontrib-matlabdomain</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <span class="sidebar-brand-text">sphinxcontrib-matlabdomain</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/sphinx-primer.html">Sphinx primer for MATLAB users</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setting-up.html">Setting up a project: <code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">quickstart</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="documenting.html">Documenting MATLAB code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="referencing.html">Names, references and links</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linking-projects.html">Linking between projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="help-text.html">Help text</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apidoc.html">Generating pages: <code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">apidoc</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="sidecars.html">Sidecar docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="simulink.html">Simulink files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api-check.html">Checking help text: <code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="warnings.html">Warnings</a></li>
+<li class="toctree-l1"><a class="reference internal" href="builds.html">Builds and performance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="projects-and-versions.html">Several projects and versions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating from 0.22 and earlier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FAQ.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../reference/configuration.html">Configuration values</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/glossary.html">Glossary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/directives.html">Directives, roles and indices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/cli.html">Command-line tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/templates.html"><code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">apidoc</span></code> templates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/api-check-report.html"><code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code> reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/warnings.html">Warnings</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../developer-guide/contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer-guide/testing.html">Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer-guide/architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer-guide/debugging.html">Debugging and profiling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer-guide/simulink-file-formats.html">Simulink file formats</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../developer-guide/roadmap.html">Roadmap</a><input aria-label="Toggle navigation of Roadmap" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../developer-guide/matlab-markup-spec.html">Specification: MATLAB markup in help text (docstrings)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer-guide/matlab-markup-plan.html">Plan: MATLAB markup in help text</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer-guide/matlab-help-spec.html">Specification: a Sphinx site in the MATLAB help system</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer-guide/matlab-help-plan.html">Plan: a Sphinx site in the MATLAB help system</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Project</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../CHANGES.html">Release notes</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../_sources/user-guide/configuration.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="configuration">
+<h1>Configuration<a class="headerlink" href="#configuration" title="Link to this heading">¶</a></h1>
+<p>All settings go in <code class="docutils literal notranslate"><span class="pre">conf.py</span></code>. They start with <code class="docutils literal notranslate"><span class="pre">matlab_</span></code>;
+<a class="reference internal" href="../reference/configuration.html"><span class="doc">Configuration values</span></a> lists every one with its type and default.
+This page explains how to use them.</p>
+<section id="the-project-root">
+<h2>The project root<a class="headerlink" href="#the-project-root" title="Link to this heading">¶</a></h2>
+<p><a class="reference internal" href="../reference/configuration.html#confval-matlab_src_code_project_root"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_code_project_root</span></code></a> is the folder all MATLAB code lives
+below:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">matlab_src_code_project_root</span> <span class="o">=</span> <span class="s2">"../src"</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>A relative path is relative to the Sphinx <a class="reference internal" href="../reference/glossary.html#term-source-directory"><span class="xref std std-term">source folder</span></a> (the folder with
+<code class="docutils literal notranslate"><span class="pre">index.rst</span></code> that you pass to <code class="docutils literal notranslate"><span class="pre">sphinx-build</span></code>; usually <code class="docutils literal notranslate"><span class="pre">conf.py</span></code> is
+there too), so the docs build the same from any working
+folder and with <a class="reference external" href="https://github.com/sphinx-contrib/multiversion">sphinx-multiversion</a>. An absolute path works
+too, except with sphinx-multiversion: every version would document the
+code of the checkout (<a class="reference internal" href="projects-and-versions.html"><span class="doc">Several projects and versions</span></a>).</p></li>
+<li><p>Every <a class="reference internal" href="../reference/glossary.html#term-object"><span class="xref std std-term">object</span></a> is identified by its path below this folder, its <em>path
+reference</em> (<code class="docutils literal notranslate"><span class="pre">+shapes/Circle.m</span></code>, see <a class="reference internal" href="referencing.html"><span class="doc">Names, references and links</span></a>). Choose the root
+once: moving it changes every reference, link anchor and <a class="reference internal" href="../reference/glossary.html#term-inventory"><span class="xref std std-term">inventory</span></a> entry.</p></li>
+<li><p>Without it, no file is indexed and the auto <a class="reference internal" href="../reference/glossary.html#term-directive"><span class="xref std std-term">directives</span></a> (<code class="docutils literal notranslate"><span class="pre">mat:autoclass</span></code>
+and the others) find nothing; each one warns. Description directives
+(<code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">mat:function::</span> <span class="pre">f(x)</span></code>, <a class="reference internal" href="documenting.html"><span class="doc">Documenting MATLAB code</span></a>) never read a file, so
+they work the same with or without it.</p></li>
+</ul>
+<p>Use the folder you would add to the MATLAB path, or the folder above several
+such folders (<code class="docutils literal notranslate"><span class="pre">src/</span></code> with <code class="docutils literal notranslate"><span class="pre">toolbox/</span></code> and <code class="docutils literal notranslate"><span class="pre">examples/</span></code> below it). Plain
+folders put files into the global namespaces, as in MATLAB: <code class="docutils literal notranslate"><span class="pre">toolbox/f.m</span></code> is
+the global function <code class="docutils literal notranslate"><span class="pre">f</span></code>.</p>
+</section>
+<section id="selecting-files">
+<h2>Selecting files<a class="headerlink" href="#selecting-files" title="Link to this heading">¶</a></h2>
+<p>By default every file below the root is indexed. Two lists of glob patterns
+change that; both are relative to the root and use <code class="docutils literal notranslate"><span class="pre">/</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">matlab_src_include_patterns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"toolbox/**"</span><span class="p">,</span> <span class="s2">"examples/*.m"</span><span class="p">]</span>
+<span class="n">matlab_src_exclude_patterns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"**/tests/**"</span><span class="p">,</span> <span class="s2">"**/private/**"</span><span class="p">]</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><a class="reference internal" href="../reference/configuration.html#confval-matlab_src_include_patterns"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_include_patterns</span></code></a> (default <code class="docutils literal notranslate"><span class="pre">[&quot;**/*&quot;]</span></code>): a file is
+indexed if its path reference matches one of them. <code class="docutils literal notranslate"><span class="pre">[]</span></code> selects nothing.</p></li>
+<li><p><a class="reference internal" href="../reference/configuration.html#confval-matlab_src_exclude_patterns"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_exclude_patterns</span></code></a>: files and folders that match
+one of them are left out; an excluded folder is not searched. The default
+leaves out <code class="docutils literal notranslate"><span class="pre">README.*</span></code>, <code class="docutils literal notranslate"><span class="pre">CHANGES.*</span></code>, <code class="docutils literal notranslate"><span class="pre">CHANGELOG.*</span></code>, <code class="docutils literal notranslate"><span class="pre">LICENSE.*</span></code>,
+<code class="docutils literal notranslate"><span class="pre">CONTRIBUTING.*</span></code>, <code class="docutils literal notranslate"><span class="pre">CODE_OF_CONDUCT.*</span></code> and <code class="docutils literal notranslate"><span class="pre">SECURITY.*</span></code> at the root
+(they matter for <a class="reference internal" href="sidecars.html"><span class="doc">sidecar docs</span></a>); your own list
+replaces it, so add them to it if you want to keep leaving them out.</p></li>
+</ul>
+<p>Exclude wins over include: a file that matches both lists is left out.</p>
+<p>Patterns match like Sphinx’s <code class="docutils literal notranslate"><span class="pre">exclude_patterns</span></code>: <code class="docutils literal notranslate"><span class="pre">**</span></code> matches across
+folders, <code class="docutils literal notranslate"><span class="pre">*</span></code> and <code class="docutils literal notranslate"><span class="pre">?</span></code> within one folder, and <code class="docutils literal notranslate"><span class="pre">**/x</span></code> also matches <code class="docutils literal notranslate"><span class="pre">x</span></code>
+itself, so <code class="docutils literal notranslate"><span class="pre">**/tests</span></code> leaves out every <code class="docutils literal notranslate"><span class="pre">tests</span></code> folder with everything
+below it. Matching is case-sensitive on every system. Patterns and names
+are compared in Unicode NFC form, so <code class="docutils literal notranslate"><span class="pre">é</span></code> typed as one character matches a
+name stored as <code class="docutils literal notranslate"><span class="pre">e</span></code> and an accent (as macOS may store it), and the other
+way round.</p>
+<p>Examples, for a project root with these files:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>main.m
++mypkg/a.m
++mypkg/+sub/b.m
+apps/Viewer.mlapp
+data/case1.m
+examples/demo1.m
+examples/advanced/demo2.m
+toolbox/f.m
+toolbox/fTest.m
+toolbox/legacy_util.m
+toolbox/+pkg/C.m
+toolbox/+pkg/private/h.m
+toolbox/data/big.m
+toolbox/internal/g.m
+toolbox/tests/test_f.m
+</pre></div>
+</div>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 45.0%" />
+<col style="width: 55.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Patterns</p></th>
+<th class="head"><p>Indexed</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>include <code class="docutils literal notranslate"><span class="pre">[&quot;toolbox/**&quot;]</span></code></p></td>
+<td><p>every file below <code class="docutils literal notranslate"><span class="pre">toolbox/</span></code>, at any depth</p></td>
+</tr>
+<tr class="row-odd"><td><p>include <code class="docutils literal notranslate"><span class="pre">[&quot;toolbox/**&quot;,</span> <span class="pre">&quot;examples/**&quot;]</span></code></p></td>
+<td><p>every file below <code class="docutils literal notranslate"><span class="pre">toolbox/</span></code> and <code class="docutils literal notranslate"><span class="pre">examples/</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>include <code class="docutils literal notranslate"><span class="pre">[&quot;examples/*.m&quot;]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">examples/demo1.m</span></code> only: <code class="docutils literal notranslate"><span class="pre">*</span></code> stays in one folder</p></td>
+</tr>
+<tr class="row-odd"><td><p>include <code class="docutils literal notranslate"><span class="pre">[&quot;+mypkg/**&quot;]</span></code></p></td>
+<td><p>the namespace <code class="docutils literal notranslate"><span class="pre">mypkg</span></code> with its inner namespaces</p></td>
+</tr>
+<tr class="row-even"><td><p>include <code class="docutils literal notranslate"><span class="pre">[&quot;**/*.m&quot;]</span></code></p></td>
+<td><p>every <code class="docutils literal notranslate"><span class="pre">.m</span></code> file, also <code class="docutils literal notranslate"><span class="pre">main.m</span></code> at the root; no <code class="docutils literal notranslate"><span class="pre">.mlapp</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>exclude <code class="docutils literal notranslate"><span class="pre">[&quot;**/tests&quot;]</span></code></p></td>
+<td><p>all but <code class="docutils literal notranslate"><span class="pre">toolbox/tests/test_f.m</span></code>: the folder is not searched</p></td>
+</tr>
+<tr class="row-even"><td><p>exclude <code class="docutils literal notranslate"><span class="pre">[&quot;**/test_*.m&quot;,</span> <span class="pre">&quot;**/*Test.m&quot;]</span></code></p></td>
+<td><p>all but the test files <code class="docutils literal notranslate"><span class="pre">test_f.m</span></code> and <code class="docutils literal notranslate"><span class="pre">fTest.m</span></code>, wherever they
+are</p></td>
+</tr>
+<tr class="row-odd"><td><p>exclude <code class="docutils literal notranslate"><span class="pre">[&quot;**/data&quot;]</span></code></p></td>
+<td><p>all but <code class="docutils literal notranslate"><span class="pre">data/case1.m</span></code> and <code class="docutils literal notranslate"><span class="pre">toolbox/data/big.m</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>exclude <code class="docutils literal notranslate"><span class="pre">[&quot;**/private&quot;]</span></code></p></td>
+<td><p>all but <code class="docutils literal notranslate"><span class="pre">toolbox/+pkg/private/h.m</span></code>; links to private functions
+then find nothing</p></td>
+</tr>
+<tr class="row-odd"><td><p>exclude <code class="docutils literal notranslate"><span class="pre">[&quot;**/*.mlapp&quot;]</span></code></p></td>
+<td><p>all but <code class="docutils literal notranslate"><span class="pre">apps/Viewer.mlapp</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>exclude <code class="docutils literal notranslate"><span class="pre">[&quot;toolbox/legacy_util.m&quot;]</span></code></p></td>
+<td><p>all but that one file</p></td>
+</tr>
+<tr class="row-odd"><td><p>include <code class="docutils literal notranslate"><span class="pre">[&quot;toolbox/**&quot;]</span></code>, exclude <code class="docutils literal notranslate"><span class="pre">[&quot;toolbox/internal&quot;]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">toolbox/</span></code> without <code class="docutils literal notranslate"><span class="pre">toolbox/internal/</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>These are configuration errors (<code class="docutils literal notranslate"><span class="pre">ConfigError</span></code>), reported when the build
+starts (Sphinx prints “Configuration error!” and the message on the last
+line of a short traceback):</p>
+<ul class="simple">
+<li><p>changing either list from its default without
+<a class="reference internal" href="../reference/configuration.html#confval-matlab_src_code_project_root"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_code_project_root</span></code></a>;</p></li>
+<li><p>a pattern that is absolute, has a drive (<code class="docutils literal notranslate"><span class="pre">C:</span></code>, <code class="docutils literal notranslate"><span class="pre">\\server</span></code>) or a
+<code class="docutils literal notranslate"><span class="pre">\</span></code>, is empty, or uses <code class="docutils literal notranslate"><span class="pre">..</span></code> to leave the root or after a wildcard
+(<code class="docutils literal notranslate"><span class="pre">src/../+pkg/*.m</span></code> is fine: it means <code class="docutils literal notranslate"><span class="pre">+pkg/*.m</span></code>);</p></li>
+<li><p>a list that is not a list or tuple;</p></li>
+<li><p>a pattern whose leading folders lead out of the root through a link.</p></li>
+</ul>
+<p>Some files and folders are never indexed or need care:</p>
+<ul>
+<li><p>Folders whose names start with <code class="docutils literal notranslate"><span class="pre">.</span></code> are never searched (<code class="docutils literal notranslate"><span class="pre">.git</span></code>), nor
+is Sphinx output: the <code class="docutils literal notranslate"><span class="pre">_build</span></code> folder of the Sphinx source folder, and
+any folder with a <code class="docutils literal notranslate"><span class="pre">.buildinfo</span></code> or <code class="docutils literal notranslate"><span class="pre">environment.pickle</span></code> file, with
+both <code class="docutils literal notranslate"><span class="pre">objects.inv</span></code> and <code class="docutils literal notranslate"><span class="pre">searchindex.js</span></code> (HTML output, also a copy
+made with <code class="docutils literal notranslate"><span class="pre">cp</span> <span class="pre">-r</span> <span class="pre">html/*</span> <span class="pre">public/</span></code>, which leaves out <code class="docutils literal notranslate"><span class="pre">.buildinfo</span></code>), or
+with a <code class="docutils literal notranslate"><span class="pre">doctrees</span></code> folder that has <code class="docutils literal notranslate"><span class="pre">environment.pickle</span></code> (the output of
+another layout, such as <code class="docutils literal notranslate"><span class="pre">build/</span></code>). Folders whose names start with
+<code class="docutils literal notranslate"><span class="pre">_</span></code> are searched like any other; exclude those without MATLAB code
+(<code class="docutils literal notranslate"><span class="pre">**/_assets/**</span></code>) when they are large.</p></li>
+<li><p>A link or Windows junction below the root that points outside it is left
+out, with one <code class="docutils literal notranslate"><span class="pre">mat.outside_root</span></code> warning. Links that stay inside the
+root are followed, and the files they lead to are documented at both
+paths, except a link to the folder it is in or to a folder above it (up
+to the root): it would repeat that folder without end, so it is not
+followed, with one <code class="docutils literal notranslate"><span class="pre">mat.link_cycle</span></code> warning.</p></li>
+<li><p>Two names in one folder that differ only by Unicode form (<code class="docutils literal notranslate"><span class="pre">é</span></code> as one
+character and as <code class="docutils literal notranslate"><span class="pre">e</span></code> and an accent) have the same path reference; the
+first in the order of the names on disk is indexed, the other gets a
+<code class="docutils literal notranslate"><span class="pre">mat.parse_error</span></code> warning that shows both names with escapes.</p></li>
+<li><p>Generated data files can be large and slow to parse; exclude them
+(<code class="docutils literal notranslate"><span class="pre">**/data/**</span></code>) when they need no documentation.</p></li>
+<li><p>Git submodules below the root are indexed like any folder when they are
+checked out, and are empty folders when not. A project that documents
+submodules separately can read their paths from <code class="docutils literal notranslate"><span class="pre">.gitmodules</span></code> in
+<code class="docutils literal notranslate"><span class="pre">conf.py</span></code>, so the list stays in step with the repository:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">configparser</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_submodule_paths</span><span class="p">(</span><span class="n">gitmodules</span><span class="p">):</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">gitmodules</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">parser</span><span class="p">[</span><span class="n">s</span><span class="p">][</span><span class="s2">"path"</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">parser</span><span class="o">.</span><span class="n">sections</span><span class="p">()</span> <span class="k">if</span> <span class="s2">"path"</span> <span class="ow">in</span> <span class="n">parser</span><span class="p">[</span><span class="n">s</span><span class="p">]]</span>
+
+
+<span class="n">matlab_src_code_project_root</span> <span class="o">=</span> <span class="s2">".."</span>
+<span class="n">matlab_src_exclude_patterns</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"README.*"</span><span class="p">,</span>  <span class="c1"># ... the rest of the default list</span>
+    <span class="o">*</span><span class="n">_submodule_paths</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">".."</span><span class="p">,</span> <span class="s2">".gitmodules"</span><span class="p">)),</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<p>A helper’s name must not start with <code class="docutils literal notranslate"><span class="pre">matlab_</span></code> (that prefix is kept for
+configuration values).</p>
+</li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">apidoc</span></code> reads the same root and patterns from
+<code class="docutils literal notranslate"><span class="pre">conf.py</span></code>; no option overrides them (<a class="reference internal" href="apidoc.html"><span class="doc">Generating pages: scmd apidoc</span></a>).</p>
+</section>
+<section id="the-matlab-release">
+<h2>The MATLAB release<a class="headerlink" href="#the-matlab-release" title="Link to this heading">¶</a></h2>
+<p><a class="reference internal" href="../reference/configuration.html#confval-matlab_version"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_version</span></code></a> (default <code class="docutils literal notranslate"><span class="pre">&quot;R2026a&quot;</span></code>) is the release the code is
+written for. It sets the defaults of release-dependent rules:</p>
+<ul class="simple">
+<li><p>The longest valid name: 2048 from R2025a on, 63 before.</p></li>
+<li><p>Whether scripts and functions in a subfolder of a class folder
+(<code class="docutils literal notranslate"><span class="pre">&#64;C/sub/x.m</span></code>) can be called: before R2026a they can, from R2026a on they
+cannot (they are then documented by path, with a <code class="docutils literal notranslate"><span class="pre">mat.not_callable</span></code>
+warning).</p></li>
+</ul>
+<p>The oldest supported release is R2024a; an older one, or a value that is not
+<code class="docutils literal notranslate"><span class="pre">R&lt;year&gt;a</span></code> or <code class="docutils literal notranslate"><span class="pre">R&lt;year&gt;b</span></code>, is a configuration error.</p>
+</section>
+<section id="file-encoding">
+<h2>File encoding<a class="headerlink" href="#file-encoding" title="Link to this heading">¶</a></h2>
+<p>Files are read like MATLAB R2026a reads them:</p>
+<ol class="arabic simple">
+<li><p>a byte-order mark selects UTF-8, UTF-16 or UTF-32;</p></li>
+<li><p>otherwise <a class="reference internal" href="../reference/configuration.html#confval-matlab_src_encoding"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_encoding</span></code></a>, a Python codec name such as
+<code class="docutils literal notranslate"><span class="pre">&quot;cp1252&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;shift_jis&quot;</span></code>, if set;</p></li>
+<li><p>otherwise UTF-8. A file that is not valid UTF-8 is read with the Windows
+ANSI code page on Windows and as ISO-8859-1 (Latin-1) elsewhere, with one
+<code class="docutils literal notranslate"><span class="pre">mat.encoding</span></code> warning that gives the line of the first invalid byte.</p></li>
+</ol>
+<p>Set <a class="reference internal" href="../reference/configuration.html#confval-matlab_src_encoding"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_encoding</span></code></a> when a project uses one legacy encoding
+throughout, so that Windows and Linux builds read it the same way. An
+unknown codec is a configuration error.</p>
+</section>
+<section id="how-things-are-shown">
+<h2>How things are shown<a class="headerlink" href="#how-things-are-shown" title="Link to this heading">¶</a></h2>
+<ul>
+<li><p><a class="reference internal" href="../reference/configuration.html#confval-matlab_show_property_default_value"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_show_property_default_value</span></code></a> (default <code class="docutils literal notranslate"><span class="pre">True</span></code>): show a
+property’s default value after its name (<code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">=</span> <span class="pre">1</span></code>), and the
+constructor arguments of an enumeration value (<code class="docutils literal notranslate"><span class="pre">Red</span> <span class="pre">(1,</span> <span class="pre">0,</span> <span class="pre">0)</span></code>).</p></li>
+<li><p><a class="reference internal" href="../reference/configuration.html#confval-matlab_show_property_specs"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_show_property_specs</span></code></a> (default <code class="docutils literal notranslate"><span class="pre">True</span></code>): show a
+property’s size, class and validators (<code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(1,1)</span> <span class="pre">double</span>
+<span class="pre">{mustBePositive}</span></code>).</p></li>
+<li><p><a class="reference internal" href="../reference/configuration.html#confval-matlab_class_signature"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_class_signature</span></code></a> (default <code class="docutils literal notranslate"><span class="pre">False</span></code>): show the
+constructor’s arguments in the class signature. In the sample project
+(<a class="reference internal" href="documenting.html"><span class="doc">Documenting MATLAB code</span></a>):</p>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Circle</span></code>, constructor <code class="docutils literal notranslate"><span class="pre">Circle(radius)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">class</span> <span class="pre">shapes.Circle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">class</span> <span class="pre">shapes.Circle(radius)</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Polygon</span></code> (class folder), constructor <code class="docutils literal notranslate"><span class="pre">Polygon(x,</span> <span class="pre">y)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">class</span> <span class="pre">shapes.Polygon</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">class</span> <span class="pre">shapes.Polygon(x,</span> <span class="pre">y)</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Shape</span></code>, no constructor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">class</span> <span class="pre">shapes.Shape</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">class</span> <span class="pre">shapes.Shape</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>A constructor with <code class="docutils literal notranslate"><span class="pre">varargin</span></code> shows <code class="docutils literal notranslate"><span class="pre">(varargin)</span></code>. If the
+constructor’s first help line looks like its signature and
+<code class="docutils literal notranslate"><span class="pre">autodoc_docstring_signature</span></code> is on (the default), that line is the
+class signature whatever this setting is.</p>
+</li>
+<li><p><a class="reference internal" href="../reference/configuration.html#confval-matlab_add_namespace_names"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_add_namespace_names</span></code></a> (default <code class="docutils literal notranslate"><span class="pre">True</span></code>): show the
+namespace in signatures (<code class="docutils literal notranslate"><span class="pre">shapes.Circle</span></code>); <code class="docutils literal notranslate"><span class="pre">False</span></code> shows <code class="docutils literal notranslate"><span class="pre">Circle</span></code>.</p></li>
+<li><p><a class="reference internal" href="../reference/configuration.html#confval-matlab_external_names"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_external_names</span></code></a>: MATLAB’s own classes and namespaces
+(<code class="docutils literal notranslate"><span class="pre">handle</span></code>, <code class="docutils literal notranslate"><span class="pre">matlab.*</span></code>, <code class="docutils literal notranslate"><span class="pre">Simulink.*</span></code>, <code class="docutils literal notranslate"><span class="pre">double</span></code>, <code class="docutils literal notranslate"><span class="pre">datetime</span></code>,
+…). A reference to one of them that the project does not document is
+text, without a “reference target not found” warning. Add the names of
+other toolboxes you use (<code class="docutils literal notranslate"><span class="pre">r&quot;sltest\..+&quot;</span></code>) to the default list.</p></li>
+<li><p><a class="reference internal" href="../reference/configuration.html#confval-matlab_auto_link"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_auto_link</span></code></a> (default <code class="docutils literal notranslate"><span class="pre">None</span></code>): turn names in help text
+into links. <code class="docutils literal notranslate"><span class="pre">&quot;basic&quot;</span></code> links the entries of “See also” lines and the
+property and method lists of class help; <code class="docutils literal notranslate"><span class="pre">&quot;all&quot;</span></code> also links every known
+class and function name. See <a class="reference internal" href="help-text.html"><span class="doc">Help text</span></a>.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">&quot;basic&quot;</span></code>. <code class="docutils literal notranslate"><span class="pre">&quot;all&quot;</span></code> searches every help text for every class and
+function name in the project, so it costs more as the project grows, and
+it also links ordinary words that are names in the project: with a
+function <code class="docutils literal notranslate"><span class="pre">data</span></code>, every “data” in the help becomes a link.</p>
+</li>
+</ul>
+<p>These Sphinx and autodoc settings apply too:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">autoclass_content</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;class&quot;</span></code> (default) shows the class help;
+<code class="docutils literal notranslate"><span class="pre">&quot;init&quot;</span></code> the constructor’s help instead; <code class="docutils literal notranslate"><span class="pre">&quot;both&quot;</span></code> both, and then the
+constructor is not listed again among the members.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">autodoc_docstring_signature</span></code> (default <code class="docutils literal notranslate"><span class="pre">True</span></code>): if the first help line
+of a function or method looks like its signature (<code class="docutils literal notranslate"><span class="pre">times_two(x)</span></code>), use it
+as the signature and drop it from the text.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">autodoc_member_order</span></code>, and <code class="docutils literal notranslate"><span class="pre">:member-order:</span></code> on a directive, set the
+order of the members on a page:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;alphabetical&quot;</span></code> (default): by name; uppercase letters sort before
+lowercase ones.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;groupwise&quot;</span></code>: by kind, then by name. In a class: static methods,
+other methods, then properties and enumeration values. In a folder:
+scripts and apps, classes, then functions.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;bysource&quot;</span></code>: a class’s members in the order of its <code class="docutils literal notranslate"><span class="pre">classdef</span></code>
+file. The files of a folder have no source order; they stay in name
+order, whatever order the file system lists them in.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">autodoc_default_options</span></code>: default options of the auto directives, for
+example <code class="docutils literal notranslate"><span class="pre">{&quot;members&quot;:</span> <span class="pre">True,</span> <span class="pre">&quot;show-inheritance&quot;:</span> <span class="pre">True}</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">add_function_parentheses</span></code>: <code class="docutils literal notranslate"><span class="pre">()</span></code> after function and method links.
+Sphinx’s <code class="docutils literal notranslate"><span class="pre">add_module_names</span></code> is not read; use
+<a class="reference internal" href="../reference/configuration.html#confval-matlab_add_namespace_names"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_add_namespace_names</span></code></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">suppress_warnings</span></code>: see <a class="reference internal" href="warnings.html"><span class="doc">Warnings</span></a>. Use this to suppress some warnings
+during the build.</p></li>
+<li><p>The events <code class="docutils literal notranslate"><span class="pre">autodoc-process-docstring</span></code> and <code class="docutils literal notranslate"><span class="pre">autodoc-skip-member</span></code> are
+emitted for MATLAB objects too, so extensions such as
+<code class="docutils literal notranslate"><span class="pre">sphinx.ext.napoleon</span></code> work on MATLAB help.</p></li>
+</ul>
+</section>
+<section id="checking-help-text">
+<h2>Checking help text<a class="headerlink" href="#checking-help-text" title="Link to this heading">¶</a></h2>
+<p><a class="reference internal" href="../reference/configuration.html#confval-matlab_api_check_rules"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_api_check_rules</span></code></a>,
+<a class="reference internal" href="../reference/configuration.html#confval-matlab_api_check_ignore_patterns"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_api_check_ignore_patterns</span></code></a>,
+<a class="reference internal" href="../reference/configuration.html#confval-matlab_api_check_section_labels"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_api_check_section_labels</span></code></a>,
+<a class="reference internal" href="../reference/configuration.html#confval-matlab_api_check_files"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_api_check_files</span></code></a>, <a class="reference internal" href="../reference/configuration.html#confval-matlab_api_check_files_from"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_api_check_files_from</span></code></a>
+and <a class="reference internal" href="../reference/configuration.html#confval-matlab_api_check_ignore_unmatched"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_api_check_ignore_unmatched</span></code></a> configure the
+<code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code> builder; see <a class="reference internal" href="api-check.html"><span class="doc">Checking help text: matlab-api-check</span></a>.</p>
+<p>The ignore patterns match the path references of files and of methods in a
+<code class="docutils literal notranslate"><span class="pre">classdef</span></code> file (<code class="docutils literal notranslate"><span class="pre">+shapes/Circle.m.draw</span></code>), with the rules of the
+patterns above; <code class="docutils literal notranslate"><span class="pre">*</span></code> matches dots too, so <code class="docutils literal notranslate"><span class="pre">Circle.m.*</span></code> matches every
+method of <code class="docutils literal notranslate"><span class="pre">Circle</span></code>. Ignoring a class file also skips its methods.</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 45.0%" />
+<col style="width: 55.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Pattern</p></th>
+<th class="head"><p>Not checked</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;generated/**&quot;</span></code></p></td>
+<td><p>everything below <code class="docutils literal notranslate"><span class="pre">generated/</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;+pkg/internal/**&quot;</span></code></p></td>
+<td><p>the files below <code class="docutils literal notranslate"><span class="pre">+pkg/internal/</span></code> and their methods</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;utils/legacy.m&quot;</span></code></p></td>
+<td><p>one file</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;+shapes/Circle.m&quot;</span></code></p></td>
+<td><p>the class <code class="docutils literal notranslate"><span class="pre">shapes.Circle</span></code> and all its methods</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;+shapes/Circle.m.*&quot;</span></code></p></td>
+<td><p>the methods of <code class="docutils literal notranslate"><span class="pre">Circle</span></code>, but not the class itself</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;+shapes/Circle.m.draw&quot;</span></code></p></td>
+<td><p>one method</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;**.m.set*&quot;</span></code></p></td>
+<td><p>methods whose names start with <code class="docutils literal notranslate"><span class="pre">set</span></code>, in every class</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;**/*.m.*&quot;</span></code></p></td>
+<td><p>every method in a <code class="docutils literal notranslate"><span class="pre">classdef</span></code> file: only files are checked</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;**/tests/**&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;**/*Test.m&quot;</span></code></p></td>
+<td><p>test folders and test classes</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;examples/*.m&quot;</span></code></p></td>
+<td><p>the scripts directly in <code class="docutils literal notranslate"><span class="pre">examples/</span></code>, not in its subfolders</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;&#64;Legacy/**&quot;</span></code></p></td>
+<td><p>an old-style class folder</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="memory">
+<h2>Memory<a class="headerlink" href="#memory" title="Link to this heading">¶</a></h2>
+<p>The index keeps decoded source text in memory until it is parsed or the
+build ends. Its memory cost depends on the selected source files.</p>
+</section>
+<section id="removed-settings">
+<h2>Removed settings<a class="headerlink" href="#removed-settings" title="Link to this heading">¶</a></h2>
+<p>Setting <code class="docutils literal notranslate"><span class="pre">matlab_src_dir</span></code>, <code class="docutils literal notranslate"><span class="pre">matlab_keep_package_prefix</span></code> or
+<code class="docutils literal notranslate"><span class="pre">matlab_short_links</span></code> is a configuration error that names the replacement.
+<a class="reference internal" href="migration.html"><span class="doc">Migrating from 0.22 and earlier</span></a> shows how to update an older <code class="docutils literal notranslate"><span class="pre">conf.py</span></code>.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="setting-up.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Setting up a project: <code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">quickstart</span></code></div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="../getting-started/sphinx-primer.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Sphinx primer for MATLAB users</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; the sphinxcontrib-matlabdomain team (see AUTHORS)
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Configuration</a><ul>
+<li><a class="reference internal" href="#the-project-root">The project root</a></li>
+<li><a class="reference internal" href="#selecting-files">Selecting files</a></li>
+<li><a class="reference internal" href="#the-matlab-release">The MATLAB release</a></li>
+<li><a class="reference internal" href="#file-encoding">File encoding</a></li>
+<li><a class="reference internal" href="#how-things-are-shown">How things are shown</a></li>
+<li><a class="reference internal" href="#checking-help-text">Checking help text</a></li>
+<li><a class="reference internal" href="#memory">Memory</a></li>
+<li><a class="reference internal" href="#removed-settings">Removed settings</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../_static/mat_urls.js?v=fdbe6872"></script>
+    <script defer="defer" src="../_static/glossary-tips.js?v=c9cc35f1"></script>
+    </body>
+</html>

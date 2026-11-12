@@ -1,0 +1,750 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="scmd apidoc templates" href="templates.html"><link rel="prev" title="Directives, roles and indices" href="directives.html">
+
+    <!-- Generated with Sphinx 9.2.0 and Furo 2025.12.19 -->
+        <title>Command-line tools - sphinxcontrib-matlabdomain</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/glossary-tips.css?v=62938efe" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">sphinxcontrib-matlabdomain</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <span class="sidebar-brand-text">sphinxcontrib-matlabdomain</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/sphinx-primer.html">Sphinx primer for MATLAB users</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/setting-up.html">Setting up a project: <code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">quickstart</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/documenting.html">Documenting MATLAB code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/referencing.html">Names, references and links</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/linking-projects.html">Linking between projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/help-text.html">Help text</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/apidoc.html">Generating pages: <code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">apidoc</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/sidecars.html">Sidecar docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/simulink.html">Simulink files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/api-check.html">Checking help text: <code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/warnings.html">Warnings</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/builds.html">Builds and performance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/projects-and-versions.html">Several projects and versions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/migration.html">Migrating from 0.22 and earlier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user-guide/FAQ.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration values</a></li>
+<li class="toctree-l1"><a class="reference internal" href="glossary.html">Glossary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="directives.html">Directives, roles and indices</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Command-line tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="templates.html"><code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">apidoc</span></code> templates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api-check-report.html"><code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code> reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="warnings.html">Warnings</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../developer-guide/contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer-guide/testing.html">Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer-guide/architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer-guide/debugging.html">Debugging and profiling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer-guide/simulink-file-formats.html">Simulink file formats</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../developer-guide/roadmap.html">Roadmap</a><input aria-label="Toggle navigation of Roadmap" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../developer-guide/matlab-markup-spec.html">Specification: MATLAB markup in help text (docstrings)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer-guide/matlab-markup-plan.html">Plan: MATLAB markup in help text</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer-guide/matlab-help-spec.html">Specification: a Sphinx site in the MATLAB help system</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer-guide/matlab-help-plan.html">Plan: a Sphinx site in the MATLAB help system</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Project</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../CHANGES.html">Release notes</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../_sources/reference/cli.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="command-line-tools">
+<h1>Command-line tools<a class="headerlink" href="#command-line-tools" title="Link to this heading">¶</a></h1>
+<p>The package provides one command, <code class="docutils literal notranslate"><span class="pre">scmd</span></code> (also installed as
+<code class="docutils literal notranslate"><span class="pre">sphinxcontrib-matlabdomain</span></code>). Use <code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">quickstart</span></code> once to set up a project and
+<code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">apidoc</span></code> whenever its <a class="reference internal" href="glossary.html#term-API"><span class="xref std std-term">API</span></a> pages need updating; <code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">skills</span></code>
+copies the agent skills that ship with the package into a project. Run
+<code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">--help</span></code> or <code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">SUBCOMMAND</span> <span class="pre">--help</span></code> for the available commands
+and options.</p>
+<p>Every option has a short and a long spelling. Prefer long spellings in
+scripts and CI. Project settings belong in Sphinx’s <code class="docutils literal notranslate"><span class="pre">conf.py</span></code>; CLI
+options select the operation or control a single run.</p>
+<section id="scmd-quickstart">
+<h2><code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">quickstart</span></code><a class="headerlink" href="#scmd-quickstart" title="Link to this heading">¶</a></h2>
+<section id="synopsis">
+<h3>Synopsis<a class="headerlink" href="#synopsis" title="Link to this heading">¶</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>scmd quickstart [ROOT] [--output-dir DOCS] [--quiet] [--dry-run] [--answers FILE] [--force]
+</pre></div>
+</div>
+<p>Sets up Sphinx documentation for the MATLAB project in <code class="docutils literal notranslate"><span class="pre">ROOT</span></code>: the Sphinx
+<a class="reference internal" href="glossary.html#term-source-directory"><span class="xref std std-term">source folder</span></a> <code class="docutils literal notranslate"><span class="pre">DOCS</span></code> with its files and API pages,
+the docs dependencies,
+and two lines for git. It asks one question per choice, with the answer it
+detected as the default, and prints a report of the project.
+<a class="reference internal" href="../user-guide/setting-up.html"><span class="doc">Setting up a project: scmd quickstart</span></a> is the tutorial.</p>
+</section>
+<section id="arguments">
+<h3>Arguments<a class="headerlink" href="#arguments" title="Link to this heading">¶</a></h3>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-quickstart-arg-ROOT">
+<span class="sig-name descname"><span class="pre">ROOT</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-scmd-quickstart-arg-ROOT" title="Link to this definition">¶</a></dt>
+<dd><p>The MATLAB project root, the folder all documented code is below.
+Default: the current folder.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-quickstart-o">
+<span id="cmdoption-scmd-quickstart-output-dir"></span><span class="sig-name descname"><span class="pre">-o</span></span><span class="sig-prename descclassname"> <span class="pre">DOCS</span></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--output-dir</span></span><span class="sig-prename descclassname"> <span class="pre">DOCS</span></span><a class="headerlink" href="#cmdoption-scmd-quickstart-o" title="Link to this definition">¶</a></dt>
+<dd><p>The Sphinx source folder, inside <code class="docutils literal notranslate"><span class="pre">ROOT</span></code>. Default: <code class="docutils literal notranslate"><span class="pre">ROOT/docs</span></code>. A
+folder that exists with files but without a <code class="docutils literal notranslate"><span class="pre">conf.py</span></code> is in use (an
+MkDocs <code class="docutils literal notranslate"><span class="pre">docs/</span></code>, for example): the command says so and asks for
+another one, relative to <code class="docutils literal notranslate"><span class="pre">ROOT</span></code>; with <a class="reference internal" href="#cmdoption-scmd-quickstart-q"><code class="xref std std-option docutils literal notranslate"><span class="pre">-q</span></code></a>, it stops.</p>
+</dd></dl>
+
+</section>
+<section id="options">
+<h3>Options<a class="headerlink" href="#options" title="Link to this heading">¶</a></h3>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-quickstart-q">
+<span id="cmdoption-scmd-quickstart-quiet"></span><span class="sig-name descname"><span class="pre">-q</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--quiet</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-scmd-quickstart-q" title="Link to this definition">¶</a></dt>
+<dd><p>Ask nothing: take the answers of <a class="reference internal" href="#cmdoption-scmd-quickstart-a"><code class="xref std std-option docutils literal notranslate"><span class="pre">--answers</span></code></a>, then the detected
+defaults. It does not offer to save the answers.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-quickstart-n">
+<span id="cmdoption-scmd-quickstart-dry-run"></span><span class="sig-name descname"><span class="pre">-n</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--dry-run</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-scmd-quickstart-n" title="Link to this definition">¶</a></dt>
+<dd><p>Write nothing. Print the files it would write in <code class="docutils literal notranslate"><span class="pre">DOCS</span></code>, the lines
+it would add outside it and the report, then ask to save the answers
+(default yes). The answers file is the only file a dry run may write.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-quickstart-a">
+<span id="cmdoption-scmd-quickstart-answers"></span><span class="sig-name descname"><span class="pre">-a</span></span><span class="sig-prename descclassname"> <span class="pre">FILE</span></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--answers</span></span><span class="sig-prename descclassname"> <span class="pre">FILE</span></span><a class="headerlink" href="#cmdoption-scmd-quickstart-a" title="Link to this definition">¶</a></dt>
+<dd><p>Read answers from a TOML file and ask only for the others. The command
+offers to save one at the end (default <code class="docutils literal notranslate"><span class="pre">ROOT/scmd-quickstart.toml</span></code>);
+the keys are those of <a class="reference internal" href="../user-guide/setting-up.html#quickstart-answers"><span class="std std-ref">The answers file</span></a>.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-quickstart-f">
+<span id="cmdoption-scmd-quickstart-force"></span><span class="sig-name descname"><span class="pre">-f</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--force</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-scmd-quickstart-f" title="Link to this definition">¶</a></dt>
+<dd><p>When <code class="docutils literal notranslate"><span class="pre">DOCS/conf.py</span></code> exists, rewrite the files the command writes
+(<code class="docutils literal notranslate"><span class="pre">conf.py</span></code>, <code class="docutils literal notranslate"><span class="pre">index.rst</span></code>, <code class="docutils literal notranslate"><span class="pre">_static/.gitkeep</span></code>, <code class="docutils literal notranslate"><span class="pre">Makefile</span></code>,
+<code class="docutils literal notranslate"><span class="pre">make.bat</span></code>, <code class="docutils literal notranslate"><span class="pre">BUILDING_DOCS.md</span></code> and the API pages) and nothing else.
+Without it, an existing <code class="docutils literal notranslate"><span class="pre">DOCS/conf.py</span></code> stops the command.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-quickstart-V">
+<span id="cmdoption-scmd-quickstart-version"></span><span class="sig-name descname"><span class="pre">-V</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--version</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-scmd-quickstart-V" title="Link to this definition">¶</a></dt>
+<dd><p>Print the version and exit.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-quickstart-h">
+<span id="cmdoption-scmd-quickstart-help"></span><span class="sig-name descname"><span class="pre">-h</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--help</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-scmd-quickstart-h" title="Link to this definition">¶</a></dt>
+<dd><p>Print the help and exit.</p>
+</dd></dl>
+
+</section>
+<section id="what-it-writes">
+<h3>What it writes<a class="headerlink" href="#what-it-writes" title="Link to this heading">¶</a></h3>
+<p>In <code class="docutils literal notranslate"><span class="pre">DOCS</span></code>: <code class="docutils literal notranslate"><span class="pre">conf.py</span></code>, <code class="docutils literal notranslate"><span class="pre">index.rst</span></code>, <code class="docutils literal notranslate"><span class="pre">_static/.gitkeep</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Makefile</span></code>, <code class="docutils literal notranslate"><span class="pre">make.bat</span></code> (CRLF line ends), <code class="docutils literal notranslate"><span class="pre">BUILDING_DOCS.md</span></code> (unless
+the answer <code class="docutils literal notranslate"><span class="pre">guide</span></code> is <code class="docutils literal notranslate"><span class="pre">false</span></code>), and the API pages in <code class="docutils literal notranslate"><span class="pre">DOCS/API</span></code>,
+written as <strong class="program">scmd apidoc</strong> would write them from that
+<code class="docutils literal notranslate"><span class="pre">conf.py</span></code>. The templates are in the package
+(<code class="docutils literal notranslate"><span class="pre">sphinxcontrib/matlab_quickstart/templates</span></code>).</p>
+<p>Outside <code class="docutils literal notranslate"><span class="pre">DOCS</span></code>, each only if the line is not there yet:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>: the docs dependencies in the dependency group
+<code class="docutils literal notranslate"><span class="pre">docs</span></code>, through <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">add</span> <span class="pre">--frozen</span> <span class="pre">--group</span> <span class="pre">docs</span></code>, when the project uses
+uv (a <code class="docutils literal notranslate"><span class="pre">uv.lock</span></code> or a <code class="docutils literal notranslate"><span class="pre">[tool.uv]</span></code> table). The <code class="docutils literal notranslate"><span class="pre">uv.lock</span></code> file is
+never touched; the next steps say to run <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">lock</span></code> and <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">sync</span>
+<span class="pre">--group</span> <span class="pre">docs</span></code>. Without uv it edits nothing and prints the <code class="docutils literal notranslate"><span class="pre">pip</span>
+<span class="pre">install</span></code> line (and the <code class="docutils literal notranslate"><span class="pre">[dependency-groups]</span></code> table, when there is a
+<code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.gitignore</span></code>: <code class="docutils literal notranslate"><span class="pre">DOCS/_build/</span></code> (and <code class="docutils literal notranslate"><span class="pre">DOCS/API/</span></code> when the API pages
+are not committed).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.gitattributes</span></code>: <code class="docutils literal notranslate"><span class="pre">*.bat</span> <span class="pre">text</span> <span class="pre">eol=crlf</span></code>.</p></li>
+<li><p>In a project with Simulink models, libraries or subsystem files:
+<code class="docutils literal notranslate"><span class="pre">ROOT/+sphinxcontrib/+matlabdomain/simulinkDocumentationLinker.m</span></code> (the
+MATLAB function that Help links of Simulink files call; rewritten on
+each run) and its settings <code class="docutils literal notranslate"><span class="pre">simulinkDocumentationLinker.json</span></code> (written
+once; HTML builds do not change it, they only log when it differs from
+the build, <a class="reference internal" href="configuration.html#confval-matlab_simulink_autobuild_server"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_simulink_autobuild_server</span></code></a>); <code class="docutils literal notranslate"><span class="pre">conf.py</span></code> excludes
+<code class="docutils literal notranslate"><span class="pre">+sphinxcontrib/</span></code>.</p></li>
+</ul>
+<p>Before it writes anything it checks <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">status</span></code> of these three files and
+stops if one has uncommitted changes, so <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">restore</span></code> undoes exactly its
+edits. Outside a git repository it prints the lines instead. It never
+touches the project’s MATLAB code or CI, and never commits.</p>
+<p>The matlabdomain requirement copies how the running matlabdomain is
+installed (<code class="docutils literal notranslate"><span class="pre">direct_url.json</span></code>, PEP 610): a git URL and commit, an editable
+folder (<code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">add</span> <span class="pre">--editable</span></code>, <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span></code>), another URL, or a
+version from an index.</p>
+</section>
+<section id="exit-status">
+<h3>Exit status<a class="headerlink" href="#exit-status" title="Link to this heading">¶</a></h3>
+<p>0 on success, also with warnings (the index warnings and <code class="docutils literal notranslate"><span class="pre">mat.apidoc</span></code>,
+printed like Sphinx prints them); 1 when <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">add</span></code> fails or the run is
+interrupted; 2 for a usage error and when it stops before writing: <code class="docutils literal notranslate"><span class="pre">ROOT</span></code>
+is not a folder, <code class="docutils literal notranslate"><span class="pre">DOCS</span></code> is not inside <code class="docutils literal notranslate"><span class="pre">ROOT</span></code> or is in use with
+<a class="reference internal" href="#cmdoption-scmd-quickstart-q"><code class="xref std std-option docutils literal notranslate"><span class="pre">-q</span></code></a>, <code class="docutils literal notranslate"><span class="pre">DOCS/conf.py</span></code> exists without <a class="reference internal" href="#cmdoption-scmd-quickstart-f"><code class="xref std std-option docutils literal notranslate"><span class="pre">--force</span></code></a>, one of the
+three files has uncommitted changes, or the answers file is missing or
+invalid.</p>
+</section>
+</section>
+<section id="scmd-apidoc">
+<h2><code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">apidoc</span></code><a class="headerlink" href="#scmd-apidoc" title="Link to this heading">¶</a></h2>
+<section id="id1">
+<h3>Synopsis<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>scmd apidoc [--conf-dir CONF_DIR] [--force] [--dry-run] [--check] [--quiet]
+</pre></div>
+</div>
+<p>Writes reST pages with <code class="docutils literal notranslate"><span class="pre">mat:auto*</span></code> directives for the MATLAB files below
+the project root: one page per namespace and one for the global namespace
+(<a class="reference internal" href="configuration.html#confval-matlab_apidoc_group"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_apidoc_group</span></code></a> <code class="docutils literal notranslate"><span class="pre">&quot;namespace&quot;</span></code>, the default), or one page
+per folder with files (<code class="docutils literal notranslate"><span class="pre">&quot;folder&quot;</span></code>), listed flat on the root page.
+<a class="reference internal" href="../user-guide/apidoc.html"><span class="doc">Generating pages: scmd apidoc</span></a> is the tutorial.</p>
+</section>
+<section id="settings">
+<h3>Settings<a class="headerlink" href="#settings" title="Link to this heading">¶</a></h3>
+<p>Every setting comes from <code class="docutils literal notranslate"><span class="pre">CONF_DIR/conf.py</span></code> (<a class="reference internal" href="configuration.html"><span class="doc">Configuration values</span></a>); no
+flag overrides one:</p>
+<p>The source settings are <a class="reference internal" href="configuration.html#confval-matlab_src_code_project_root"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_code_project_root</span></code></a> (required),
+<a class="reference internal" href="configuration.html#confval-matlab_src_include_patterns"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_include_patterns</span></code></a>, <a class="reference internal" href="configuration.html#confval-matlab_src_exclude_patterns"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_exclude_patterns</span></code></a>,
+<a class="reference internal" href="configuration.html#confval-matlab_src_sidecar_suffixes"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_sidecar_suffixes</span></code></a>, <a class="reference internal" href="configuration.html#confval-matlab_version"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_version</span></code></a>,
+<a class="reference internal" href="configuration.html#confval-matlab_src_encoding"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_src_encoding</span></code></a> and
+<a class="reference internal" href="configuration.html#confval-matlab_simulink_doc_suffixes"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_simulink_doc_suffixes</span></code></a>.</p>
+<p>The command’s own settings are <a class="reference internal" href="configuration.html#confval-matlab_apidoc_output_dir"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_apidoc_output_dir</span></code></a> (required),
+<a class="reference internal" href="configuration.html#confval-matlab_apidoc_group"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_apidoc_group</span></code></a>, <a class="reference internal" href="configuration.html#confval-matlab_apidoc_page_size"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_apidoc_page_size</span></code></a>,
+<a class="reference internal" href="configuration.html#confval-matlab_apidoc_private"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_apidoc_private</span></code></a>, <a class="reference internal" href="configuration.html#confval-matlab_apidoc_separate"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_apidoc_separate</span></code></a>,
+<a class="reference internal" href="configuration.html#confval-matlab_apidoc_maxdepth"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_apidoc_maxdepth</span></code></a>, <a class="reference internal" href="configuration.html#confval-matlab_apidoc_tocfile"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_apidoc_tocfile</span></code></a>,
+<a class="reference internal" href="configuration.html#confval-matlab_apidoc_templatedir"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_apidoc_templatedir</span></code></a> and
+<a class="reference internal" href="configuration.html#confval-matlab_apidoc_remove_old"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_apidoc_remove_old</span></code></a>.</p>
+<p>Paths in <code class="docutils literal notranslate"><span class="pre">conf.py</span></code> are relative to <code class="docutils literal notranslate"><span class="pre">CONF_DIR</span></code>, which is taken to be
+the Sphinx source folder. Errors name the config value that caused them.
+For full control, write a script on the Python API
+(<a class="reference internal" href="../user-guide/apidoc.html#apidoc-write-your-own"><span class="std std-ref">Write your own</span></a>).</p>
+<p>The command runs <code class="docutils literal notranslate"><span class="pre">conf.py</span></code> as <code class="docutils literal notranslate"><span class="pre">sphinx-build</span></code> does, but it sets up no
+extensions and has no tags. So in a few cases it gets other values than
+the build:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">conf.py</span></code> tests <code class="docutils literal notranslate"><span class="pre">tags</span></code> (<code class="docutils literal notranslate"><span class="pre">sphinx-build</span> <span class="pre">-t</span> <span class="pre">NAME</span></code>), for example to
+exclude files from a public build;</p></li>
+<li><p>the build sets values with <code class="docutils literal notranslate"><span class="pre">sphinx-build</span> <span class="pre">-D</span> <span class="pre">name=value</span></code>;</p></li>
+<li><p>another extension changes a <code class="docutils literal notranslate"><span class="pre">matlab_*</span></code> value while the build runs;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">conf.py</span></code> is not in the source folder (<code class="docutils literal notranslate"><span class="pre">sphinx-build</span> <span class="pre">-c</span></code>): relative
+paths in it are then relative to the source folder in the build, but to
+<code class="docutils literal notranslate"><span class="pre">CONF_DIR</span></code> here.</p></li>
+</ul>
+<p>Then make <code class="docutils literal notranslate"><span class="pre">conf.py</span></code> give both the same values (test an environment
+variable instead of a tag, for example), or write a script.</p>
+</section>
+<section id="id2">
+<h3>Arguments<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h3>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-apidoc-c">
+<span id="cmdoption-scmd-apidoc-conf-dir"></span><span class="sig-name descname"><span class="pre">-c</span></span><span class="sig-prename descclassname"> <span class="pre">CONF_DIR</span></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--conf-dir</span></span><span class="sig-prename descclassname"> <span class="pre">CONF_DIR</span></span><a class="headerlink" href="#cmdoption-scmd-apidoc-c" title="Link to this definition">¶</a></dt>
+<dd><p>The folder of <code class="docutils literal notranslate"><span class="pre">conf.py</span></code>, usually the Sphinx source folder. Default:
+the current folder. Without a <code class="docutils literal notranslate"><span class="pre">conf.py</span></code> there, the command exits
+with 2.</p>
+</dd></dl>
+
+</section>
+<section id="run-time-options">
+<h3>Run-time options<a class="headerlink" href="#run-time-options" title="Link to this heading">¶</a></h3>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-apidoc-f">
+<span id="cmdoption-scmd-apidoc-force"></span><span class="sig-name descname"><span class="pre">-f</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--force</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-scmd-apidoc-f" title="Link to this definition">¶</a></dt>
+<dd><p>Also overwrite files without the marker line. Without it, such files
+are kept, with a <code class="docutils literal notranslate"><span class="pre">mat.apidoc</span></code> warning. Files with the marker are
+rewritten whenever their text changes; files are written only then.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-apidoc-n">
+<span id="cmdoption-scmd-apidoc-dry-run"></span><span class="sig-name descname"><span class="pre">-n</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--dry-run</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-scmd-apidoc-n" title="Link to this definition">¶</a></dt>
+<dd><p>Write and remove nothing; list what would change.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-apidoc-k">
+<span id="cmdoption-scmd-apidoc-check"></span><span class="sig-name descname"><span class="pre">-k</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--check</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-scmd-apidoc-k" title="Link to this definition">¶</a></dt>
+<dd><p>A dry run that exits with 1 if a page would be created, rewritten,
+renamed or removed (kept files without the marker do not count).</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-apidoc-q">
+<span id="cmdoption-scmd-apidoc-quiet"></span><span class="sig-name descname"><span class="pre">-q</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--quiet</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-scmd-apidoc-q" title="Link to this definition">¶</a></dt>
+<dd><p>No output on stdout; warnings still go to stderr.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-apidoc-V">
+<span id="cmdoption-scmd-apidoc-version"></span><span class="sig-name descname"><span class="pre">-V</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--version</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-scmd-apidoc-V" title="Link to this definition">¶</a></dt>
+<dd><p>Print the version and exit.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-apidoc-h">
+<span id="cmdoption-scmd-apidoc-help"></span><span class="sig-name descname"><span class="pre">-h</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--help</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-scmd-apidoc-h" title="Link to this definition">¶</a></dt>
+<dd><p>Print the help and exit.</p>
+</dd></dl>
+
+</section>
+<section id="id3">
+<h3>Exit status<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h3>
+<p>0 on success, also with warnings (<code class="docutils literal notranslate"><span class="pre">mat.apidoc</span></code> and the index warnings,
+printed like Sphinx prints them, except those named in
+<code class="docutils literal notranslate"><span class="pre">suppress_warnings</span></code>); 1 when <a class="reference internal" href="#cmdoption-scmd-apidoc-k"><code class="xref std std-option docutils literal notranslate"><span class="pre">--check</span></code></a> finds a page to
+change; 2 for a usage or settings error, such as an invalid pattern,
+version or encoding, a missing <code class="docutils literal notranslate"><span class="pre">conf.py</span></code> or required value, an error in
+<code class="docutils literal notranslate"><span class="pre">conf.py</span></code>, or a <code class="docutils literal notranslate"><span class="pre">matlab_*</span></code> name that is not a configuration value (a
+typo; <a class="reference internal" href="configuration.html"><span class="doc">Configuration values</span></a>). Unknown and abbreviated options (<code class="docutils literal notranslate"><span class="pre">--dry</span></code>
+for <code class="docutils literal notranslate"><span class="pre">--dry-run</span></code>) are usage errors.</p>
+<p>The command checks the values it uses: the source values
+(<code class="docutils literal notranslate"><span class="pre">matlab_src_*</span></code>, <a class="reference internal" href="configuration.html#confval-matlab_version"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_version</span></code></a>) and the <code class="docutils literal notranslate"><span class="pre">matlab_apidoc_*</span></code>
+values. It does not check the values that only the build or
+<code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code> use, so it runs on a project that is not ready for
+those yet; they check their own values when they run.</p>
+</section>
+<section id="output-files">
+<h3>Output files<a class="headerlink" href="#output-files" title="Link to this heading">¶</a></h3>
+<p>In the folder <a class="reference internal" href="configuration.html#confval-matlab_apidoc_output_dir"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_apidoc_output_dir</span></code></a> (<code class="docutils literal notranslate"><span class="pre">OUTPUT_DIR</span></code>),
+created if needed, with the suffix <code class="docutils literal notranslate"><span class="pre">rst</span></code> (<code class="docutils literal notranslate"><span class="pre">SUFFIX</span></code>):</p>
+<ul class="simple">
+<li><p>In namespace grouping, the namespace <code class="docutils literal notranslate"><span class="pre">a.b</span></code> gets
+<code class="docutils literal notranslate"><span class="pre">OUTPUT_DIR/a.b.SUFFIX</span></code> (further pages <code class="docutils literal notranslate"><span class="pre">a.b-2.SUFFIX</span></code>, …) and the
+global namespace <code class="docutils literal notranslate"><span class="pre">OUTPUT_DIR/global.SUFFIX</span></code>. In folder grouping, the
+folder <code class="docutils literal notranslate"><span class="pre">a/+p/</span></code> gets <code class="docutils literal notranslate"><span class="pre">OUTPUT_DIR/a/+p/index.SUFFIX</span></code>. With
+<a class="reference internal" href="configuration.html#confval-matlab_apidoc_separate"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_apidoc_separate</span></code></a>, the file <code class="docutils literal notranslate"><span class="pre">a/+p/Cls.m</span></code> also gets
+<code class="docutils literal notranslate"><span class="pre">OUTPUT_DIR/a/+p/Cls.m.SUFFIX</span></code>. The root page is
+<code class="docutils literal notranslate"><span class="pre">OUTPUT_DIR/TOCFILE.SUFFIX</span></code> (<a class="reference internal" href="configuration.html#confval-matlab_apidoc_tocfile"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_apidoc_tocfile</span></code></a>,
+default <code class="docutils literal notranslate"><span class="pre">index</span></code>).</p></li>
+<li><p>Each path segment keeps <code class="docutils literal notranslate"><span class="pre">A-Z</span> <span class="pre">a-z</span> <span class="pre">0-9</span> <span class="pre">_</span> <span class="pre">.</span> <span class="pre">+</span> <span class="pre">&#64;</span> <span class="pre">-</span></code>; every other character
+becomes <code class="docutils literal notranslate"><span class="pre">~XX</span></code> per UTF-8 byte. Windows device names (<code class="docutils literal notranslate"><span class="pre">CON</span></code>, <code class="docutils literal notranslate"><span class="pre">NUL</span></code>,
+<code class="docutils literal notranslate"><span class="pre">COM1</span></code>, …) and a trailing <code class="docutils literal notranslate"><span class="pre">.</span></code> get their first or last character
+escaped, and a folder’s leading <code class="docutils literal notranslate"><span class="pre">_</span></code> is escaped (<code class="docutils literal notranslate"><span class="pre">_util/</span></code> -&gt;
+<code class="docutils literal notranslate"><span class="pre">~5Futil/</span></code>), so no output folder starts with <code class="docutils literal notranslate"><span class="pre">_</span></code>. Siblings whose
+names differ only by case get their uppercase letters escaped, with a
+<code class="docutils literal notranslate"><span class="pre">mat.apidoc</span></code> warning.</p></li>
+<li><p>Files are UTF-8 with <code class="docutils literal notranslate"><span class="pre">\n</span></code> line ends on every system.</p></li>
+<li><p>With <a class="reference internal" href="configuration.html#confval-matlab_apidoc_remove_old"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_apidoc_remove_old</span></code></a> (default <code class="docutils literal notranslate"><span class="pre">True</span></code>), files with
+<code class="docutils literal notranslate"><span class="pre">SUFFIX</span></code> below <code class="docutils literal notranslate"><span class="pre">OUTPUT_DIR</span></code> that start with the marker line <code class="docutils literal notranslate"><span class="pre">..</span>
+<span class="pre">Generated</span> <span class="pre">by</span> <span class="pre">scmd</span> <span class="pre">apidoc.</span></code> and are not pages of this run are
+removed, with the folders this leaves empty. Files without the marker,
+files with other suffixes and folders whose names start with <code class="docutils literal notranslate"><span class="pre">.</span></code> or
+<code class="docutils literal notranslate"><span class="pre">_</span></code> are never touched.</p></li>
+</ul>
+</section>
+</section>
+<section id="scmd-skills">
+<h2><code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">skills</span></code><a class="headerlink" href="#scmd-skills" title="Link to this heading">¶</a></h2>
+<section id="id4">
+<h3>Synopsis<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>scmd skills list
+scmd skills install [NAME ...] [--dest DIR] [--force]
+</pre></div>
+</div>
+<p>The package ships agent skills: folders with a <code class="docutils literal notranslate"><span class="pre">SKILL.md</span></code> (the <a class="reference external" href="https://agentskills.io/">Agent
+Skills</a> format) and the scripts it uses.
+<code class="docutils literal notranslate"><span class="pre">setting-up-a-project</span></code> sets up documentation with <code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">quickstart</span></code>;
+<code class="docutils literal notranslate"><span class="pre">migrating-from-0x</span></code> migrates a 0.x project (<a class="reference internal" href="../user-guide/migration.html"><span class="doc">Migrating from 0.22 and earlier</span></a>).</p>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-skills-arg-COMMAND">
+<span class="sig-name descname"><span class="pre">COMMAND</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-scmd-skills-arg-COMMAND" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">list</span></code> or <code class="docutils literal notranslate"><span class="pre">install</span></code>.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-skills-V">
+<span id="cmdoption-scmd-skills-version"></span><span class="sig-name descname"><span class="pre">-V</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--version</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-scmd-skills-V" title="Link to this definition">¶</a></dt>
+<dd><p>Print the version and exit.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-skills-h">
+<span id="cmdoption-scmd-skills-help"></span><span class="sig-name descname"><span class="pre">-h</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--help</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-scmd-skills-h" title="Link to this definition">¶</a></dt>
+<dd><p>Print the help and exit.</p>
+</dd></dl>
+
+</section>
+<section id="scmd-skills-list">
+<h3><code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">skills</span> <span class="pre">list</span></code><a class="headerlink" href="#scmd-skills-list" title="Link to this heading">¶</a></h3>
+<p>Prints the name and description of each skill.</p>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-skills-list-h">
+<span id="cmdoption-scmd-skills-list-help"></span><span class="sig-name descname"><span class="pre">-h</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--help</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-scmd-skills-list-h" title="Link to this definition">¶</a></dt>
+<dd><p>Print the help and exit.</p>
+</dd></dl>
+
+</section>
+<section id="scmd-skills-install">
+<h3><code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">skills</span> <span class="pre">install</span></code><a class="headerlink" href="#scmd-skills-install" title="Link to this heading">¶</a></h3>
+<p>Copies skill folders into the project’s skill folder, each to
+<code class="docutils literal notranslate"><span class="pre">DIR/NAME</span></code>. Agent tools read a project’s skills from their own folder:</p>
+<ul class="simple">
+<li><p>GitHub Copilot (VS Code, Copilot CLI): <code class="docutils literal notranslate"><span class="pre">.github/skills</span></code>, the default;</p></li>
+<li><p>Claude: <code class="docutils literal notranslate"><span class="pre">.claude/skills</span></code>;</p></li>
+<li><p>OpenAI Codex: <code class="docutils literal notranslate"><span class="pre">.agents/skills</span></code>.</p></li>
+</ul>
+<p>Run it from the project root and commit the folders to share them. Run it
+again with <a class="reference internal" href="#cmdoption-scmd-skills-install-f"><code class="xref std std-option docutils literal notranslate"><span class="pre">--force</span></code></a> after an upgrade of the package.</p>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-skills-install-arg-NAME">
+<span class="sig-name descname"><span class="pre">NAME</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-scmd-skills-install-arg-NAME" title="Link to this definition">¶</a></dt>
+<dd><p>The skills to copy. Default: all.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-skills-install-d">
+<span id="cmdoption-scmd-skills-install-dest"></span><span class="sig-name descname"><span class="pre">-d</span></span><span class="sig-prename descclassname"> <span class="pre">DIR</span></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--dest</span></span><span class="sig-prename descclassname"> <span class="pre">DIR</span></span><a class="headerlink" href="#cmdoption-scmd-skills-install-d" title="Link to this definition">¶</a></dt>
+<dd><p>The project’s skill folder. Default: <code class="docutils literal notranslate"><span class="pre">.github/skills</span></code>.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-skills-install-f">
+<span id="cmdoption-scmd-skills-install-force"></span><span class="sig-name descname"><span class="pre">-f</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--force</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-scmd-skills-install-f" title="Link to this definition">¶</a></dt>
+<dd><p>Replace skill folders that exist. Without it, the command copies
+nothing when one of the folders exists.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-scmd-skills-install-h">
+<span id="cmdoption-scmd-skills-install-help"></span><span class="sig-name descname"><span class="pre">-h</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--help</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-scmd-skills-install-h" title="Link to this definition">¶</a></dt>
+<dd><p>Print the help and exit.</p>
+</dd></dl>
+
+<p>Exit status: 0 on success; 1 when a skill folder exists and
+<a class="reference internal" href="#cmdoption-scmd-skills-install-f"><code class="xref std std-option docutils literal notranslate"><span class="pre">--force</span></code></a> is not given; 2 for a usage error, such as an unknown
+skill name.</p>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="templates.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title"><code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">apidoc</span></code> templates</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="directives.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Directives, roles and indices</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; the sphinxcontrib-matlabdomain team (see AUTHORS)
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Command-line tools</a><ul>
+<li><a class="reference internal" href="#scmd-quickstart"><code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">quickstart</span></code></a><ul>
+<li><a class="reference internal" href="#synopsis">Synopsis</a></li>
+<li><a class="reference internal" href="#arguments">Arguments</a></li>
+<li><a class="reference internal" href="#options">Options</a></li>
+<li><a class="reference internal" href="#what-it-writes">What it writes</a></li>
+<li><a class="reference internal" href="#exit-status">Exit status</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#scmd-apidoc"><code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">apidoc</span></code></a><ul>
+<li><a class="reference internal" href="#id1">Synopsis</a></li>
+<li><a class="reference internal" href="#settings">Settings</a></li>
+<li><a class="reference internal" href="#id2">Arguments</a></li>
+<li><a class="reference internal" href="#run-time-options">Run-time options</a></li>
+<li><a class="reference internal" href="#id3">Exit status</a></li>
+<li><a class="reference internal" href="#output-files">Output files</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#scmd-skills"><code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">skills</span></code></a><ul>
+<li><a class="reference internal" href="#id4">Synopsis</a></li>
+<li><a class="reference internal" href="#scmd-skills-list"><code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">skills</span> <span class="pre">list</span></code></a></li>
+<li><a class="reference internal" href="#scmd-skills-install"><code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">skills</span> <span class="pre">install</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../_static/mat_urls.js?v=fdbe6872"></script>
+    <script defer="defer" src="../_static/glossary-tips.js?v=c9cc35f1"></script>
+    </body>
+</html>

@@ -1,0 +1,898 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Names, references and links" href="referencing.html"><link rel="prev" title="Setting up a project: scmd quickstart" href="setting-up.html">
+
+    <!-- Generated with Sphinx 9.2.0 and Furo 2025.12.19 -->
+        <title>Documenting MATLAB code - sphinxcontrib-matlabdomain</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/glossary-tips.css?v=62938efe" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">sphinxcontrib-matlabdomain</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <span class="sidebar-brand-text">sphinxcontrib-matlabdomain</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/sphinx-primer.html">Sphinx primer for MATLAB users</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setting-up.html">Setting up a project: <code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">quickstart</span></code></a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Documenting MATLAB code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="referencing.html">Names, references and links</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linking-projects.html">Linking between projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="help-text.html">Help text</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apidoc.html">Generating pages: <code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">apidoc</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="sidecars.html">Sidecar docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="simulink.html">Simulink files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api-check.html">Checking help text: <code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="warnings.html">Warnings</a></li>
+<li class="toctree-l1"><a class="reference internal" href="builds.html">Builds and performance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="projects-and-versions.html">Several projects and versions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating from 0.22 and earlier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FAQ.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../reference/configuration.html">Configuration values</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/glossary.html">Glossary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/directives.html">Directives, roles and indices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/cli.html">Command-line tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/templates.html"><code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">apidoc</span></code> templates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/api-check-report.html"><code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code> reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/warnings.html">Warnings</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../developer-guide/contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer-guide/testing.html">Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer-guide/architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer-guide/debugging.html">Debugging and profiling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer-guide/simulink-file-formats.html">Simulink file formats</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../developer-guide/roadmap.html">Roadmap</a><input aria-label="Toggle navigation of Roadmap" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../developer-guide/matlab-markup-spec.html">Specification: MATLAB markup in help text (docstrings)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer-guide/matlab-markup-plan.html">Plan: MATLAB markup in help text</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer-guide/matlab-help-spec.html">Specification: a Sphinx site in the MATLAB help system</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer-guide/matlab-help-plan.html">Plan: a Sphinx site in the MATLAB help system</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Project</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../CHANGES.html">Release notes</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../_sources/user-guide/documenting.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="documenting-matlab-code">
+<h1>Documenting MATLAB code<a class="headerlink" href="#documenting-matlab-code" title="Link to this heading">¶</a></h1>
+<p>The <em>auto</em> <a class="reference internal" href="../reference/glossary.html#term-directive"><span class="xref std std-term">directives</span></a> read a MATLAB file and write its
+documentation: the <a class="reference internal" href="../reference/glossary.html#term-signature"><span class="xref std std-term">signature</span></a>, the help text and, for classes, the
+members. This page shows
+them on a small sample project, rendered by this documentation’s own build.
+<a class="reference internal" href="../reference/directives.html"><span class="doc">Directives, roles and indices</span></a> lists every directive and option.</p>
+<section id="auto-and-description-directives">
+<h2>Auto and description directives<a class="headerlink" href="#auto-and-description-directives" title="Link to this heading">¶</a></h2>
+<p>Every kind of <a class="reference internal" href="../reference/glossary.html#term-object"><span class="xref std std-term">object</span></a> has two directives: an auto directive
+(<code class="docutils literal notranslate"><span class="pre">mat:autofunction</span></code>) and a description directive (<code class="docutils literal notranslate"><span class="pre">mat:function</span></code>).</p>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head stub"></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">mat:autofunction</span></code>, <code class="docutils literal notranslate"><span class="pre">mat:autoclass</span></code>, …</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">mat:function</span></code>, <code class="docutils literal notranslate"><span class="pre">mat:class</span></code>, …</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><th class="stub"><p>Reads the source file</p></th>
+<td><p>yes</p></td>
+<td><p>never</p></td>
+</tr>
+<tr class="row-odd"><th class="stub"><p>Signature</p></th>
+<td><p>from the file (or the one you give)</p></td>
+<td><p>as you write it</p></td>
+</tr>
+<tr class="row-even"><th class="stub"><p>Text</p></th>
+<td><p>the help text, then your content</p></td>
+<td><p>only your content</p></td>
+</tr>
+<tr class="row-odd"><th class="stub"><p>Members</p></th>
+<td><p>with <code class="docutils literal notranslate"><span class="pre">:members:</span></code></p></td>
+<td><p>nested directives you write</p></td>
+</tr>
+<tr class="row-even"><th class="stub"><p>No file has the name</p></th>
+<td><p>a <code class="docutils literal notranslate"><span class="pre">mat.not_found</span></code> warning (“don’t know which object to
+document”); nothing is shown</p></td>
+<td><p>no warning; shown as written</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The auto directives write description directives, filled from the file.
+Use the auto directives for code that has files; write description
+directives for objects without a <code class="docutils literal notranslate"><span class="pre">.m</span></code> file, such as MEX functions
+(<a class="reference internal" href="#hand-written"><span class="std std-ref">below</span></a>).</p>
+</section>
+<section id="the-sample-project">
+<h2>The sample project<a class="headerlink" href="#the-sample-project" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">conf.py</span></code> of these docs sets <code class="docutils literal notranslate"><span class="pre">matlab_src_code_project_root</span> <span class="pre">=</span> <span class="pre">&quot;src&quot;</span></code>, the
+folder with:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>src/
+    times_two.m              a function
+    times_two_napoleon.m     a function with Google-style help
+    +shapes/                 namespace shapes
+        Shape.m              class shapes.Shape
+        Circle.m             class shapes.Circle (a subclass of Shape)
+        Color.m              enumeration shapes.Color
+        totalArea.m          function shapes.totalArea
+        @Polygon/            class folder: class shapes.Polygon
+            Polygon.m
+            perimeter.m      a method in its own file
+        private/
+            checkPositive.m  a private function
+    scripts/
+        shapes_demo.m        a script
+    apps/
+        ShapesApp.mlapp      an App Designer app
+</pre></div>
+</div>
+</section>
+<section id="naming-what-to-document">
+<h2>Naming what to document<a class="headerlink" href="#naming-what-to-document" title="Link to this heading">¶</a></h2>
+<p>The argument of an auto directive names one file or member, in one of these
+ways:</p>
+<ul class="simple">
+<li><p>its MATLAB name, as you would type it in MATLAB: <code class="docutils literal notranslate"><span class="pre">shapes.Circle</span></code>,
+<code class="docutils literal notranslate"><span class="pre">shapes.Circle.area</span></code>, <code class="docutils literal notranslate"><span class="pre">times_two</span></code>;</p></li>
+<li><p>its path reference, the path below the project root:
+<code class="docutils literal notranslate"><span class="pre">+shapes/Circle.m</span></code>, <code class="docutils literal notranslate"><span class="pre">+shapes/Circle.m.area</span></code>,
+<code class="docutils literal notranslate"><span class="pre">+shapes/&#64;Polygon/Polygon.m</span></code>;</p></li>
+<li><p>a path or name relative to the current folder (below).</p></li>
+</ul>
+<p>A MATLAB name must belong to exactly one file. When several files share it
+(two folders with a <code class="docutils literal notranslate"><span class="pre">utils.m</span></code>, say), the directive warns
+(<code class="docutils literal notranslate"><span class="pre">mat.ambiguous</span></code>) and lists their path references; use one of those.
+<a class="reference internal" href="referencing.html"><span class="doc">Names, references and links</span></a> explains names and references in detail.</p>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">¶</a></h2>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="ow">mat:autofunction</span><span class="p">::</span> shapes.totalArea
+</pre></div>
+</div>
+<dl class="mat function">
+<dt class="sig sig-object mat" id="mat-+shapes/totalArea.m">
+<span class="sig-prename descclassname"><span class="pre">shapes.</span></span><span class="sig-name descname"><span class="pre">totalArea</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">shapeList</span></em>, <em class="sig-param"><span class="pre">opts</span></em><span class="sig-paren">)</span><a class="headerlink" href="../mat/name/shapes.totalArea.html" title="Link to this definition">¶</a></dt>
+<dd><p>TOTALAREA Sum of the areas of several shapes.</p>
+<p>total = shapes.totalArea(shapeList) adds the areas.
+total = shapes.totalArea(shapeList, Scale=s) multiplies the sum by s.</p>
+<p>The comments in the arguments blocks describe the inputs and the
+output. matlab-api-check counts them; the documentation does not show
+them, like MATLAB’s help.</p>
+<p>See also <a class="reference internal" href="#mat-+shapes/Circle.m" title="shapes.Circle"><code class="xref mat mat-class docutils literal notranslate"><span class="pre">shapes.Circle</span></code></a></p>
+</dd></dl>
+
+<p>The signature lists the input names. Name-value arguments (<code class="docutils literal notranslate"><span class="pre">opts.Scale</span></code>
+in an <code class="docutils literal notranslate"><span class="pre">arguments</span></code> block) appear as their structure, <code class="docutils literal notranslate"><span class="pre">opts</span></code>.</p>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">mat:autoclass</span></code> documents the class help; <code class="docutils literal notranslate"><span class="pre">:members:</span></code> adds its
+constructor, properties, enumeration values and methods, in sections:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="ow">mat:autoclass</span><span class="p">::</span> shapes.Circle
+   <span class="nc">:members:</span>
+   <span class="nc">:show-inheritance:</span>
+</pre></div>
+</div>
+<dl class="mat class">
+<dt class="sig sig-object mat" id="mat-+shapes/Circle.m">
+<span class="property"><span class="pre">class</span> </span><span class="sig-prename descclassname"><span class="pre">shapes.</span></span><span class="sig-name descname"><span class="pre">Circle</span></span><a class="headerlink" href="../mat/name/shapes.Circle.html" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mat-+shapes/Shape.m" title="shapes.Shape"><code class="xref mat mat-class docutils literal notranslate"><span class="pre">shapes.Shape</span></code></a></p>
+<p>CIRCLE A circle with a radius.</p>
+<p>c = shapes.Circle(2) creates a circle of radius 2.</p>
+<p>See also <a class="reference internal" href="#mat-+shapes/Shape.m" title="shapes.Shape"><code class="xref mat mat-class docutils literal notranslate"><span class="pre">shapes.Shape</span></code></a>, <a class="reference internal" href="#mat-+shapes/totalArea.m" title="shapes.totalArea"><code class="xref mat mat-func docutils literal notranslate"><span class="pre">shapes.totalArea()</span></code></a></p>
+<div class="members docutils container">
+<dl>
+<dt>Constructor Summary</dt><dd><dl class="mat method">
+<dt class="sig sig-object mat" id="mat-+shapes/Circle.m.Circle">
+<span class="sig-name descname"><span class="pre">Circle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">radius</span></em><span class="sig-paren">)</span><a class="headerlink" href="../mat/name/shapes.Circle.Circle.html" title="Link to this definition">¶</a></dt>
+<dd><p>CIRCLE Create a circle.</p>
+<dl class="simple">
+<dt>Inputs:</dt><dd><p>radius - The radius, a positive number</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd>
+<dt>Property Summary</dt><dd><dl class="mat attribute">
+<dt class="sig sig-object mat" id="mat-+shapes/Circle.m.Radius">
+<span class="sig-name descname"><span class="pre">Radius</span></span><span class="property"> <span class="pre">(1,1)</span> <span class="pre">double</span> <span class="pre">{mustBePositive}</span> <span class="pre">=</span> <span class="pre">1</span></span><a class="headerlink" href="../mat/name/shapes.Circle.Radius.html" title="Link to this definition">¶</a></dt>
+<dd><p>Radius, in meters</p>
+</dd></dl>
+
+</dd>
+<dt>Method Summary</dt><dd><dl class="mat method">
+<dt class="sig sig-object mat" id="mat-+shapes/Circle.m.area">
+<span class="sig-name descname"><span class="pre">area</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="../mat/name/shapes.Circle.area.html" title="Link to this definition">¶</a></dt>
+<dd><p>AREA Area of the circle.</p>
+<dl class="simple">
+<dt>Outputs:</dt><dd><p>a - pi times the radius squared</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="mat staticmethod">
+<dt class="sig sig-object mat" id="mat-+shapes/Circle.m.unit">
+<span class="property"><span class="pre">static</span> </span><span class="sig-name descname"><span class="pre">unit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="../mat/name/shapes.Circle.unit.html" title="Link to this definition">¶</a></dt>
+<dd><p>UNIT A circle of radius 1.</p>
+<dl class="simple">
+<dt>Outputs:</dt><dd><p>c - The circle</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd>
+</dl>
+</div>
+</dd></dl>
+
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">:show-inheritance:</span></code> adds the “Bases:” line, with links to base
+classes that are documented. MATLAB’s own classes (<code class="docutils literal notranslate"><span class="pre">handle</span></code>,
+<code class="docutils literal notranslate"><span class="pre">matlab.mixin.Copyable</span></code>) are not documented in your project; they are
+shown as text, without a “reference target not found” warning (see
+<a class="reference internal" href="../reference/configuration.html#confval-matlab_external_names"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_external_names</span></code></a> for the names and how to add others).</p></li>
+<li><p>Members without help are left out (enumeration values are always
+shown); <code class="docutils literal notranslate"><span class="pre">:undoc-members:</span></code> adds them.</p></li>
+<li><p>Members with <code class="docutils literal notranslate"><span class="pre">Access</span> <span class="pre">=</span> <span class="pre">private</span></code> or <code class="docutils literal notranslate"><span class="pre">protected</span></code>, <code class="docutils literal notranslate"><span class="pre">Hidden</span></code> members and
+members whose access is a list of classes (<code class="docutils literal notranslate"><span class="pre">Access</span> <span class="pre">=</span> <span class="pre">?OtherClass</span></code>) are
+left out. <code class="docutils literal notranslate"><span class="pre">:private-members:</span></code>, <code class="docutils literal notranslate"><span class="pre">:protected-members:</span></code>,
+<code class="docutils literal notranslate"><span class="pre">:hidden-members:</span></code> and <code class="docutils literal notranslate"><span class="pre">:access-list-members:</span></code> add them: all of
+them, or the ones you name (for <code class="docutils literal notranslate"><span class="pre">:access-list-members:</span></code>, the classes
+that have access). <code class="docutils literal notranslate"><span class="pre">Circle</span></code> above has a hidden property <code class="docutils literal notranslate"><span class="pre">Tag</span></code> and a
+private method <code class="docutils literal notranslate"><span class="pre">check</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">:members:</span> <span class="pre">area,</span> <span class="pre">Radius</span></code> documents only the named members;
+<code class="docutils literal notranslate"><span class="pre">:exclude-members:</span> <span class="pre">unit</span></code> leaves out the named ones.</p></li>
+<li><p>The signatures show the attributes a reader needs: <code class="docutils literal notranslate"><span class="pre">abstract</span></code> and
+<code class="docutils literal notranslate"><span class="pre">sealed</span></code> classes and methods, <code class="docutils literal notranslate"><span class="pre">static</span></code> methods, <code class="docutils literal notranslate"><span class="pre">abstract</span></code>,
+<code class="docutils literal notranslate"><span class="pre">constant</span></code>, <code class="docutils literal notranslate"><span class="pre">dependent</span></code> and <code class="docutils literal notranslate"><span class="pre">read-only</span></code> properties (<code class="docutils literal notranslate"><span class="pre">read-only</span></code>:
+<code class="docutils literal notranslate"><span class="pre">SetAccess</span></code> is stricter than the read access, as with <code class="docutils literal notranslate"><span class="pre">SetAccess</span> <span class="pre">=</span>
+<span class="pre">immutable</span></code>), and the constructor arguments of enumeration values
+(<code class="docutils literal notranslate"><span class="pre">Red</span> <span class="pre">(1,</span> <span class="pre">0,</span> <span class="pre">0)</span></code>; <a class="reference internal" href="../reference/configuration.html#confval-matlab_show_property_default_value"><code class="xref std std-confval docutils literal notranslate"><span class="pre">matlab_show_property_default_value</span></code></a> turns
+them off with the property defaults).</p></li>
+<li><p>Abstract methods (declared without a body) are documented; their help is
+found as for properties: a comment on the line, or a comment block right
+above or below it. <code class="docutils literal notranslate"><span class="pre">get.</span></code>/<code class="docutils literal notranslate"><span class="pre">set.</span></code> property methods and converter
+methods with dotted names are not documented. MATLAB does not list
+property methods either (<code class="docutils literal notranslate"><span class="pre">methods</span></code>, <code class="docutils literal notranslate"><span class="pre">metaclass</span></code>): describe what they
+do (a computed value, a check on assignment) in the property’s help,
+which <code class="docutils literal notranslate"><span class="pre">help</span> <span class="pre">Circle.Radius</span></code> shows.</p></li>
+<li><p>Events are listed under “Event Summary”, with their help found as for
+properties. <code class="docutils literal notranslate"><span class="pre">ListenAccess</span></code> decides who sees them, as <code class="docutils literal notranslate"><span class="pre">Access</span></code> does
+for methods (<code class="docutils literal notranslate"><span class="pre">ListenAccess</span> <span class="pre">=</span> <span class="pre">protected</span></code> needs <code class="docutils literal notranslate"><span class="pre">:protected-members:</span></code>);
+link to one with <code class="docutils literal notranslate"><span class="pre">:mat:event:</span></code>.</p></li>
+</ul>
+<p>Enumeration values, here in the order of the file (<code class="docutils literal notranslate"><span class="pre">:member-order:</span>
+<span class="pre">bysource</span></code>; the default is alphabetical):</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="ow">mat:autoclass</span><span class="p">::</span> shapes.Color
+   <span class="nc">:members:</span>
+   <span class="nc">:member-order:</span> bysource
+</pre></div>
+</div>
+<dl class="mat class">
+<dt class="sig sig-object mat" id="mat-+shapes/Color.m">
+<span class="property"><span class="pre">class</span> </span><span class="sig-prename descclassname"><span class="pre">shapes.</span></span><span class="sig-name descname"><span class="pre">Color</span></span><a class="headerlink" href="../mat/name/shapes.Color.html" title="Link to this definition">¶</a></dt>
+<dd><p>COLOR The fill colors of a shape.</p>
+<div class="members docutils container">
+<dl>
+<dt>Enumeration Values</dt><dd><dl class="mat attribute">
+<dt class="sig sig-object mat" id="mat-+shapes/Color.m.Red">
+<span class="sig-name descname"><span class="pre">Red</span></span><a class="headerlink" href="../mat/name/shapes.Color.Red.html" title="Link to this definition">¶</a></dt>
+<dd><p>The default color</p>
+</dd></dl>
+
+<dl class="mat attribute">
+<dt class="sig sig-object mat" id="mat-+shapes/Color.m.Green">
+<span class="sig-name descname"><span class="pre">Green</span></span><a class="headerlink" href="../mat/name/shapes.Color.Green.html" title="Link to this definition">¶</a></dt>
+<dd><p>Grass</p>
+</dd></dl>
+
+<dl class="mat attribute">
+<dt class="sig sig-object mat" id="mat-+shapes/Color.m.Blue">
+<span class="sig-name descname"><span class="pre">Blue</span></span><a class="headerlink" href="../mat/name/shapes.Color.Blue.html" title="Link to this definition">¶</a></dt>
+<dd><p>Sky</p>
+</dd></dl>
+
+</dd>
+</dl>
+</div>
+</dd></dl>
+
+<p>A class folder (<code class="docutils literal notranslate"><span class="pre">&#64;Polygon/</span></code>) is documented through its class. Methods
+defined in their own files in the folder (<code class="docutils literal notranslate"><span class="pre">perimeter.m</span></code>) are members like
+the methods in the class file. A method whose signature the <code class="docutils literal notranslate"><span class="pre">classdef</span></code>
+declares in a <code class="docutils literal notranslate"><span class="pre">methods</span></code> block (<code class="docutils literal notranslate"><span class="pre">methods</span> <span class="pre">(Static)</span></code> with
+<code class="docutils literal notranslate"><span class="pre">out</span> <span class="pre">=</span> <span class="pre">make(x)</span></code>) has that block’s attributes, so it is static, private,
+protected or hidden as declared; a method file without a declaration is
+public:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="ow">mat:autoclass</span><span class="p">::</span> shapes.Polygon
+   <span class="nc">:members:</span>
+   <span class="nc">:show-inheritance:</span>
+</pre></div>
+</div>
+<dl class="mat class">
+<dt class="sig sig-object mat" id="mat-+shapes/&#64;Polygon/Polygon.m">
+<span class="property"><span class="pre">class</span> </span><span class="sig-prename descclassname"><span class="pre">shapes.</span></span><span class="sig-name descname"><span class="pre">Polygon</span></span><a class="headerlink" href="../mat/name/shapes.Polygon.html" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mat-+shapes/Shape.m" title="shapes.Shape"><code class="xref mat mat-class docutils literal notranslate"><span class="pre">shapes.Shape</span></code></a></p>
+<p>POLYGON A polygon, defined in a class folder.</p>
+<p>p = shapes.Polygon([0 1 0], [0 0 1]) creates a triangle. The method
+perimeter is defined in its own file, &#64;Polygon/perimeter.m.</p>
+<div class="members docutils container">
+<dl>
+<dt>Constructor Summary</dt><dd><dl class="mat method">
+<dt class="sig sig-object mat" id="mat-+shapes/&#64;Polygon/Polygon.m.Polygon">
+<span class="sig-name descname"><span class="pre">Polygon</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">x</span></em>, <em class="sig-param"><span class="pre">y</span></em><span class="sig-paren">)</span><a class="headerlink" href="../mat/name/shapes.Polygon.Polygon.html" title="Link to this definition">¶</a></dt>
+<dd><p>POLYGON Create a polygon from its corners.</p>
+<p>Inputs:</p>
+<ul class="simple">
+<li><p>x - Horizontal coordinates</p></li>
+<li><p>y - Vertical coordinates</p></li>
+</ul>
+</dd></dl>
+
+</dd>
+<dt>Property Summary</dt><dd><dl class="mat attribute">
+<dt class="sig sig-object mat" id="mat-+shapes/&#64;Polygon/Polygon.m.X">
+<span class="sig-name descname"><span class="pre">X</span></span><span class="property"> <span class="pre">(1,:)</span> <span class="pre">double</span></span><a class="headerlink" href="../mat/name/shapes.Polygon.X.html" title="Link to this definition">¶</a></dt>
+<dd><p>Horizontal coordinates of the corners</p>
+</dd></dl>
+
+<dl class="mat attribute">
+<dt class="sig sig-object mat" id="mat-+shapes/&#64;Polygon/Polygon.m.Y">
+<span class="sig-name descname"><span class="pre">Y</span></span><span class="property"> <span class="pre">(1,:)</span> <span class="pre">double</span></span><a class="headerlink" href="../mat/name/shapes.Polygon.Y.html" title="Link to this definition">¶</a></dt>
+<dd><p>Vertical coordinates of the corners</p>
+</dd></dl>
+
+</dd>
+<dt>Method Summary</dt><dd><dl class="mat method">
+<dt class="sig sig-object mat" id="mat-+shapes/&#64;Polygon/Polygon.m.area">
+<span class="sig-name descname"><span class="pre">area</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="../mat/name/shapes.Polygon.area.html" title="Link to this definition">¶</a></dt>
+<dd><p>AREA Area enclosed by the polygon.</p>
+<dl class="simple">
+<dt>Outputs:</dt><dd><p>a - The area (shoelace formula)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="mat method">
+<dt class="sig sig-object mat" id="mat-+shapes/&#64;Polygon/Polygon.m.perimeter">
+<span class="sig-name descname"><span class="pre">perimeter</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="../mat/name/shapes.Polygon.perimeter.html" title="Link to this definition">¶</a></dt>
+<dd><p>PERIMETER Length of the boundary of the polygon.</p>
+<dl class="simple">
+<dt>Outputs:</dt><dd><p>p - The sum of the edge lengths</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd>
+</dl>
+</div>
+</dd></dl>
+
+<p>A folder <code class="docutils literal notranslate"><span class="pre">&#64;X/</span></code> is a class folder only if <code class="docutils literal notranslate"><span class="pre">&#64;X/X.m</span></code> is a <code class="docutils literal notranslate"><span class="pre">classdef</span></code>.
+Old-style classes (a class folder without a <code class="docutils literal notranslate"><span class="pre">classdef</span></code>, from before
+MATLAB R2008a) are not supported: their files are functions. Document each
+file with <code class="docutils literal notranslate"><span class="pre">mat:autofunction</span></code>.</p>
+</section>
+<section id="single-members">
+<h2>Single members<a class="headerlink" href="#single-members" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">mat:automethod</span></code> and <code class="docutils literal notranslate"><span class="pre">mat:autoattribute</span></code> (properties) document one
+member. The basic class help with its members, and one method again (with
+<code class="docutils literal notranslate"><span class="pre">:noindex:</span></code>, because <code class="docutils literal notranslate"><span class="pre">area</span></code> is already documented above):</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="ow">mat:autoclass</span><span class="p">::</span> shapes.Shape
+   <span class="nc">:members:</span>
+   <span class="nc">:show-inheritance:</span>
+
+<span class="p">..</span> <span class="ow">mat:automethod</span><span class="p">::</span> shapes.Circle.area
+   <span class="nc">:noindex:</span>
+</pre></div>
+</div>
+<dl class="mat class">
+<dt class="sig sig-object mat" id="mat-+shapes/Shape.m">
+<span class="property"><span class="pre">class</span> </span><span class="sig-prename descclassname"><span class="pre">shapes.</span></span><span class="sig-name descname"><span class="pre">Shape</span></span><a class="headerlink" href="../mat/name/shapes.Shape.html" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref mat mat-class docutils literal notranslate"><span class="pre">handle</span></code></p>
+<p>SHAPE Base class of the shapes in this namespace.</p>
+<p>Every shape has a name and a fill color, and can describe itself.</p>
+<dl class="simple">
+<dt>Shape Properties:</dt><dd><ul class="simple">
+<li><p><a class="reference internal" href="#mat-+shapes/Shape.m.Name" title="shapes.Shape.Name"><code class="xref mat mat-attr docutils literal notranslate"><span class="pre">Name</span></code></a> - Display name</p></li>
+<li><p><a class="reference internal" href="#mat-+shapes/Shape.m.Color" title="shapes.Shape.Color"><code class="xref mat mat-attr docutils literal notranslate"><span class="pre">Color</span></code></a> - Fill color</p></li>
+</ul>
+</dd>
+<dt>Shape Methods:</dt><dd><ul class="simple">
+<li><p><a class="reference internal" href="#mat-+shapes/Shape.m.describe" title="shapes.Shape.describe"><code class="xref mat mat-meth docutils literal notranslate"><span class="pre">describe()</span></code></a> - One line about the shape</p></li>
+</ul>
+</dd>
+</dl>
+<p>See also <a class="reference internal" href="#mat-+shapes/Circle.m" title="shapes.Circle"><code class="xref mat mat-class docutils literal notranslate"><span class="pre">shapes.Circle</span></code></a>, <a class="reference internal" href="#mat-+shapes/Color.m" title="shapes.Color"><code class="xref mat mat-class docutils literal notranslate"><span class="pre">shapes.Color</span></code></a></p>
+<div class="members docutils container">
+<dl>
+<dt>Property Summary</dt><dd><dl class="mat attribute">
+<dt class="sig sig-object mat" id="mat-+shapes/Shape.m.Color">
+<span class="property"><span class="pre">read-only</span> </span><span class="sig-name descname"><span class="pre">Color</span></span><span class="property"> <span class="pre">(1,1)</span> <span class="pre">=</span> <span class="pre">shapes.Color.Red</span></span><a class="headerlink" href="../mat/name/shapes.Shape.Color.html" title="Link to this definition">¶</a></dt>
+<dd><p>Fill color</p>
+</dd></dl>
+
+<dl class="mat attribute">
+<dt class="sig sig-object mat" id="mat-+shapes/Shape.m.Name">
+<span class="sig-name descname"><span class="pre">Name</span></span><span class="property"> <span class="pre">(1,1)</span> <span class="pre">string</span> <span class="pre">=</span> <span class="pre">&quot;shape&quot;</span></span><a class="headerlink" href="../mat/name/shapes.Shape.Name.html" title="Link to this definition">¶</a></dt>
+<dd><p>Display name</p>
+</dd></dl>
+
+</dd>
+<dt>Method Summary</dt><dd><dl class="mat method">
+<dt class="sig sig-object mat" id="mat-+shapes/Shape.m.describe">
+<span class="sig-name descname"><span class="pre">describe</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="../mat/name/shapes.Shape.describe.html" title="Link to this definition">¶</a></dt>
+<dd><p>DESCRIBE One line about the shape, such as “circle (Red)”.</p>
+</dd></dl>
+
+</dd>
+</dl>
+</div>
+</dd></dl>
+
+<dl class="mat method">
+<dt class="sig sig-object mat">
+<span class="sig-prename descclassname"><span class="pre">shapes.Circle.</span></span><span class="sig-name descname"><span class="pre">area</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>AREA Area of the circle.</p>
+<dl class="simple">
+<dt>Outputs:</dt><dd><p>a - pi times the radius squared</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p>The help text of <code class="docutils literal notranslate"><span class="pre">Shape</span></code> lists its properties and methods in MATLAB’s
+<code class="docutils literal notranslate"><span class="pre">Shape</span> <span class="pre">Properties:</span></code> / <code class="docutils literal notranslate"><span class="pre">Shape</span> <span class="pre">Methods:</span></code> form. With
+<code class="docutils literal notranslate"><span class="pre">matlab_auto_link</span> <span class="pre">=</span> <span class="pre">&quot;basic&quot;</span></code>, as in these docs, those entries and the “See
+also” line become links (<a class="reference internal" href="help-text.html"><span class="doc">Help text</span></a>).</p>
+<p><code class="docutils literal notranslate"><span class="pre">mat:autoenum</span></code> is <code class="docutils literal notranslate"><span class="pre">mat:autoattribute</span></code> for an enumeration value, and
+<code class="docutils literal notranslate"><span class="pre">mat:autoevent</span></code> documents one event.</p>
+</section>
+<section id="scripts-apps-and-private-files">
+<h2>Scripts, apps and private files<a class="headerlink" href="#scripts-apps-and-private-files" title="Link to this heading">¶</a></h2>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="ow">mat:autofunction</span><span class="p">::</span> +shapes/private/checkPositive.m
+
+<span class="p">..</span> <span class="ow">mat:autoscript</span><span class="p">::</span> scripts/shapes_demo.m
+
+<span class="p">..</span> <span class="ow">mat:autoapplication</span><span class="p">::</span> apps/ShapesApp.mlapp
+</pre></div>
+</div>
+<dl class="mat function">
+<dt class="sig sig-object mat" id="mat-+shapes/private/checkPositive.m">
+<span class="sig-name descname"><span class="pre">checkPositive</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">value</span></em><span class="sig-paren">)</span><a class="headerlink" href="../mat/ref/%2Bshapes/private/checkPositive.m.html" title="Link to this definition">¶</a></dt>
+<dd><p>CHECKPOSITIVE Error unless VALUE is positive (a private helper).</p>
+<dl class="simple">
+<dt>Inputs:</dt><dd><p>value - The number to check</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="mat script">
+<dt class="sig sig-object mat" id="mat-scripts/shapes_demo.m">
+<span class="sig-name descname"><span class="pre">shapes_demo</span></span><a class="headerlink" href="../mat/name/shapes_demo.html" title="Link to this definition">¶</a></dt>
+<dd><p>SHAPES_DEMO Create two shapes and print their total area.</p>
+<p>Run it from the folder that contains +shapes.</p>
+</dd></dl>
+
+<dl class="mat application">
+<dt class="sig sig-object mat" id="mat-apps/ShapesApp.mlapp">
+<span class="sig-name descname"><span class="pre">ShapesApp</span></span><a class="headerlink" href="../mat/name/ShapesApp.html" title="Link to this definition">¶</a></dt>
+<dd><p>Summary of app</p>
+<p>Description of app</p>
+</dd></dl>
+
+<p>Files in <code class="docutils literal notranslate"><span class="pre">private/</span></code> folders are documented like any other file. Their
+MATLAB name (<code class="docutils literal notranslate"><span class="pre">checkPositive</span></code>) is only visible from the parent folder, as
+in MATLAB, so from elsewhere name them by path. The <code class="docutils literal notranslate"><span class="pre">private/</span></code> folder of a
+class folder (<code class="docutils literal notranslate"><span class="pre">&#64;Polygon/private/</span></code>) holds scripts, functions and classes
+that only that class can use; they are files, not members of the class.
+App Designer apps show the
+summary and description stored in the app.</p>
+<p><code class="docutils literal notranslate"><span class="pre">mat:autodata</span></code> documents a script as data (a script that defines
+variables, such as a parameter file): it looks the same, but its object
+type is <code class="docutils literal notranslate"><span class="pre">data</span></code> (role <code class="docutils literal notranslate"><span class="pre">:mat:data:</span></code>) and it gets an index entry.</p>
+</section>
+<section id="folders-and-the-current-folder">
+<h2>Folders and the current folder<a class="headerlink" href="#folders-and-the-current-folder" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">mat:autofolder</span></code> documents a folder. A <code class="docutils literal notranslate"><span class="pre">+</span></code> folder is shown as a
+namespace; any other folder as <code class="docutils literal notranslate"><span class="pre">folder</span></code> and its path:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="ow">mat:autofolder</span><span class="p">::</span> +shapes/
+   <span class="nc">:synopsis:</span> Shapes, their colors and areas
+</pre></div>
+</div>
+<dl class="mat folder">
+<dt class="sig sig-object mat" id="mat-+shapes/">
+<span class="property"><span class="pre">namespace</span> </span><span class="sig-name descname"><span class="pre">shapes</span></span><a class="headerlink" href="../mat/name/shapes.html" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p>The folder also becomes the <em>current folder</em> of the page: for the rest of
+the page, or until the next folder directive, names are looked up relative
+to it, so <code class="docutils literal notranslate"><span class="pre">Circle.m</span></code>,
+<code class="docutils literal notranslate"><span class="pre">shapes.Circle</span></code> and the private <code class="docutils literal notranslate"><span class="pre">checkPositive</span></code> all work. To set the
+current folder without documenting the folder, use <code class="docutils literal notranslate"><span class="pre">mat:currentfolder</span></code>:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="ow">mat:currentfolder</span><span class="p">::</span> +shapes/
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">.</span></code> is the project root and <code class="docutils literal notranslate"><span class="pre">None</span></code> clears the current folder.</p>
+<p><code class="docutils literal notranslate"><span class="pre">:members:</span></code> on <code class="docutils literal notranslate"><span class="pre">mat:autofolder</span></code> documents the files directly in the
+folder: functions, classes, scripts and apps, in alphabetical order. It does
+not include class folders (<code class="docutils literal notranslate"><span class="pre">&#64;X/</span></code>), <code class="docutils literal notranslate"><span class="pre">private/</span></code> or subfolders, and leaves
+out <code class="docutils literal notranslate"><span class="pre">Contents.m</span></code> and the other special files (<a class="reference internal" href="help-text.html"><span class="doc">Help text</span></a>). The
+options apply to the members too: <code class="docutils literal notranslate"><span class="pre">:members:</span></code> on a folder also documents
+every member of its classes. For a whole project,
+<code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">apidoc</span></code> writes one directive per file instead
+(<a class="reference internal" href="apidoc.html"><span class="doc">Generating pages: scmd apidoc</span></a>).</p>
+</section>
+<section id="adding-text">
+<h2>Adding text<a class="headerlink" href="#adding-text" title="Link to this heading">¶</a></h2>
+<p>Content below an auto directive is added after the help text:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="ow">mat:autofunction</span><span class="p">::</span> shapes.totalArea
+
+   Added by hand: an example that is not in the help text.
+</pre></div>
+</div>
+</section>
+<section id="writing-directives-by-hand">
+<span id="hand-written"></span><h2>Writing directives by hand<a class="headerlink" href="#writing-directives-by-hand" title="Link to this heading">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">mat:function</span></code>, <code class="docutils literal notranslate"><span class="pre">mat:class</span></code>, <code class="docutils literal notranslate"><span class="pre">mat:method</span></code>, <code class="docutils literal notranslate"><span class="pre">mat:staticmethod</span></code>,
+<code class="docutils literal notranslate"><span class="pre">mat:attribute</span></code>, <code class="docutils literal notranslate"><span class="pre">mat:event</span></code>, <code class="docutils literal notranslate"><span class="pre">mat:script</span></code>, <code class="docutils literal notranslate"><span class="pre">mat:application</span></code>,
+<code class="docutils literal notranslate"><span class="pre">mat:data</span></code> and <code class="docutils literal notranslate"><span class="pre">mat:folder</span></code> directives describe an object without
+reading a file, for
+example a MEX function:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="ow">mat:function</span><span class="p">::</span> fastSolve(A, b)
+   <span class="nc">:annotation:</span> (MEX file)
+
+   Solve <span class="s">``A*x = b``</span> with a compiled solver.
+
+   <span class="nc">:param A:</span> A square matrix.
+   <span class="nc">:param b:</span> The right-hand side.
+   <span class="nc">:returns:</span> The solution <span class="s">``x``</span>.
+</pre></div>
+</div>
+<dl class="mat function">
+<dt class="sig sig-object mat" id="mat-+shapes/fastSolve">
+<span class="sig-name descname"><span class="pre">fastSolve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">A</span></em>, <em class="sig-param"><span class="pre">b</span></em><span class="sig-paren">)</span><span class="property"> <span class="pre">(MEX</span> <span class="pre">file)</span></span><a class="headerlink" href="../mat/name/fastSolve.html" title="Link to this definition">¶</a></dt>
+<dd><p>Solve <code class="docutils literal notranslate"><span class="pre">A*x</span> <span class="pre">=</span> <span class="pre">b</span></code> with a compiled solver.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>A</strong> – A square matrix.</p></li>
+<li><p><strong>b</strong> – The right-hand side.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The solution <code class="docutils literal notranslate"><span class="pre">x</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p>If the name matches a file below the project root, the object gets that
+file’s path reference, so links to the file land here; the file itself is
+not read. Otherwise its reference is the name as written, below the current
+folder if one is set (here <code class="docutils literal notranslate"><span class="pre">+shapes/fastSolve</span></code>). Either way there is no
+warning.
+Nest <code class="docutils literal notranslate"><span class="pre">mat:method</span></code> and <code class="docutils literal notranslate"><span class="pre">mat:attribute</span></code> in <code class="docutils literal notranslate"><span class="pre">mat:class</span></code> to document
+members. The auto directives generate these directives; you rarely need
+them for code that has files.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="referencing.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Names, references and links</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="setting-up.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Setting up a project: <code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">quickstart</span></code></div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; the sphinxcontrib-matlabdomain team (see AUTHORS)
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Documenting MATLAB code</a><ul>
+<li><a class="reference internal" href="#auto-and-description-directives">Auto and description directives</a></li>
+<li><a class="reference internal" href="#the-sample-project">The sample project</a></li>
+<li><a class="reference internal" href="#naming-what-to-document">Naming what to document</a></li>
+<li><a class="reference internal" href="#functions">Functions</a></li>
+<li><a class="reference internal" href="#classes">Classes</a><ul>
+<li><a class="reference internal" href="#mat-+shapes/Circle.m"><code class="docutils literal notranslate"><span class="pre">Circle</span></code></a></li>
+<li><a class="reference internal" href="#mat-+shapes/Color.m"><code class="docutils literal notranslate"><span class="pre">Color</span></code></a></li>
+<li><a class="reference internal" href="#mat-+shapes/&#64;Polygon/Polygon.m"><code class="docutils literal notranslate"><span class="pre">Polygon</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#single-members">Single members</a><ul>
+<li><a class="reference internal" href="#mat-+shapes/Shape.m"><code class="docutils literal notranslate"><span class="pre">Shape</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#scripts-apps-and-private-files">Scripts, apps and private files</a></li>
+<li><a class="reference internal" href="#folders-and-the-current-folder">Folders and the current folder</a></li>
+<li><a class="reference internal" href="#adding-text">Adding text</a></li>
+<li><a class="reference internal" href="#writing-directives-by-hand">Writing directives by hand</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../_static/mat_urls.js?v=fdbe6872"></script>
+    <script defer="defer" src="../_static/glossary-tips.js?v=c9cc35f1"></script>
+    </body>
+</html>
