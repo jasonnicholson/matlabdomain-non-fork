@@ -2,10 +2,12 @@
 
 import os
 import re
+from typing import Any, cast
 
 import pytest
 from docutils import nodes
 from sphinx import addnodes
+from sphinx.util import console
 
 from sphinxcontrib import mat_types
 
@@ -103,6 +105,12 @@ def build(make_app, tmp_path, page, files=FILES, verbosity=0, **confoverrides):
     return app
 
 
+def located_warnings(app):
+    """Return the warnings without colors, locations below the source folder."""
+    text = cast(Any, console).strip_escape_sequences(app.warning.getvalue())
+    return text.replace(str(app.srcdir) + os.sep, "")
+
+
 def page(*directives):
     return "Index\n=====\n\n" + "\n".join(directives)
 
@@ -168,9 +176,13 @@ def test_explicit_members(make_app, tmp_path):
         page(".. mat:autoclass:: Access\n   :members: pub, priv, nothing\n"),
     )
     assert set(documented(app, "Access.m.")) == {"pub", "priv"}
-    # once, not once per member section
-    warnings = app.warning.getvalue()
+    # once, not once per member section, where the directive is written
+    warnings = located_warnings(app)
     assert warnings.count("missing attribute nothing in object Access.m") == 1
+    assert (
+        "index.rst:4: WARNING: [sphinxcontrib-matlabdomain] missing attribute "
+        "nothing in object Access.m [mat.not_found]" in warnings
+    )
 
 
 def test_member_order(make_app, tmp_path):
@@ -357,13 +369,16 @@ def test_folder_options(make_app, tmp_path):
             ".. mat:autofolder:: Access.pub\n",
         ),
     )
-    warnings = app.warning.getvalue()
+    warnings = located_warnings(app)
+    # each where its directive is written
     assert (
-        "signature arguments or return annotation given for autofolder sub/" in warnings
+        "index.rst:10: WARNING: [sphinxcontrib-matlabdomain] signature arguments "
+        "or return annotation given for autofolder sub/ [mat.directive]" in warnings
     )
     assert (
-        "missing attribute mentioned in :members: or __all__: folder sub, "
-        "attribute nothing" in warnings
+        "index.rst:12: WARNING: [sphinxcontrib-matlabdomain] missing attribute "
+        "mentioned in :members: or __all__: folder sub, attribute nothing "
+        "[mat.not_found]" in warnings
     )
     assert "don't know which object to document for 'Access.pub'" in warnings
     assert documented(app, "sub/") == ["", "g.m"]

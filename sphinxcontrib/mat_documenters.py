@@ -753,6 +753,7 @@ class MatlabDocumenter(PyDocumenter):
                         self.fullname,
                         type="mat",
                         subtype="not_found",
+                        location=self.directive.location,
                     )
         else:
             # __dict__ contains only the members directly defined in
@@ -1025,6 +1026,7 @@ class MatFolderDocumenter(MatlabDocumenter, PyModuleDocumenter):
                 self.fullname,
                 type="mat",
                 subtype="directive",
+                location=self.directive.location,
             )
         return ret
 
@@ -1077,6 +1079,7 @@ class MatFolderDocumenter(MatlabDocumenter, PyModuleDocumenter):
                     mname,
                     type="mat",
                     subtype="not_found",
+                    location=self.directive.location,
                 )
         return False, ret
 
