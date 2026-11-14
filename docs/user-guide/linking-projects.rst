@@ -169,7 +169,9 @@ The "¶" link next to an object points to its address by MATLAB name, or
 by path reference if the name is not unique; ``objects.inv`` gives the
 address by path reference, and has an entry for each MATLAB name of
 several objects (once per object type) that points to the page listing
-them. Copy that link, not the
+them. When a path reference equals such a name (the file ``a.m`` in the
+root folder and the name ``a.m`` of two files ``+a/m.m``), the entry
+leads to that object, as a local reference does. Copy that link, not the
 browser's address bar: these addresses stay the same when the pages split
 differently, and change only when the object is renamed, moved or removed
 (then the file is removed too). Characters that are not safe in a URL, and

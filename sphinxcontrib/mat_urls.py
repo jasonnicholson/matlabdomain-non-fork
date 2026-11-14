@@ -421,10 +421,22 @@ def rewrite_inventory(path, uris, choosers=()):
         match = _INVENTORY_LINE.fullmatch(line)
         if match and match[1] in uris:
             lines[i] = f"{match[1]} {match[2]} {match[3]} {uris[match[1]]} {match[4]}"
-    # Priority -1: not offered by search; keyed by the name, which no path
-    # reference equals. Entries of an earlier rewrite are replaced.
+    # Priority -1: not offered by search; keyed by the MATLAB name. Entries of
+    # an earlier rewrite are replaced. A path reference can equal the name
+    # (the root file a.m, the name a.m of +a/m.m): that entry stays, as a
+    # local reference to it finds the object, and the name gets none of
+    # that type (a reader keeps one entry per name and type).
     lines = [line for line in lines if line and not _CHOOSER_LINE.fullmatch(line)]
-    lines += [f"{name} mat:{objtype} -1 {uri} -" for name, objtype, uri in choosers]
+    taken = {
+        (match[1], match[2])
+        for match in map(_INVENTORY_LINE.fullmatch, lines)
+        if match is not None
+    }
+    lines += [
+        f"{name} mat:{objtype} -1 {uri} -"
+        for name, objtype, uri in choosers
+        if (name, f"mat:{objtype}") not in taken
+    ]
     lines.append("")
     body = zlib.compress("\n".join(lines).encode("utf-8"), 9)
     _write(path, b"\n".join([*header, body]))
