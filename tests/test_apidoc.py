@@ -1188,9 +1188,8 @@ def test_crlf_pages_are_unchanged(tmp_path):
     assert {p: p.read_bytes() for p in out.rglob("*.rst")} == before
 
 
+@pytest.mark.usefixtures("case_insensitive")
 def test_cli_reports_renames(tmp_path, capsys):
-    if not _case_insensitive(tmp_path):
-        pytest.skip("needs a case-insensitive file system")
     out = tmp_path / "out"
     docs = conf_dir(tmp_path / "docs", out, FOLDER)
     assert main(["-q", "-c", docs]) == 0
