@@ -6,6 +6,8 @@ directive option, role, warning and command-line option, and nothing else.
 import json
 import re
 import shutil
+import subprocess
+import sys
 import tomllib
 from pathlib import Path
 
@@ -295,6 +297,28 @@ def test_repository_configuration():
     documented = re.findall(r"^``([^`]+)``$", section, re.MULTILINE)
     assert len(documented) == len(set(documented)), "duplicate config entries"
     assert set(documented) == repository_configuration(REPO)
+
+
+def test_quiet_run_stays_strict(tmp_path):
+    # testing.rst's quiet run empties addopts; an unknown marker still fails.
+    test = tmp_path / "test_marker.py"
+    test.write_text("import pytest\n\n\n@pytest.mark.nosuch\ndef test_x():\n    pass\n")
+    command = [
+        sys.executable,
+        "-m",
+        "pytest",
+        "-q",
+        "-o",
+        "addopts=",
+        "-p",
+        "no:randomly",
+    ]
+    config = ["-c", str(REPO / "pyproject.toml"), "-p", "no:cacheprovider"]
+    result = subprocess.run(
+        [*command, *config, str(test)], capture_output=True, text=True, check=False
+    )
+    assert result.returncode != 0, result.stdout
+    assert "'nosuch' not found in `markers` configuration option" in result.stdout
 
 
 def test_ruff_hook_matches_dev_pin():

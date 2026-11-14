@@ -154,7 +154,7 @@ pythonVersion = "3.11"
 typeCheckingMode = "basic"
 
 [tool.pytest]
-addopts = ["-ra", "--strict-config", "--strict-markers", "--show-capture=all", "--showlocals", "-s", "-vv"]
+addopts = ["-ra", "--show-capture=all", "--showlocals", "-s", "-vv"]
 doctest_optionflags = ["NORMALIZE_WHITESPACE", "ELLIPSIS"]
 # Deprecation tripwire: the extension builds on autodoc's Documenter
 # classes, which Sphinx keeps only for backwards compatibility. A deprecation
@@ -175,6 +175,9 @@ filterwarnings = [
 junit_family = "xunit2"
 log_cli_level = "INFO"
 minversion = "9.0"
+# The strict settings are not in addopts, so a run with -o addopts= keeps them.
+strict_config = true
+strict_markers = true
 testpaths = ["tests"]
 xfail_strict = true
 
