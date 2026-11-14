@@ -209,6 +209,16 @@ def test_warnings():
     assert entries(r"^\s+\* - ``mat\.(\w+)``$", "warnings.rst") == subtypes
 
 
+def test_class_sections():
+    # mat:autoclass names the sections of a class's members, in their order.
+    code = (SOURCE / "mat_documenters.py").read_text(encoding="utf-8")
+    sections = re.findall(r'document_member_section\(\s*"([^"]+)"', code)
+    text = (REFERENCE / "directives.rst").read_text(encoding="utf-8")
+    intro = text.split(".. rst:directive:: .. mat:autoclass::")[1].split(".. rst:")[0]
+    sentence = " ".join(intro.split()).split("follow in the sections ")[1]
+    assert re.findall(r'"([^"]+)"', sentence.split(".")[0]) == sections
+
+
 def program_options(program):
     """Return the ``.. option::`` names after ``.. program:: <program>``."""
     text = (REFERENCE / "cli.rst").read_text(encoding="utf-8")

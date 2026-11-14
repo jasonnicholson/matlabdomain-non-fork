@@ -34,7 +34,8 @@ know which object to document") and the directive writes nothing.
    A class: a ``classdef`` file, or the class of a class folder
    (``@Cls/Cls.m``, with the methods in other files of the folder).
    With ``:members:``, its members follow in the sections "Constructor
-   Summary", "Property Summary", "Enumeration Values" and "Method Summary".
+   Summary", "Property Summary", "Enumeration Values", "Method Summary" and
+   "Event Summary".
 
    .. rst:directive:option:: members
       :type: no value, or a comma-separated list of member names
