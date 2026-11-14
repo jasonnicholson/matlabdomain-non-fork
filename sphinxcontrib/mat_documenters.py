@@ -1304,6 +1304,15 @@ class MatClassDocumenter(MatModuleLevelDocumenter):
         return isinstance(member, MatClass)
 
     @override
+    def get_object_members(self, want_all):
+        # Each member section asks again: gather the members, and warn of a
+        # missing one, once per class.
+        found = self.__dict__.setdefault("_object_members", {})
+        if want_all not in found:
+            found[want_all] = super().get_object_members(want_all)
+        return found[want_all]
+
+    @override
     def format_args(self):
         """Format arguments.
 

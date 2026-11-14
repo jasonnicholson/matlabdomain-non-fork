@@ -168,7 +168,9 @@ def test_explicit_members(make_app, tmp_path):
         page(".. mat:autoclass:: Access\n   :members: pub, priv, nothing\n"),
     )
     assert set(documented(app, "Access.m.")) == {"pub", "priv"}
-    assert "missing attribute nothing in object Access.m" in app.warning.getvalue()
+    # once, not once per member section
+    warnings = app.warning.getvalue()
+    assert warnings.count("missing attribute nothing in object Access.m") == 1
 
 
 def test_member_order(make_app, tmp_path):

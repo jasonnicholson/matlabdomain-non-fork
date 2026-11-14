@@ -429,9 +429,8 @@ def test_members_may_name_inherited_members(make_app, tmp_path):
     (text,) = descriptions(app, "Sub.m.baseMeth")
     assert "Inherited from Base." in text
     # a private base member is not a member of Sub
-    found = warnings(app)
-    assert found
-    assert all("missing attribute basePriv in object Sub.m" in w for w in found)
+    (warning,) = warnings(app)
+    assert "missing attribute basePriv in object Sub.m" in warning
 
 
 def test_named_members_without_the_option(make_app, tmp_path):
