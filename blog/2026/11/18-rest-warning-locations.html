@@ -1,0 +1,956 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../../genindex.html"><link rel="search" title="Search" href="../../../search.html"><link rel="prev" title="Blog" href="../../index.html">
+
+    <!-- Generated with Sphinx 9.2.0 and Furo 2025.12.19 -->
+        <title>How a reST warning finds its file and line - sphinxcontrib-matlabdomain</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/glossary-tips.css?v=62938efe" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../index.html"><div class="brand">sphinxcontrib-matlabdomain</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
+  
+  <span class="sidebar-brand-text">sphinxcontrib-matlabdomain</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/sphinx-primer.html">Sphinx primer for MATLAB users</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../user-guide/configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user-guide/setting-up.html">Setting up a project: <code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">quickstart</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user-guide/documenting.html">Documenting MATLAB code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user-guide/referencing.html">Names, references and links</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user-guide/linking-projects.html">Linking between projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user-guide/help-text.html">Help text</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user-guide/apidoc.html">Generating pages: <code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">apidoc</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user-guide/sidecars.html">Sidecar docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user-guide/simulink.html">Simulink files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user-guide/api-check.html">Checking help text: <code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user-guide/warnings.html">Warnings</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user-guide/builds.html">Builds and performance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user-guide/projects-and-versions.html">Several projects and versions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user-guide/migration.html">Migrating from 0.22 and earlier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user-guide/FAQ.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/configuration.html">Configuration values</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/glossary.html">Glossary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/directives.html">Directives, roles and indices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/cli.html">Command-line tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/templates.html"><code class="docutils literal notranslate"><span class="pre">scmd</span> <span class="pre">apidoc</span></code> templates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/api-check-report.html"><code class="docutils literal notranslate"><span class="pre">matlab-api-check</span></code> reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/warnings.html">Warnings</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../developer-guide/contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../developer-guide/testing.html">Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../developer-guide/architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../developer-guide/debugging.html">Debugging and profiling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../developer-guide/simulink-file-formats.html">Simulink file formats</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../developer-guide/roadmap.html">Roadmap</a><input aria-label="Toggle navigation of Roadmap" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../developer-guide/matlab-markup-spec.html">Specification: MATLAB markup in help text (docstrings)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../developer-guide/matlab-markup-plan.html">Plan: MATLAB markup in help text</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../developer-guide/matlab-help-spec.html">Specification: a Sphinx site in the MATLAB help system</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../developer-guide/matlab-help-plan.html">Plan: a Sphinx site in the MATLAB help system</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Project</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../CHANGES.html">Release notes</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../../index.html">Blog</a><input aria-label="Toggle navigation of Blog" checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">How a reST warning finds its file and line</a></li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../../../_sources/blog/2026/11/18-rest-warning-locations.md.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="how-a-rest-warning-finds-its-file-and-line">
+<h1>How a reST warning finds its file and line<a class="headerlink" href="#how-a-rest-warning-finds-its-file-and-line" title="Link to this heading">¶</a></h1>
+<p>You write a docstring with a stray <code class="docutils literal notranslate"><span class="pre">*</span></code>, and Sphinx says
+<code class="docutils literal notranslate"><span class="pre">mod.py:docstring</span> <span class="pre">of</span> <span class="pre">mod.f:3:</span> <span class="pre">WARNING:</span> <span class="pre">Inline</span> <span class="pre">emphasis</span> <span class="pre">start-string</span> <span class="pre">without</span> <span class="pre">end-string.</span></code>
+How does it know <code class="docutils literal notranslate"><span class="pre">mod.py</span></code>? Why line 3, and line 3 of what? And how do you
+make a warning about text taken from a code file point at the real line
+in that file?</p>
+<p>This post follows one warning from the docutils parser to Sphinx’s
+output. Versions: docutils 0.22.4, Sphinx 9.2.0, myst-parser 5.2.0.</p>
+<section id="the-short-version">
+<h2>The short version<a class="headerlink" href="#the-short-version" title="Link to this heading">¶</a></h2>
+<pre  class="mermaid">
+        flowchart TD
+    A[&quot;StringList&lt;br/&gt;each line: (source, offset)&quot;] --&gt; B[&quot;docutils state machine&lt;br/&gt;parses, counts absolute line numbers&quot;]
+    B --&gt;|&quot;reporter.warning(msg, line=N)&quot;| C[&quot;Reporter.system_message&quot;]
+    C --&gt;|&quot;get_source_and_line(N)&quot;| D[&quot;StringList.info(offset)&lt;br/&gt;→ (source, offset + 1)&quot;]
+    D --&gt; E[&quot;system_message node&lt;br/&gt;source, line&quot;]
+    E --&gt;|&quot;astext(): 'source:line: (LEVEL/n) msg'&quot;| F[&quot;Sphinx WarningStream&lt;br/&gt;regex back into location&quot;]
+    F --&gt; G[&quot;sphinx.util.logging&lt;br/&gt;'file:line: WARNING: …'&quot;]
+    B --&gt;|&quot;directives and roles stamp nodes&quot;| H[&quot;node.source, node.line&quot;]
+    H --&gt;|&quot;later: logger.warning(location=node)&quot;| G
+    </pre><ol class="arabic simple">
+<li><p>Every line docutils parses carries its own origin.</p></li>
+<li><p>A message gives an <em>absolute</em> line number, and the reporter maps it back
+to that origin.</p></li>
+<li><p>The reporter’s mapping is bound once, so text that comes from somewhere
+else has to switch it: <code class="docutils literal notranslate"><span class="pre">switch_source_input</span></code>.</p></li>
+</ol>
+</section>
+<section id="lines-carry-their-origin-stringlist">
+<h2>Lines carry their origin: <code class="docutils literal notranslate"><span class="pre">StringList</span></code><a class="headerlink" href="#lines-carry-their-origin-stringlist" title="Link to this heading">¶</a></h2>
+<p>docutils doesn’t parse a string. It parses a
+<code class="docutils literal notranslate"><span class="pre">docutils.statemachine.StringList</span></code>: a list of lines plus a parallel list
+of <code class="docutils literal notranslate"><span class="pre">items</span></code>, one <code class="docutils literal notranslate"><span class="pre">(source,</span> <span class="pre">offset)</span></code> per line, with a zero-based offset.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">docutils.statemachine</span><span class="w"> </span><span class="kn">import</span> <span class="n">StringList</span>
+
+<span class="n">lines</span> <span class="o">=</span> <span class="n">StringList</span><span class="p">([</span><span class="s2">"Title"</span><span class="p">,</span> <span class="s2">"====="</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="s2">"Text *here."</span><span class="p">],</span> <span class="n">source</span><span class="o">=</span><span class="s2">"page.rst"</span><span class="p">)</span>
+<span class="n">lines</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>  <span class="c1"># ('page.rst', 3): the 4th line of page.rst</span>
+</pre></div>
+</div>
+<p>Sphinx reads a page as one <code class="docutils literal notranslate"><span class="pre">StringList</span></code> whose source is the page’s path.
+<code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">include::</span></code> doesn’t parse the included file separately. It <em>splices</em>
+the included lines into the same list (<code class="docutils literal notranslate"><span class="pre">StateMachine.insert_input</span></code>), each
+with its own item <code class="docutils literal notranslate"><span class="pre">(included</span> <span class="pre">path,</span> <span class="pre">n)</span></code>, plus two padding lines. That is
+why a warning inside an included file names that file.</p>
+<p>The items don’t have to be contiguous, and they don’t have to name the
+file being built. A directive that generates text can claim any origin
+for any line. autodoc does exactly that:
+<code class="docutils literal notranslate"><span class="pre">self.add_line(line,</span> <span class="pre">source,</span> <span class="pre">offset)</span></code>.</p>
+</section>
+<section id="two-ways-a-message-is-located">
+<h2>Two ways a message is located<a class="headerlink" href="#two-ways-a-message-is-located" title="Link to this heading">¶</a></h2>
+<section id="messages-raised-while-parsing">
+<h3>1. Messages raised while parsing<a class="headerlink" href="#messages-raised-while-parsing" title="Link to this heading">¶</a></h3>
+<p>“Inline emphasis start-string without end-string”, “Unknown interpreted
+text role”, “Unknown directive type”, “Explicit markup ends without a
+blank line”: the parser calls</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="bp">self</span><span class="o">.</span><span class="n">reporter</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"..."</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="n">lineno</span><span class="p">)</span>  <span class="c1"># lineno: absolute line number</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">Reporter.system_message</span></code> (<code class="docutils literal notranslate"><span class="pre">docutils/utils/__init__.py</span></code>) then fills in the
+location:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="s2">"source"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">attributes</span><span class="p">:</span>
+    <span class="c1"># 'line' is absolute line number</span>
+    <span class="n">source</span><span class="p">,</span> <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_source_and_line</span><span class="p">(</span><span class="n">attributes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"line"</span><span class="p">))</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">get_source_and_line</span></code> is <code class="docutils literal notranslate"><span class="pre">StateMachine.get_source_and_line</span></code>
+(<code class="docutils literal notranslate"><span class="pre">docutils/statemachine.py</span></code>):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">offset</span> <span class="o">=</span> <span class="n">lineno</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_offset</span> <span class="o">-</span> <span class="mi">1</span>
+<span class="n">src</span><span class="p">,</span> <span class="n">srcoffset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_lines</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span>
+<span class="n">srcline</span> <span class="o">=</span> <span class="n">srcoffset</span> <span class="o">+</span> <span class="mi">1</span>
+</pre></div>
+</div>
+<p>The absolute line becomes an index into the <code class="docutils literal notranslate"><span class="pre">StringList</span></code>, and the index
+becomes the item’s <code class="docutils literal notranslate"><span class="pre">(source,</span> <span class="pre">offset</span> <span class="pre">+</span> <span class="pre">1)</span></code>. The parser never knows which
+file a line came from. Only the list does.</p>
+</section>
+<section id="messages-raised-later-from-nodes">
+<h3>2. Messages raised later, from nodes<a class="headerlink" href="#messages-raised-later-from-nodes" title="Link to this heading">¶</a></h3>
+<p>Some warnings come after parsing: an unresolved reference, an image
+that can’t be read, “Unknown target name”. They use the location stored
+on a node while it was parsed:</p>
+<ul class="simple">
+<li><p>directives: <code class="docutils literal notranslate"><span class="pre">sphinx.util.nodes.set_source_info(directive,</span> <span class="pre">node)</span></code> →
+<code class="docutils literal notranslate"><span class="pre">directive.state_machine.get_source_and_line(directive.lineno)</span></code>;</p></li>
+<li><p>roles: <code class="docutils literal notranslate"><span class="pre">set_role_source_info(inliner,</span> <span class="pre">lineno,</span> <span class="pre">node)</span></code> →
+<code class="docutils literal notranslate"><span class="pre">inliner.reporter.get_source_and_line(lineno)</span></code>.</p></li>
+</ul>
+<p>Later, <code class="docutils literal notranslate"><span class="pre">logger.warning(...,</span> <span class="pre">location=node)</span></code> goes through
+<code class="docutils literal notranslate"><span class="pre">sphinx.util.logging.get_node_location</span></code>, which takes the
+<code class="docutils literal notranslate"><span class="pre">(source,</span> <span class="pre">line)</span></code> of the node or its nearest ancestor that has one.</p>
+</section>
+</section>
+<section id="from-docutils-to-sphinx-s-output">
+<h2>From docutils to Sphinx’s output<a class="headerlink" href="#from-docutils-to-sphinx-s-output" title="Link to this heading">¶</a></h2>
+<p>Sphinx gives each document a <code class="docutils literal notranslate"><span class="pre">LoggingReporter</span></code> whose stream is a
+<code class="docutils literal notranslate"><span class="pre">WarningStream</span></code>. docutils writes each message as text,
+<code class="docutils literal notranslate"><span class="pre">&quot;&lt;source&gt;:&lt;line&gt;:</span> <span class="pre">(WARNING/2)</span> <span class="pre">&lt;message&gt;&quot;</span></code>. <code class="docutils literal notranslate"><span class="pre">WarningStream.write</span></code>
+parses that text back with a regular expression (<code class="docutils literal notranslate"><span class="pre">report_re</span></code> in
+<code class="docutils literal notranslate"><span class="pre">sphinx/util/docutils.py</span></code>) and hands the pieces to Sphinx’s logger with
+<code class="docutils literal notranslate"><span class="pre">type=&quot;docutils&quot;</span></code>. So a docutils <code class="docutils literal notranslate"><span class="pre">ERROR</span></code> is still a Sphinx warning: it
+prints as <code class="docutils literal notranslate"><span class="pre">ERROR:</span></code>, and <code class="docutils literal notranslate"><span class="pre">-W</span></code> fails on it.</p>
+<p>Sphinx’s logger takes a location in three forms: a <code class="docutils literal notranslate"><span class="pre">(docname,</span> <span class="pre">line)</span></code>
+tuple (turned into a path), a node, or a string such as <code class="docutils literal notranslate"><span class="pre">&quot;file:line&quot;</span></code>,
+printed as it is. With <code class="docutils literal notranslate"><span class="pre">show_warning_types</span></code>, the <code class="docutils literal notranslate"><span class="pre">[type.subtype]</span></code> suffix
+is added.</p>
+</section>
+<section id="the-catch-the-reporter-is-bound-once">
+<h2>The catch: the reporter is bound once<a class="headerlink" href="#the-catch-the-reporter-is-bound-once" title="Link to this heading">¶</a></h2>
+<p>Here is the part that bites extension authors. In
+<code class="docutils literal notranslate"><span class="pre">docutils/parsers/rst/states.py</span></code>, <code class="docutils literal notranslate"><span class="pre">RSTState.runtime_init</span></code> does:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># enable the reporter to determine source and source-line</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reporter</span><span class="p">,</span> <span class="s2">"get_source_and_line"</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">reporter</span><span class="o">.</span><span class="n">get_source_and_line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_machine</span><span class="o">.</span><span class="n">get_source_and_line</span>
+</pre></div>
+</div>
+<p><em>If it doesn’t have one yet.</em> The first state machine, the one parsing the
+page, wins. A directive that parses its own <code class="docutils literal notranslate"><span class="pre">StringList</span></code> with
+<code class="docutils literal notranslate"><span class="pre">state.nested_parse</span></code> gets a nested state machine that counts lines within
+<em>that</em> list, but the reporter still looks them up in the <em>page’s</em> list.
+The result is the page’s file at a line that means nothing there.</p>
+<p>Sphinx’s answer is <code class="docutils literal notranslate"><span class="pre">sphinx.util.docutils.switch_source_input</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@contextmanager</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">switch_source_input</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">content</span><span class="p">):</span>
+    <span class="n">gsal</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">memo</span><span class="o">.</span><span class="n">reporter</span><span class="o">.</span><span class="n">get_source_and_line</span>
+    <span class="n">state_machine</span> <span class="o">=</span> <span class="n">StateMachine</span><span class="p">([],</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">state_machine</span><span class="o">.</span><span class="n">input_lines</span> <span class="o">=</span> <span class="n">content</span>
+    <span class="n">state</span><span class="o">.</span><span class="n">memo</span><span class="o">.</span><span class="n">reporter</span><span class="o">.</span><span class="n">get_source_and_line</span> <span class="o">=</span> <span class="n">state_machine</span><span class="o">.</span><span class="n">get_source_and_line</span>
+    <span class="k">yield</span>
+    <span class="n">state</span><span class="o">.</span><span class="n">memo</span><span class="o">.</span><span class="n">reporter</span><span class="o">.</span><span class="n">get_source_and_line</span> <span class="o">=</span> <span class="n">gsal</span>  <span class="c1"># restored in a finally</span>
+</pre></div>
+</div>
+<p>While the context is open, the reporter maps through <code class="docutils literal notranslate"><span class="pre">content</span></code>. It is
+the same object that <code class="docutils literal notranslate"><span class="pre">include</span></code> splices into, so includes inside generated
+text map correctly too. autodoc parses all of its generated text inside
+it.</p>
+</section>
+<section id="docstring-line-or-file-line">
+<h2>Docstring line or file line?<a class="headerlink" href="#docstring-line-or-file-line" title="Link to this heading">¶</a></h2>
+<p>Python’s autodoc builds its list as
+<code class="docutils literal notranslate"><span class="pre">StringList(docstring_lines,</span> <span class="pre">source=&quot;&lt;file&gt;:docstring</span> <span class="pre">of</span> <span class="pre">&lt;name&gt;&quot;)</span></code>. The
+offsets count from 0 <em>within the docstring</em>. So <code class="docutils literal notranslate"><span class="pre">mod.py:docstring</span> <span class="pre">of</span> <span class="pre">mod.f:3</span></code> means the third line of the docstring, not line 3 of <code class="docutils literal notranslate"><span class="pre">mod.py</span></code>.</p>
+<p>Nothing forces that choice. The offset is just an integer per line. Give
+each line its line in the code file and the same message points at the
+real line. That is what
+<a class="reference external" href="https://github.com/sphinx-contrib/matlabdomain">sphinxcontrib-matlabdomain</a>
+does for MATLAB help comments.</p>
+<p>An offset added to the whole block is enough only when the parsed text is
+an unchanged, contiguous copy of the file. Docstrings often aren’t:
+<code class="docutils literal notranslate"><span class="pre">autodoc-process-docstring</span></code> handlers such as napoleon add, drop and
+rewrite lines. So the useful unit is a line-by-line map, which is what
+<code class="docutils literal notranslate"><span class="pre">StringList</span></code> items already are.</p>
+</section>
+<section id="run-it">
+<h2>Run it<a class="headerlink" href="#run-it" title="Link to this heading">¶</a></h2>
+<p>The demo in this post’s folder is a toy <code class="docutils literal notranslate"><span class="pre">help</span></code> directive. It renders the
+<code class="docutils literal notranslate"><span class="pre">%</span></code> comments of a MATLAB file as reST:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Give each help line its own (source, offset) item, then parse."""</span>
+        <span class="n">rel</span><span class="p">,</span> <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">relfn2path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">arguments</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">docname</span><span class="p">)</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">:docstring of </span><span class="si">{</span><span class="n">Path</span><span class="p">(</span><span class="n">rel</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">"</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">StringList</span><span class="p">()</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">number</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">()</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()):</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"%"</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="c1"># StringList.append(line, source, offset): offset is zero-based.</span>
+            <span class="n">offset</span> <span class="o">=</span> <span class="n">number</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"lines"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"file"</span> <span class="k">else</span> <span class="n">index</span>
+            <span class="n">content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">text</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">removeprefix</span><span class="p">(</span><span class="s2">" "</span><span class="p">),</span> <span class="n">source</span><span class="p">,</span> <span class="n">offset</span><span class="p">)</span>
+            <span class="n">index</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">node</span> <span class="o">=</span> <span class="n">nodes</span><span class="o">.</span><span class="n">container</span><span class="p">()</span>
+        <span class="k">if</span> <span class="s2">"no-switch"</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">nested_parse</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">switch_source_input</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="n">content</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">nested_parse</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">node</span><span class="o">.</span><span class="n">children</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">shape.m</span></code> has a stray <code class="docutils literal notranslate"><span class="pre">*</span></code> on line 4 and an unknown role on line 6:</p>
+<div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="k">function</span><span class="w"> </span>a<span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nf">shape</span><span class="p">(</span>w, h<span class="p">)</span>
+<span class="linenos">2</span><span class="c">% SHAPE Area of a rectangle.</span>
+<span class="linenos">3</span><span class="c">%</span>
+<span class="linenos">4</span><span class="c">% Multiplies *width by height.</span>
+<span class="linenos">5</span><span class="c">%</span>
+<span class="linenos">6</span><span class="c">% Uses :nosuchrole:`x` here.</span>
+<span class="linenos">7</span><span class="n">a</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">w</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">h</span><span class="p">;</span>
+<span class="linenos">8</span><span class="k">end</span>
+</pre></div>
+</div>
+<p>The page uses the directive three times: help-relative lines, file lines,
+and file lines without <code class="docutils literal notranslate"><span class="pre">switch_source_input</span></code>. From the <code class="docutils literal notranslate"><span class="pre">docs/</span></code> folder:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>docs<span class="w"> </span>python<span class="w"> </span>blog/2026/11/18-rest-warning-locations/demo/run.py
+<span class="go">shape.m:docstring of shape:3: WARNING: Inline emphasis start-string without end-string. [docutils]</span>
+<span class="go">shape.m:docstring of shape:5: ERROR: Unknown interpreted text role "nosuchrole". [docutils]</span>
+<span class="go">shape.m:docstring of shape:4: WARNING: Inline emphasis start-string without end-string. [docutils]</span>
+<span class="go">shape.m:docstring of shape:6: ERROR: Unknown interpreted text role "nosuchrole". [docutils]</span>
+<span class="go">index.rst:3: WARNING: Inline emphasis start-string without end-string. [docutils]</span>
+<span class="go">index.rst:5: ERROR: Unknown interpreted text role "nosuchrole". [docutils]</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><strong>Help-relative lines (<code class="docutils literal notranslate"><span class="pre">:3</span></code>, <code class="docutils literal notranslate"><span class="pre">:5</span></code>):</strong> correct, but you have to count
+from the start of the help.</p></li>
+<li><p><strong>File lines (<code class="docutils literal notranslate"><span class="pre">:4</span></code>, <code class="docutils literal notranslate"><span class="pre">:6</span></code>):</strong> the lines your editor shows.</p></li>
+<li><p><strong>Without the switch:</strong> the page’s file with the help-relative number.
+<code class="docutils literal notranslate"><span class="pre">index.rst</span></code> line 3 is “Lines numbered within the help, as Python’s
+autodoc does:”, which has nothing to do with the error.</p></li>
+</ul>
+</section>
+<section id="limits-worth-knowing">
+<h2>Limits worth knowing<a class="headerlink" href="#limits-worth-knowing" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>Inline markup errors name the paragraph’s first line.</strong> The inliner
+gets the line where its text block starts, so a stray <code class="docutils literal notranslate"><span class="pre">*</span></code> on the second
+line of a paragraph is reported at the first. This is docutils
+behaviour, the same in every Sphinx project.</p></li>
+<li><p><strong>MyST is different.</strong> It has no <code class="docutils literal notranslate"><span class="pre">StringList</span></code>. Nodes take
+<code class="docutils literal notranslate"><span class="pre">document[&quot;source&quot;]</span></code> and the line from markdown-it’s token map, and
+MyST’s own warnings are located by <code class="docutils literal notranslate"><span class="pre">(docname,</span> <span class="pre">line)</span></code>. <code class="docutils literal notranslate"><span class="pre">{eval-rst}</span></code>
+parses reST in a new state machine after padding the text with blank
+lines so the numbers line up, and it reuses the page’s reporter. So the
+“bound once” rule above applies to it, with surprising results when an
+<code class="docutils literal notranslate"><span class="pre">{eval-rst}</span></code> block contains <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">include::</span></code>. That is a story for the next
+post.</p></li>
+</ul>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          <a class="prev-page" href="../../index.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Blog</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; the sphinxcontrib-matlabdomain team (see AUTHORS)
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">How a reST warning finds its file and line</a><ul>
+<li><a class="reference internal" href="#the-short-version">The short version</a></li>
+<li><a class="reference internal" href="#lines-carry-their-origin-stringlist">Lines carry their origin: <code class="docutils literal notranslate"><span class="pre">StringList</span></code></a></li>
+<li><a class="reference internal" href="#two-ways-a-message-is-located">Two ways a message is located</a><ul>
+<li><a class="reference internal" href="#messages-raised-while-parsing">1. Messages raised while parsing</a></li>
+<li><a class="reference internal" href="#messages-raised-later-from-nodes">2. Messages raised later, from nodes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#from-docutils-to-sphinx-s-output">From docutils to Sphinx’s output</a></li>
+<li><a class="reference internal" href="#the-catch-the-reporter-is-bound-once">The catch: the reporter is bound once</a></li>
+<li><a class="reference internal" href="#docstring-line-or-file-line">Docstring line or file line?</a></li>
+<li><a class="reference internal" href="#run-it">Run it</a></li>
+<li><a class="reference internal" href="#limits-worth-knowing">Limits worth knowing</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../../../_static/mat_urls.js?v=fdbe6872"></script>
+    <script defer="defer" src="../../../_static/glossary-tips.js?v=414ec603"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = "pre.mermaid {\n    /* Same as .mermaid-container > pre */\n    display: block;\n    width: 100%;\n}\n\npre.mermaid > svg {\n    /* Same as .mermaid-container > pre > svg */\n    height: 500px;\n    width: 100%;\n    max-width: 100% !important;\n}";
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = ".mermaid-container {\n    position: relative;\n    display: flex;\n    flex-direction: row;\n    width: 100%;\n}\n\n.mermaid-container > pre {\n    display: block;\n    width: 100%;\n}\n\n.mermaid-container > pre > svg {\n    height: 500px;\n    width: 100%;\n    max-width: 100% !important;\n}\n\n.mermaid-fullscreen-btn {\n    position: absolute;\n    width: 28px;\n    height: 28px;\n    background: rgba(255, 255, 255, 0.95);\n    border: 1px solid rgba(0, 0, 0, 0.3);\n    border-radius: 4px;\n    cursor: pointer;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    transition: all 0.2s;\n    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);\n    font-size: 14px;\n    line-height: 1;\n    padding: 0;\n    color: #333;\n}\n\n.mermaid-fullscreen-btn:hover {\n    opacity: 100% !important;\n    background: rgba(255, 255, 255, 1);\n    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);\n    transform: scale(1.1);\n}\n\n.mermaid-fullscreen-btn.dark-theme {\n    background: rgba(50, 50, 50, 0.95);\n    border: 1px solid rgba(255, 255, 255, 0.3);\n    color: #e0e0e0;\n}\n\n.mermaid-fullscreen-btn.dark-theme:hover {\n    background: rgba(60, 60, 60, 1);\n    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);\n}\n\n.mermaid-fullscreen-modal {\n    display: none;\n    position: fixed !important;\n    top: 0 !important;\n    left: 0 !important;\n    width: 95vw;\n    height: 100vh;\n    background: rgba(255, 255, 255, 0.98);\n    z-index: 9999;\n    padding: 20px;\n    overflow: auto;\n}\n\n.mermaid-fullscreen-modal.dark-theme {\n    background: rgba(0, 0, 0, 0.98);\n}\n\n.mermaid-fullscreen-modal.active {\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen {\n    position: relative;\n    width: 95vw;\n    height: 90vh;\n    max-width: 95vw;\n    max-height: 90vh;\n    background: white;\n    border-radius: 8px;\n    padding: 20px;\n    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);\n    overflow: auto;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen.dark-theme {\n    background: #1a1a1a;\n    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);\n}\n\n.mermaid-container-fullscreen pre.mermaid {\n    width: 100%;\n    height: 100%;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen .mermaid svg {\n    height: 100% !important;\n    width: 100% !important;\n    cursor: grab;\n}\n\n.mermaid-fullscreen-close {\n    position: fixed !important;\n    top: 20px !important;\n    right: 20px !important;\n    width: 40px;\n    height: 40px;\n    background: rgba(255, 255, 255, 0.95);\n    border: 1px solid rgba(0, 0, 0, 0.2);\n    border-radius: 50%;\n    cursor: pointer;\n    z-index: 10000;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);\n    transition: all 0.2s;\n    font-size: 24px;\n    line-height: 1;\n    color: #333;\n}\n\n.mermaid-fullscreen-close:hover {\n    background: white;\n    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);\n    transform: scale(1.1);\n}\n\n.mermaid-fullscreen-close.dark-theme {\n    background: rgba(50, 50, 50, 0.95);\n    border: 1px solid rgba(255, 255, 255, 0.2);\n    color: #e0e0e0;\n}\n\n.mermaid-fullscreen-close.dark-theme:hover {\n    background: rgba(60, 60, 60, 1);\n    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);\n}\n\n.mermaid-fullscreen-modal .mermaid-fullscreen-btn {\n    display: none !important;\n}";
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+let _lazyObserver = null;
+let _renderQueue = Promise.resolve();
+let closeModal = () => {};
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal?.classList.contains('active')) {
+        closeModal();
+    }
+});
+
+// Apply d3 zoom to each SVG. Idempotent: an SVG already wrapped is skipped,
+// so this is safe to call both for the initial batch and for diagrams that
+// render lazily once they become visible.
+const addZoomToSvgs = (svgs) => {
+    svgs.each(function() {
+        if (this.getAttribute('data-zoom-applied') === 'true') return;
+        var svg = d3.select(this);
+        svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+        var inner = svg.select("g");
+        var zoom = d3.zoom().on("zoom", function(event) {
+            inner.attr("transform", event.transform);
+        });
+        svg.call(zoom);
+        this.setAttribute('data-zoom-applied', 'true');
+    });
+};
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        // Disconnect any previous lazy rendering observer
+        if (_lazyObserver) {
+            _lazyObserver.disconnect();
+            _lazyObserver = null;
+        }
+
+        all_mermaids.forEach((el) => {
+            el.removeAttribute('data-mermaid-deferred');
+            el.removeAttribute('data-mermaid-render-failed');
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+
+        // Separate visible and hidden elements. Mermaid's layout engine measures
+        // text dimensions via the DOM, which fails for elements hidden by a parent
+        // (e.g., Reveal.js non-active slides, sphinx-design unopened tabs),
+        // producing broken SVGs. Render visible elements now, defer hidden ones.
+        const visible = [];
+        const hidden = [];
+        all_mermaids.forEach((el) => {
+            // offsetParent is null for display:none ancestors.
+            // getClientRects().length > 0 catches position:fixed elements
+            // (which also have null offsetParent but are still visible).
+            if (el.offsetParent !== null || el.getClientRects().length > 0) {
+                visible.push(el);
+            } else {
+                hidden.push(el);
+                el.setAttribute('data-mermaid-deferred', 'true');
+            }
+        });
+
+        if (visible.length > 0) {
+            try {
+                await mermaid.run({ nodes: visible });
+            } catch (e) {
+                console.error("Mermaid rendering failed:", e);
+            }
+        }
+
+        // Lazily render hidden elements when they become visible.
+        // Uses a promise chain (_renderQueue) to serialize rendering,
+        // since IntersectionObserver may report multiple entries at once
+        // and mermaid.run() is not safe to call concurrently.
+        if (hidden.length > 0) {
+            if (typeof IntersectionObserver === 'undefined') {
+                console.warn("IntersectionObserver not available; hidden mermaid diagrams will not render.");
+            } else {
+                _renderQueue = Promise.resolve();
+                _lazyObserver = new IntersectionObserver((entries) => {
+                    for (const entry of entries) {
+                        if (entry.isIntersecting && entry.target.getAttribute("data-processed") !== "true") {
+                            _lazyObserver.unobserve(entry.target);
+                            const el = entry.target;
+                            _renderQueue = _renderQueue.then(async () => {
+                                try {
+                                    await mermaid.run({ nodes: [el] });
+                                    el.removeAttribute('data-mermaid-deferred');
+                                    // Apply zoom to the now-rendered diagram, matching
+                                    // the decoration visible diagrams receive.
+                                    if (false) {
+                                        addZoomToSvgs(d3.selectAll("").select(function() {
+                                            return this.querySelector("svg");
+                                        }));
+                                    }
+                                } catch (e) {
+                                    console.error("Mermaid deferred rendering failed:", e);
+                                    el.removeAttribute('data-mermaid-deferred');
+                                    el.setAttribute('data-mermaid-render-failed', 'true');
+                                }
+                            });
+                        }
+                    }
+                });
+                hidden.forEach((el) => _lazyObserver.observe(el));
+            }
+        }
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    // Exclude deferred (hidden) and render-failed elements from completion checks
+    const mermaids_active = document.querySelectorAll(".mermaid:not([data-mermaid-deferred]):not([data-mermaid-render-failed])");
+    const mermaids_processed = document.querySelectorAll(".mermaid:not([data-mermaid-deferred]):not([data-mermaid-render-failed])[data-processed='true']");
+
+    if (false) {
+        const mermaids_to_add_zoom = 0 === -1 ? mermaids_active.length : 0;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("").select(function() {
+                return this.querySelector("svg");
+            });
+            // Wait until every active (visible) diagram has rendered. Deferred
+            // diagrams are excluded, so a fixed d3_node_count that counts a
+            // hidden diagram no longer loops forever waiting for its SVG.
+            if(mermaids_active.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            }
+            addZoomToSvgs(svgs);
+        }
+    } else if(mermaids_active.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if (!true) return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = "\u26f6";
+        fullscreenBtn.style.opacity = "50%";
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scrollX, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.display = 'block';
+
+                if (false) {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+
+
+const load = async () => {
+    initStyles();
+
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...{"startOnLoad": false},
+                ...{ darkMode: darkTheme, theme: darkTheme ? "dark" : "default" },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...{"startOnLoad": false},
+    ...{ darkMode: darkTheme, theme: darkTheme ? "dark" : "default" },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+    </body>
+</html>
