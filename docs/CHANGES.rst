@@ -396,7 +396,9 @@ Linking:
   not write ``.html`` pages (EPUB, ``json``, ``pickle``) get none.
   Incremental HTML builds remove the pages whose ``scmd apidoc`` source is
   gone, also when another builder on the same doctree folder (``-d``) saw
-  it go.
+  it go. After a case-only source rename, they respell the stable address
+  files on a case-insensitive file system, so inventory links work when the
+  output is copied to a case-sensitive host.
 * :confval:`matlab_link_shadowed_files_to_chooser_pages`: a name of
   several objects (two global ``helper.m``)
   links to a page that lists them, locally and through intersphinx.
