@@ -19,8 +19,8 @@ Highlights
 * One command, ``scmd``: ``quickstart`` sets up a project, ``apidoc`` writes
   the API pages, ``skills`` copies agent skills into a project.
 * A ``matlab-api-check`` builder that audits the help text.
-* Simulink files, sidecar docs (Markdown and reST notes next to the code)
-  and stable addresses for every documented object.
+* Sidecar docs (Markdown and reST notes next to the code) and stable
+  addresses for every documented object.
 * Rewritten documentation: getting started, a user guide, a reference of
   every configuration value, directive, role, option and warning, and a
   developer guide. Examples are rendered by the documentation's own build.
@@ -34,7 +34,12 @@ Requirements
 ^^^^^^^^^^^^
 
 * Python 3.11 or later and Sphinx 8.0 or later (support for Python 3.10 and
-  Sphinx 7 and earlier is dropped).
+  Sphinx 7 and earlier is dropped). Tested on Python 3.11 to 3.15 and Sphinx
+  8.0 to 9.2; newer releases are supported on a best-effort basis and added
+  to the tests within about three months. On Python 3.15 ``tree-sitter``
+  0.26.1 is compiled from source, which needs a C compiler. Free-threaded
+  Python is not supported. On Python 3.11, ``typing-extensions`` 4.4 or
+  later is a new dependency.
 * Source files are parsed with tree-sitter (``tree-sitter`` 0.26 and
   ``tree-sitter-matlab`` 1.3.3) instead of a Pygments lexer; the module
   ``sphinxcontrib.mat_lexer`` is removed.
@@ -66,24 +71,35 @@ Names and references:
   existing deep links and intersphinx references change.
 * ``mat:module``, ``mat:automodule``, ``mat:currentmodule`` and
   ``:mat:mod:`` are replaced by ``mat:folder``, ``mat:autofolder``,
-  ``mat:currentfolder`` and ``:mat:folder:``. A valid ``+`` folder shows
-  ``namespace <name>``, any other folder ``folder <path>``; ``@Class``
-  folders are documented through their class. The module index is now the
-  folder index (``mat-folderindex.html``).
+  ``mat:currentfolder`` and ``:mat:folder:``; for a ``+`` package, by
+  ``mat:namespace``, ``mat:autonamespace`` and ``:mat:namespace:`` (#362).
+  The only ``+`` folder of a namespace shows ``namespace <name>``; any
+  other folder shows ``folder <path>``. ``@Class`` folders are documented
+  through their class. The module index is now the folder index
+  (``mat-folderindex.html``); it lists folders and namespaces.
+* A namespace with ``+`` folders in several places (``a/+ns/`` and
+  ``b/+ns/``) has no folder that stands for it. Each of its folders shows
+  ``folder <path>`` and is linked by path. The name ``ns`` matches all of
+  them, as a name of several files does: a link by name warns
+  ``mat.ambiguous``, and ``mat/name/ns.html`` lists them. Document the
+  namespace with ``mat:namespace`` or ``mat:autonamespace`` to give the
+  name one target (#362).
 * Files MATLAB cannot call for :confval:`matlab_version` (keyword
   namespaces, invalid names, ``@C/sub`` files from R2026a, ...) are
   documented by path with one ``mat.not_callable`` warning each that says
   why; files below ``private/`` never warn.
 * A folder named like a file the extension reads (``.m``, ``.mlapp``,
-  ``.slx``, ``.mdl``, ``.md``, ``.rst``, any case) is not documented and
+  ``.md``, ``.rst``, any case) is not documented and
   logs the error ``mat.folder_name``.
 
 Configuration:
 
 * ``matlab_src_dir`` is replaced by ``matlab_src_code_project_root``
-  (relative to the Sphinx source folder). Setting ``matlab_src_dir``,
-  ``matlab_keep_package_prefix`` or ``matlab_short_links`` is a
-  ``ConfigError``; one error names every removed value that is set.
+  (relative to the Sphinx source folder); a folder that does not exist is
+  a ``ConfigError`` (0.x indexed nothing, without a warning). Setting
+  ``matlab_src_dir``, ``matlab_keep_package_prefix`` or
+  ``matlab_short_links`` is a ``ConfigError``; one error names every
+  removed value that is set.
 * A ``matlab_*`` name that is not a configuration value (a typo, a helper
   variable) is a ``ConfigError`` in the build and in ``scmd apidoc``, with
   the closest value as a suggestion, also when another extension sets it
@@ -102,6 +118,12 @@ Configuration:
   Windows or ISO-8859-1 elsewhere, like MATLAB R2026a, with a suppressible
   ``mat.encoding`` warning. An unknown or non-text codec is a
   ``ConfigError``.
+* Each run checks the ``matlab_*`` values it uses when it starts: a value
+  that is not valid stops ``sphinx-build``, ``-b matlab-api-check`` or
+  ``scmd apidoc`` if the run uses it, and is one ``mat.config`` warning in a
+  run that does not. A value that is ``True`` or ``False`` must be a bool:
+  ``"no"`` acted as ``True`` before and is now a ``ConfigError``, as is
+  ``0`` (``-D name=0`` still works).
 
 Help text:
 
@@ -143,14 +165,16 @@ Directives and options:
 * Python-domain features that do not apply to MATLAB are removed: the
   ``mat:decorator``, ``mat:decoratormethod``, ``mat:exception`` and
   ``mat:autoexception`` directives, the ``:mat:exc:`` role, and the
-  ``:special-members:`` and ``:inherited-members:`` options of
-  ``mat:autoclass`` (``:inherited-members:`` crashed the build). Names in
-  ``:raises:`` fields link to classes.
+  ``:special-members:`` option of ``mat:autoclass``. Names in ``:raises:``
+  fields link to classes.
 * The auto directives accept only the options that do something.
-  ``mat:autofolder`` no longer accepts ``:inherited-members:``,
+  ``mat:autofolder`` no longer accepts
   ``:special-members:``, ``:imported-members:``, ``:ignore-module-all:``
   and ``:no-value:``; ``mat:autodata`` no longer accepts ``:annotation:``
   and ``:no-value:``; no auto directive accepts ``:no-index-entry:``.
+* ``:member-order:`` accepts only ``alphabetical``, ``groupwise`` and
+  ``bysource``, as in autodoc; another value is an error (it sorted
+  alphabetically).
 
 Contributors:
 
@@ -185,8 +209,8 @@ Commands:
   (``matlab_apidoc_templatedir``). By default (``matlab_apidoc_group =
   "namespace"``) it writes one page per namespace, merging all its
   folders, and Global for the files outside any namespace, listed flat on
-  the root page; sections Functions, Classes, Scripts, Apps, the Simulink
-  sections and the sidecar docs; at most ``matlab_apidoc_page_size``
+  the root page; sections Functions, Classes, Scripts, Apps and the
+  sidecar docs; at most ``matlab_apidoc_page_size``
   entries (default 100) per page; ``private/`` files are left out
   (``matlab_apidoc_private = True`` lists them with the folder above).
   ``matlab_apidoc_group = "folder"`` writes one page per folder with files,
@@ -260,7 +284,7 @@ Source files:
   ``matlabrc.m`` and ``rtwmakecfg.m`` are left out of ``mat:autofolder``
   members; an explicit directive still documents them.
 * Source files are found through a file-type handler registry (``.m``,
-  ``.mlapp``, Simulink files), the extension point for more file types.
+  ``.mlapp``), the extension point for more file types.
 
 Builds:
 
@@ -273,9 +297,16 @@ Builds:
   at its next build. Parallel
   builds (``-j``) are supported (#147); an object or folder described on
   two pages links to the same page as in a serial build, with the same
-  ``mat.duplicate`` warnings, at the same lines. A ``mat.duplicate``
-  warning for an object from an auto directive points at the line of that
-  directive on the page. An object or folder described on several pages
+  ``mat.duplicate`` warnings, at the same lines; an incremental build
+  gives the same as a fresh one for the pages it reads. A warning about a
+  directive names the file and line where it is written: the page, an
+  included file, a sidecar doc, or help text. A warning about the text an
+  auto directive adds around help text, such as a base class that is not
+  documented, names the code file and the line of the declaration, not
+  ``<autodoc>``. A ``mat.duplicate`` warning
+  for an object generated from help text points at the outermost auto
+  directive, and its "other instance in" names the file and line where
+  the other description is written, not its page. An object or folder described on several pages
   belongs to the same page after an incremental build as after a fresh
   one, also when that page changes, drops the description or is removed.
 * One bad source file no longer stops the build. A file that cannot be
@@ -324,9 +355,33 @@ Classes:
   it. ``mat:autofolder`` accepts ``:protected-members:``,
   ``:hidden-members:`` and ``:access-list-members:`` for the classes it
   documents.
+* ``:inherited-members:`` of ``mat:autoclass`` and ``mat:autofolder``
+  works (#180, PR #346 by ehennestad). 0.x offered it, but it stopped every
+  build that used it; a user took the time to implement it, so 1.0
+  implements it again on the new parser. A class documents the members it
+  inherits from its base classes in the project, under its own name
+  (``Sub.baseMethod``), each starting with "Inherited from" and a link to
+  the base. Its own members win, then the bases in ``classdef`` order;
+  constructors, enumeration values and private members are not inherited. A
+  list of class names (``:inherited-members: pkg.Framework``) stops at those
+  bases. It is not recommended: the same help text is repeated on the page
+  of every subclass, so the pages grow and the build slows down;
+  ``:show-inheritance:`` links to the base class instead. So it works only
+  when the new value :confval:`matlab_inherited_members` is ``True`` (off by
+  default); while it is off the option documents no inherited member and
+  the build warns (``mat.directive``).
 
 Linking:
 
+* A namespace is an object (#362): one per MATLAB name, however many
+  ``+`` folders have it, in the inventory (``+a/+b`` for ``a.b``) and the
+  general index, with a stable address. ``mat:namespace`` describes it,
+  ``:mat:namespace:`` links to it, and after either names on the page are
+  looked up in it. ``mat:autonamespace`` documents it and, with
+  ``:members:``, the files directly in all its folders; it is the
+  counterpart of a 0.x ``automodule`` of a package, and ``scmd apidoc``
+  pages are recommended instead. Each ``scmd apidoc`` namespace page
+  starts with ``mat:namespace``, so links to the namespace land there.
 * References to another project's MATLAB objects
   (``sphinx.ext.intersphinx``) resolve by MATLAB name too
   (``:mat:class:`geom.Circle```), not only by path reference. The
@@ -343,7 +398,7 @@ Linking:
   gone, also when another builder on the same doctree folder (``-d``) saw
   it go.
 * :confval:`matlab_link_shadowed_files_to_chooser_pages`: a name of
-  several objects (two global ``helper.m``, ``foo.m`` and ``foo.slx``)
+  several objects (two global ``helper.m``)
   links to a page that lists them, locally and through intersphinx.
 * ``matlab_external_names``: regular expressions of names the project does
   not document; a reference to such a name is text, without a "reference
@@ -359,43 +414,12 @@ Linking:
 * Help lines that start with ``%%`` (a section start) lose both ``%``, as
   in MATLAB's ``help`` (#350): ``%% Inputs:`` gives ``Inputs:``.
 
-Simulink files:
-
-* The index reads Simulink models, libraries and subsystem files
-  (``.slx`` and ``.mdl``) without MATLAB, from every release since R2006a. They get MATLAB names as
-  Simulink runs them, and a block of a library is referenced by its
-  Simulink path after the file (``lib.slx/Group/Gain``).
-* New directives ``mat:autosimulink_model``, ``mat:autosimulink_library``,
-  ``mat:autosimulink_subsystem_reference`` and
-  ``mat:autosimulink_library_block`` (and their description directives and
-  roles) document the description, mask type, mask description and Help,
-  metadata (:confval:`matlab_simulink_metadata`), mask parameters and
-  ports. ``:members:`` of a library documents its blocks;
-  ``:references:`` lists the model references, subsystem references and
-  library links of a model. A ``.md`` or ``.rst`` file next to a Simulink
-  file with its name adds documentation
-  (:confval:`matlab_simulink_doc_suffixes`).
-* ``scmd apidoc`` lists Simulink files in their own sections;
-  ``matlab-api-check`` counts them as not checked. ``scmd quickstart`` adds
-  ``+sphinxcontrib/+matlabdomain/simulinkDocumentationLinker.m`` to a
-  project with Simulink files: Help fields call it to open the page of a
-  model or block on the local build, the sphinx-autobuild server
-  (:confval:`matlab_simulink_autobuild_server`) or the published site;
-  ``sphinxcontrib.matlabdomain.setSimulinkHelp`` writes those Help fields.
-  The linker gives the address by the rules of the output names, including
-  the escaped leading ``_`` of a folder, except those that need the sibling
-  files (names that differ only by case, a folder named like a page file).
-  A build writes only to its output and doctree folders: it records its
-  state in ``mat/simulinkDocumentationLinker.json`` there, never changes
-  the committed ``simulinkDocumentationLinker.json`` (written once by
-  ``scmd quickstart``), and logs one ``info`` line when ``local``,
-  ``server`` or ``published`` of that file differ from the build.
-
 Sidecar docs:
 
 * Tutorials and notes as ``.md`` and ``.rst`` files among the MATLAB
   files, selected by ``matlab_src_sidecar_suffixes`` (default ``[]``, off)
-  and the include and exclusion patterns. The directive
+  and the include and exclusion patterns; a folder with a ``conf.py`` of its
+  own (another Sphinx project) holds none. The directive
   ``mat:autosidecar`` renders one into a document, with relative images,
   downloads, includes and Markdown links resolved from its folder; the
   role ``:mat:sidecar:`` links to one. ``scmd apidoc`` writes a page for
@@ -433,19 +457,10 @@ Fixes
 * An invalid option of a ``mat:auto*`` directive is reported at the right
   file.
 * A corrupt or huge ``.mlapp`` file gives one ``mat.parse_error`` and the
-  build goes on: the reader has the size limits, the refusal of a DTD or
-  entity declaration and the nesting limit of the Simulink reader (a
-  300 MiB member took 1.2 GiB of memory before).
-* A Simulink XML part whose declaration names the encoding ``utf-7`` or
-  ``idna`` crashed the reader with a ``ValueError``; it is a
-  ``mat.parse_error`` now.
-* The refusal of a DTD or entity declaration in a Simulink XML part or an
-  ``.mlapp`` metadata part also holds for a UTF-16 part (it was parsed with
-  its entities before).
-* The parts below ``metadata/`` of a ``.slx``, ``.mdl`` or ``.mlapp`` file
-  have a size limit of 16 MiB instead of 256 MiB (a 255 MiB
-  ``metadata/coreProperties.xml`` was accepted without a warning and took
-  about 1 GiB of memory to parse); the real ones are a few kilobytes.
+  build goes on: the reader has size limits, refuses a DTD or entity
+  declaration, also in a UTF-16 part, and limits the nesting of the XML (a
+  300 MiB member took 1.2 GiB of memory before). The metadata parts it
+  reads have a size limit of 16 MiB; the real ones are a few kilobytes.
 * The package metadata names the license in ``LICENSE``, BSD-2-Clause (it
   said BSD-3-Clause).
 
@@ -455,7 +470,11 @@ Project
 * Jason H. Nicholson, author of the 1.0 rewrite, maintains the project;
   Jørgen Cederberg is a former maintainer (``AUTHORS``).
 * Build, test and static-analysis policy is in ``pyproject.toml`` (Ruff,
-  Pyright, tox); CI runs on Windows, macOS and Linux.
+  Pyright, tox); CI runs on Windows, macOS and Linux. A Python prerelease
+  (now 3.16) and Sphinx's development branch are tested too but may fail.
+  A test keeps the tested Python versions in the CI matrix, the
+  classifiers and tox in step; the docs read the tested range from
+  ``pyproject.toml`` and ``uv.lock``.
 
 0.22.1 (2024-08-17)
 -------------------

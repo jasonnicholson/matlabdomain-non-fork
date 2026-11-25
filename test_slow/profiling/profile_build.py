@@ -9,8 +9,6 @@ Usage::
 failures tallied instead of stopping the sweep. Writes cProfile stats to
 ``parse.prof`` (ignored by Git) and prints the top functions by cumulative
 time; inspect with ``uvx snakeviz test_slow/profiling/parse.prof``.
-
-The Phase 1 baseline and its findings are in ``plan-history.md`` (Phase 1).
 """
 
 from __future__ import annotations
@@ -44,6 +42,9 @@ def _sweep(src_dir: Path) -> None:
 
 
 def main() -> None:
+    """Parse every ``.m`` file below SRC_DIR under cProfile, write ``parse.prof``, and
+    print the time, the failures and the top functions.
+    """
     src_dir = (
         Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else DEFAULT_SRC.resolve()
     )

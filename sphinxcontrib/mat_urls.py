@@ -1,7 +1,4 @@
-"""sphinxcontrib.mat_urls
-~~~~~~~~~~~~~~~~~~~~~~
-
-Stable addresses of documented objects in HTML builds (plan.md Section 2.3).
+"""Stable addresses of documented objects in HTML builds.
 
 API pages split into ``global.html``, ``global-2.html``, ... by
 ``matlab_apidoc_page_size``, so the page an object is on can change. Each
@@ -51,11 +48,12 @@ from urllib.parse import quote, urlsplit
 
 import sphinx
 from docutils import nodes
-from sphinx.errors import ExtensionError
+from sphinx.errors import ConfigError
 from sphinx.util.logging import getLogger
 from sphinx.util.osutil import relative_uri
 
 from . import mat_naming
+from .matlab_apidoc._generate import _is_marked
 from .matlab_apidoc._names import docnames
 
 logger = getLogger("matlab-domain")
@@ -136,10 +134,10 @@ _JS = """\
 
 
 def _html(app):
-    return _html_builder(app.builder)
+    return writes_html_pages(app.builder)
 
 
-def _html_builder(builder):
+def writes_html_pages(builder):
     """Stable addresses are for builders that write ``<page>.html`` pages: not
     epub, and not ``json`` or ``pickle`` (``.fjson``, ``.fpickle``).
     """
@@ -151,23 +149,25 @@ def _html_builder(builder):
 
 
 def enabled(app):
+    """Return True if this build writes stable addresses: ``matlab_stable_urls`` is on
+    and the builder writes HTML pages (not EPUB).
+    """
     return app.config.matlab_stable_urls and _html(app)
 
 
 def _names(dom):
     """MATLAB name -> references of the non-private objects that have it.
 
-    A Simulink block's display name is a Simulink path, not a MATLAB name.
+    The folders of a namespace that has several are under its name
+    (``MATLABDomain.object_name``), unless the namespace object is
+    documented: then the name is its alone.
     """
     out = {}
-    for ref, (_, _, display) in dom.data["objects"].items():
-        if (
-            display != ref
-            and "/" not in display
-            and not mat_naming.is_private_reference(ref)
-        ):
-            out.setdefault(display, []).append(ref)
-    return {name: sorted(refs) for name, refs in out.items()}
+    for ref in dom.data["objects"]:
+        name = dom.object_name(ref)
+        if name and not mat_naming.is_private_reference(ref):
+            out.setdefault(name, []).append(ref)
+    return {name: sorted(dom.without_own_folders(refs)) for name, refs in out.items()}
 
 
 def addresses(dom):
@@ -192,9 +192,9 @@ def addresses(dom):
 def permalink(dom, ref):
     """Return the stable file a "¶" link of ``ref`` points to."""
     by_ref, by_name, names, _ = addresses(dom)
-    display = dom.data["objects"][ref][2]
-    if names.get(display) == [ref]:
-        return by_name[display]
+    name = dom.object_name(ref)
+    if names.get(name) == [ref]:
+        return by_name[name]
     return by_ref[ref]
 
 
@@ -202,12 +202,12 @@ def chooser_link(dom, builder, fromdocname, refs, contnode):
     """Link ``contnode`` to the chooser page that lists all of ``refs`` (one
     MATLAB name), or return it unlinked when the build writes no such page.
     """
-    if not (builder.config.matlab_stable_urls and _html_builder(builder)):
+    if not (builder.config.matlab_stable_urls and writes_html_pages(builder)):
         return contnode
     _, by_name, names, _ = addresses(dom)
-    name = dom.data["objects"][refs[0]][2]
+    name = dom.object_name(refs[0])
     listed = names.get(name, [])
-    if len(listed) < 2 or not set(refs) <= set(listed):
+    if len(listed) <= 1 or not set(refs) <= set(listed):
         return contnode
     uri = relative_uri(builder.get_target_uri(fromdocname), by_name[name])
     node = nodes.reference("", "", internal=True, refuri=uri, reftitle=name)
@@ -220,7 +220,7 @@ def is_chooser_uri(uri):
     return f"/{ROOT}/name/" in "/" + urlsplit(uri).path
 
 
-def rewrite_permalinks(app, pagename, templatename, context, doctree):  # noqa: ARG001
+def rewrite_permalinks(app, pagename, _templatename, context, doctree):
     """``html-page-context``: point the "¶" links of objects to their stable
     addresses. A document's page (one with a doctree; generated pages have
     none) also means that this build renders the chooser pages again.
@@ -408,7 +408,7 @@ def _kept_choosers(app):
 
 def rewrite_inventory(path, uris, choosers=()):
     """Point the ``mat`` entries of the ``objects.inv`` at ``path`` whose
-    name is in ``uris`` (inventory name -> URI) to that URI, and add the
+    name is in ``uris`` (reference -> URI) to that URI, and add the
     ``choosers`` entries ``(MATLAB name, objtype, URI)``.
     """
     if not os.path.isfile(path):
@@ -421,10 +421,22 @@ def rewrite_inventory(path, uris, choosers=()):
         match = _INVENTORY_LINE.fullmatch(line)
         if match and match[1] in uris:
             lines[i] = f"{match[1]} {match[2]} {match[3]} {uris[match[1]]} {match[4]}"
-    # Priority -1: not offered by search; keyed by the name, which no path
-    # reference equals. Entries of an earlier rewrite are replaced.
+    # Priority -1: not offered by search; keyed by the MATLAB name. Entries of
+    # an earlier rewrite are replaced. A path reference can equal the name
+    # (the root file a.m, the name a.m of +a/m.m): that entry stays, as a
+    # local reference to it finds the object, and the name gets none of
+    # that type (a reader keeps one entry per name and type).
     lines = [line for line in lines if line and not _CHOOSER_LINE.fullmatch(line)]
-    lines += [f"{name} mat:{objtype} -1 {uri} -" for name, objtype, uri in choosers]
+    taken = {
+        (match[1], match[2])
+        for match in map(_INVENTORY_LINE.fullmatch, lines)
+        if match is not None
+    }
+    lines += [
+        f"{name} mat:{objtype} -1 {uri} -"
+        for name, objtype, uri in choosers
+        if (name, f"mat:{objtype}") not in taken
+    ]
     lines.append("")
     body = zlib.compress("\n".join(lines).encode("utf-8"), 9)
     _write(path, b"\n".join([*header, body]))
@@ -450,28 +462,23 @@ def _is_ours(path):
         return False
     if MARKER in text or text.startswith(JS_MARKER):
         return True
-    # Written without JS_MARKER by earlier versions.
     folder, name = os.path.split(os.path.normpath(path))
-    if name == SCRIPT:
-        return text.startswith(_JS.partition("\n")[0])
     if name == os.path.basename(STATE) and os.path.basename(folder) == ROOT:
         # A state cut short (empty, not JSON) is this extension's too.
         try:
             json.loads(text)
         except ValueError:
             return True
-        return False
-    return (
-        name == os.path.basename(REFS)
-        and os.path.basename(folder) == ROOT
-        and text.startswith("window.matStableRefs = ")
-    )
+    return False
 
 
 def _check_owned(path):
     if os.path.islink(path) or (os.path.isfile(path) and not _is_ours(path)):
-        raise ExtensionError(
-            f"stable URL output would overwrite an unowned file: {path}"
+        raise ConfigError(
+            f"matlab_stable_urls: {path!r} is in the way of a file of the stable "
+            "addresses, and the build does not overwrite a file it did not write. "
+            "Remove or rename it (html_extra_path or html_static_path may copy it "
+            "there), or set matlab_stable_urls = False."
         )
 
 
@@ -484,11 +491,32 @@ def write_redirects(app, exception):
     builder = app.builder
     dom = app.env.get_domain("mat")
     by_ref, by_name, names, _ = addresses(dom)
-    objects = dom.data["objects"]
     themed = getattr(builder, "mat_chooser_pages", None)
     state = getattr(builder, "mat_chooser_state", None)
     if themed is None:
         themed, state = _kept_choosers(app)
+    files = _address_files(builder, dom, by_ref, by_name, names, themed)
+    files[REFS] = _refs_script(by_ref)
+    if state is not None:
+        files[STATE] = state
+    outdir = str(builder.outdir)
+    not_found = os.path.join(outdir, "404.html")
+    if not os.path.exists(not_found) or _is_ours(not_found):
+        files["404.html"] = _not_found(builder.get_target_uri(app.config.root_doc))
+    failed = _write_files(outdir, files)
+    _remove_stale_files(outdir, [*files, *themed])
+    rewrite_inventory(
+        os.path.join(outdir, "objects.inv"),
+        *_inventory_entries(dom, by_ref, by_name, names, failed),
+    )
+
+
+def _address_files(builder, dom, by_ref, by_name, names, themed):
+    """Return the redirect pages of the stable addresses and the chooser pages of
+    the MATLAB names of several objects, by output path; the theme writes the
+    chooser pages in ``themed``.
+    """
+    objects = dom.data["objects"]
     files = {}
     for ref, stub in by_ref.items():
         files[stub] = _redirect(objects[ref][2], _target(builder, dom, stub, ref))
@@ -498,20 +526,28 @@ def write_redirects(app, exception):
             files[stub] = _redirect(name, _target(builder, dom, stub, refs[0]))
         elif stub not in themed:
             files[stub] = _chooser(name, _entries(builder, dom, stub, refs))
+    return files
+
+
+def _refs_script(by_ref):
+    """Return the ``REFS`` script: the stable address of each target id, empty
+    where it equals the id.
+    """
     refs_map = {}
     for ref, stub in by_ref.items():
         key = mat_naming.make_target_id(ref)[4:]
         value = stub[len(ROOT) + 5 : -5]  # mat/ref/<value>.html
         refs_map[key] = "" if value == key else value
-    files[REFS] = (
+    return (
         f"{JS_MARKER}\nwindow.matStableRefs = {json.dumps(refs_map, sort_keys=True)};\n"
     )
-    if state is not None:
-        files[STATE] = state
-    outdir = str(builder.outdir)
-    not_found = os.path.join(outdir, "404.html")
-    if not os.path.exists(not_found) or _is_ours(not_found):
-        files["404.html"] = _not_found(builder.get_target_uri(app.config.root_doc))
+
+
+def _write_files(outdir, files):
+    """Write ``files`` (output path: text) below ``outdir``, once none of them
+    would overwrite a file this extension did not write; return the output
+    paths that could not be written, each with a warning.
+    """
     for stub in files:
         _check_owned(os.path.join(outdir, *stub.split("/")))
     failed = set()
@@ -528,10 +564,15 @@ def write_redirects(app, exception):
                 type="mat",
                 subtype="stable_url",
             )
+    return failed
+
+
+def _remove_stale_files(outdir, kept):
+    """Remove the files this extension wrote below ``ROOT`` that are not in
+    ``kept`` (output paths), and the folders left empty.
+    """
     root = os.path.join(outdir, ROOT)
-    wanted = {
-        os.path.normcase(os.path.join(outdir, *s.split("/"))) for s in [*files, *themed]
-    }
+    wanted = {os.path.normcase(os.path.join(outdir, *s.split("/"))) for s in kept}
     for folder, _, names_in in os.walk(root, topdown=False):
         for file in names_in:
             path = os.path.join(folder, file)
@@ -539,18 +580,21 @@ def write_redirects(app, exception):
                 os.remove(path)
         if folder != root and not os.listdir(folder):
             os.rmdir(folder)
-    uris = {}
-    for ref, stub in by_ref.items():
-        name = dom.inventory_name(ref)
-        if name is not None and stub not in failed:
-            uris[name] = quote(stub)
+
+
+def _inventory_entries(dom, by_ref, by_name, names, failed):
+    """Return the ``uris`` and ``choosers`` arguments of ``rewrite_inventory``,
+    without the addresses whose file could not be written (``failed``).
+    """
+    objects = dom.data["objects"]
+    uris = {ref: quote(stub) for ref, stub in by_ref.items() if stub not in failed}
     choosers = [
         (name, objtype, quote(by_name[name]))
         for name, refs in sorted(names.items())
         if len(refs) > 1 and by_name[name] not in failed
         for objtype in sorted({objects[ref][1] for ref in refs})
     ]
-    rewrite_inventory(os.path.join(outdir, "objects.inv"), uris, choosers)
+    return uris, choosers
 
 
 def _not_found(home):
@@ -599,7 +643,7 @@ def builder_key(builder):
     return (builder.name, os.path.normcase(os.path.abspath(str(builder.outdir))))
 
 
-def note_pages(app, env, added, changed, removed):  # noqa: ARG001
+def note_pages(app, env, _added, _changed, removed):
     """``env-get-outdated``: remember where each object was, and the removed
     documents, before this build reads anything.
     """
@@ -672,7 +716,8 @@ def remove_stale_pages(app, dom, key):
     """Remove the HTML page (and its copied source) of each document below
     ``matlab_apidoc_output_dir`` that the output ``key`` has a page for and
     that is gone, which Sphinx keeps; then note the documents it has pages
-    for now (``api_pages``, pickled).
+    for now (``api_pages``, pickled): those whose source starts with the
+    marker line of ``scmd apidoc``, so a hand-written page there is kept.
 
     Another builder on the same doctree folder may have seen the removal, so
     this compares with the documents of the output's last build, not with
@@ -704,4 +749,10 @@ def remove_stale_pages(app, dom, key):
                 os.rmdir(folder)
                 folder = os.path.dirname(folder)
     prefix = _api_prefix(app)
-    pages[key] = set() if prefix is None else {d for d in found if d.startswith(prefix)}
+    pages[key] = (
+        set()
+        if prefix is None
+        else {
+            d for d in found if d.startswith(prefix) and _is_marked(app.env.doc2path(d))
+        }
+    )

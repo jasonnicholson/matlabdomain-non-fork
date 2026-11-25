@@ -1,7 +1,4 @@
-"""sphinxcontrib.mat_types
-~~~~~~~~~~~~~~~~~~~~~~~
-
-Types for MATLAB.
+"""The index of a MATLAB project and the objects parsed from its files.
 
 :copyright: Copyright 2014-2024 by the sphinxcontrib-matlabdomain team, see AUTHORS.
 :license: BSD, see LICENSE for details.
@@ -16,7 +13,7 @@ import sys
 import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 
 from sphinx.environment import CONFIG_OK
 from sphinx.errors import ConfigError
@@ -46,6 +43,7 @@ from .mat_classify import (
     is_help_only,
     is_hidden,
 )
+from .mat_container import parse_xml, read_members
 from .mat_handlers import handler_by_extension, handler_for, handlers
 from .mat_naming import (
     ROOT_REFERENCE,
@@ -56,34 +54,28 @@ from .mat_naming import (
     parse_reference,
     split_folder,
 )
-from .mat_simulink import read_diagram
-from .mat_simulink._nodes import parse_xml
-from .mat_simulink._parts import read_members
+from .mat_typing import override
 
 logger = getLogger("matlab-domain")
 
 __all__ = [
     "MatApplication",
-    "MatBlock",
     "MatClass",
     "MatEnumeration",
     "MatEvent",
     "MatFunction",
-    "MatLibrary",
     "MatMethod",
-    "MatModel",
     "MatModule",
     "MatModuleAnalyzer",
+    "MatNamespace",
     "MatObject",
     "MatProperty",
     "MatScript",
-    "MatSimulinkFile",
-    "MatSubsystemFile",
 ]
 
 
 # The parsed-source model lives in ``env.domaindata['mat']`` and is pickled
-# with the environment (plan.md Sections 2.1 and 2.2):
+# with the environment:
 #
 #   index: source path -> index-stage record (reference, type, mtime, size,
 #     warnings, unreadable; matlab_name, private, scope from naming).
@@ -261,10 +253,11 @@ def _load(dom, ref):
         obj = None
     if obj is None:
         stem = os.path.splitext(os.path.basename(path))[0]
-        if record["unreadable"]:
-            # The index stage warned already.
+        if record["unreadable"] or record["type"] == UNKNOWN:
+            # The index stage warned already; a file that is no source file of
+            # its type is not parsed again.
             obj = placeholder(record["type"], stem, folder_of(ref))
-            obj.source_type, obj.unreadable = record["type"], True
+            obj.source_type, obj.unreadable = record["type"], record["unreadable"]
         else:
             handler = handler_by_extension(path)
             text = dom.text_cache.pop(key, None)
@@ -345,12 +338,14 @@ def source_scope(dom, reference):
 
 
 def _member(entity, members):
+    # A member is a MATLAB object: what ``getter`` gives for a name autodoc
+    # asks for (``__doc__``, ``__bases__``, ...) is none.
     obj = entity
     for name in members:
-        if obj is None or isinstance(obj, MatModule):
+        if not isinstance(obj, MatObject) or isinstance(obj, MatModule):
             return None
         obj = obj.getter(name)
-    return obj
+    return obj if isinstance(obj, MatObject) else None
 
 
 def lookup_reference(dom, reference):
@@ -367,15 +362,6 @@ def _named(dom, name):
     The longest known prefix of ``name`` is the file or folder; the rest are
     members (``pkg.Cls.method``).
     """
-    # A block by the MATLAB name of its library: lib/Group/Gain.
-    head, slash, block = name.partition("/")
-    if slash:
-        refs = dom.data["matlab_names"].get(head, ())
-        return [
-            (f"{ref}/{block}", ref)
-            for ref in refs
-            if mat_naming.is_block_container(ref.rpartition("/")[2])
-        ]
     parts = name.split(".")
     for i in range(len(parts), 0, -1):
         refs = dom.data["matlab_names"].get(".".join(parts[:i]))
@@ -399,28 +385,6 @@ is_source_object.folders = False
 is_folder_object.folders = True
 
 
-def is_code_object(obj):
-    """Return True for anything but a folder or a Simulink file."""
-    return is_source_object(obj) and not isinstance(obj, MatSimulinkFile)
-
-
-is_code_object.folders = False
-# Directives that document code never take a Simulink file.
-is_code_object.refs = lambda file: (
-    not mat_naming.is_block_container(file.rpartition("/")[2])
-)
-
-
-def simulink_accepts(cls):
-    """Return a ``find_source`` predicate for the Simulink objects of ``cls``."""
-
-    def accept(obj):
-        return isinstance(obj, cls)
-
-    accept.refs = lambda file: mat_naming.is_block_container(file.rpartition("/")[2])
-    return accept
-
-
 def _match(dom, ref, accept):
     """``(ref, object)`` if ``ref`` names an accepted object, else None.
 
@@ -429,9 +393,6 @@ def _match(dom, ref, accept):
     """
     file, members = parse_reference(ref)
     if file is None:
-        return None
-    refs = getattr(accept, "refs", None)
-    if refs is not None and not refs(file):
         return None
     folders = getattr(accept, "folders", None)
     if folders is not None and not members:
@@ -443,15 +404,7 @@ def _match(dom, ref, accept):
     obj = _member(resolve(dom, file), members)
     if obj is None or not accept(obj):
         return None
-    # A block named with spaces for its line breaks: its own reference.
-    return (getattr(obj, "ref", ref) if isinstance(obj, MatBlock) else ref), obj
-
-
-def same_block(path, name):
-    """Return True if ``name`` is the block path ``path``, any run of
-    whitespace (a line break in a block name) written as a space.
-    """
-    return " ".join(path.split()) == " ".join(name.split())
+    return ref, obj
 
 
 def _resolved(dom, matches):
@@ -459,7 +412,7 @@ def _resolved(dom, matches):
 
 
 def find_source(dom, target, folder=None, accept=is_source_object):
-    """Resolve ``target`` to discovered objects (plan.md Section 2.3).
+    """Resolve ``target`` to discovered objects.
 
     1. exact path reference; 2. relative to ``folder`` (a path below it, or a
     MATLAB name visible from it, including its ``private/``); 3. a MATLAB name,
@@ -473,6 +426,15 @@ def find_source(dom, target, folder=None, accept=is_source_object):
     target = unicodedata.normalize("NFC", target.strip())
     if target == ".":
         target = ROOT_REFERENCE
+    namespace = mat_naming.namespace_name(folder) if folder else None
+    if namespace is not None:
+        # The current namespace: a MATLAB name in it, after a path reference.
+        match = _match(dom, target, accept)
+        return (
+            _resolved(dom, [match] if match else [])
+            or find_source(dom, f"{namespace}.{target}", None, accept)
+            or find_source(dom, target, None, accept)
+        )
     exact = [target]
     if folder:
         exact.append(join_reference(folder, target))
@@ -499,8 +461,24 @@ def find_source(dom, target, folder=None, accept=is_source_object):
     return []
 
 
-def warn_ambiguous(target, labels, location, hint="use a path reference"):
-    """Warn ``mat.ambiguous``: ``target`` matches every one of ``labels``."""
+#: the hint of ``warn_ambiguous`` when only folders match: the ``+`` folders
+#: of a namespace
+NAMESPACE_HINT = (
+    "use a path reference for one folder, or mat:namespace, mat:autonamespace "
+    "or :mat:namespace: for the whole namespace"
+)
+
+
+def warn_ambiguous(target, labels, location, hint=None):
+    """Warn ``mat.ambiguous``: ``target`` matches every one of ``labels``.
+
+    The default ``hint`` is to use a path reference, and when only folders
+    match (the ``+`` folders of one namespace) also the namespace directives.
+    """
+    if hint is None:
+        labels = list(labels)
+        folders = all(label[-1:] == "/" for label in labels)
+        hint = NAMESPACE_HINT if folders else "use a path reference"
     logger.warning(
         "[sphinxcontrib-matlabdomain] %r matches several objects: %s; %s",
         target,
@@ -534,15 +512,11 @@ def folder_reference(dom, target, location=None):
 
 
 def display_name(dom, reference):
-    """MATLAB name of a reference, or the reference if it has none. A block
-    of a Simulink file follows the file's name with its Simulink path.
-    """
+    """MATLAB name of a reference, or the reference if it has none."""
     file, members = parse_reference(reference)
     attrs = _attrs(dom, file if file is not None else reference)
     if attrs is None or attrs[0] is None:
         return reference
-    if members and mat_naming.is_block_container(cast(str, file).rpartition("/")[2]):
-        return "/".join([attrs[0], *members])
     return ".".join([attrs[0], *members])
 
 
@@ -570,6 +544,8 @@ SPHINX_OUTPUT_MARKERS = frozenset((".buildinfo", "environment.pickle"))
 SPHINX_HTML_FILES = frozenset(("objects.inv", "searchindex.js"))
 #: the build folder of the Makefile and make.bat of a Sphinx source folder
 BUILD_FOLDER = "_build"
+#: the configuration file of a Sphinx project
+SPHINX_CONF = "conf.py"
 
 
 def sphinx_output(path, names):
@@ -654,15 +630,11 @@ def project_root(config, srcdir):
     root = config.matlab_src_code_project_root
     if root is None:
         return None
-    if not isinstance(root, str):
-        raise ConfigError(
-            f"matlab_src_code_project_root must be a str or None, not {root!r}."
-        )
     return os.path.normpath(os.path.join(srcdir, root))
 
 
 DEFAULT_INCLUDE_PATTERNS = ["**/*"]
-#: root files that are neither code nor sidecar docs (plan.md Section 2.11)
+#: root files that are neither code nor sidecar docs
 DEFAULT_EXCLUSION_PATTERNS = [
     "README.*",
     "CHANGES.*",
@@ -726,8 +698,8 @@ def _literal_folder(pattern):
 
 
 class SourceFilter:
-    """Include and exclusion patterns below the project root (plan.md Section
-    2.4), matched like Sphinx's ``exclude_patterns`` against path references
+    """Include and exclusion patterns below the project root, matched like
+    Sphinx's ``exclude_patterns`` against path references
     (case-sensitive on every OS). Patterns are taken in Unicode NFC form, like
     the references.
     """
@@ -811,22 +783,6 @@ def sidecar_suffix_list(value, option="matlab_src_sidecar_suffixes"):
     return tuple(s for s in SIDECAR_SUFFIXES if s in value)
 
 
-def simulink_doc_suffix_list(value):
-    """Normalize ``matlab_simulink_doc_suffixes``, keeping its order: the
-    first suffix that exists wins (or raise ConfigError).
-    """
-    option = "matlab_simulink_doc_suffixes"
-    if isinstance(value, str) or not isinstance(value, (list, tuple)):
-        raise ConfigError(f"{option} must be a list of suffixes such as ['.md'].")
-    for suffix in value:
-        if suffix not in SIDECAR_SUFFIXES:
-            raise ConfigError(
-                f"{option}: {suffix!r} is not a documentation suffix; use "
-                f"{', '.join(map(repr, SIDECAR_SUFFIXES))}."
-            )
-    return tuple(dict.fromkeys(value))
-
-
 def sidecar_layout_error(root, srcdir):
     """ConfigError if sidecar docs cannot be told from the documentation: the
     project root is the Sphinx source folder.
@@ -897,11 +853,11 @@ def _is_link(path):
 
 @dataclass(frozen=True)
 class IndexSettings:
-    """What the index stage reads (plan.md Section 2.8), without a Sphinx app.
+    """What the index stage reads, without a Sphinx app.
 
     ``root`` is the absolute project root; ``include`` and ``exclude`` are
     patterns normalized by ``_normalize_pattern``. ``sidecar_suffixes`` selects the
-    sidecar docs (plan.md Section 2.11); files with them below
+    sidecar docs; files with them below
     ``source_dir`` (the Sphinx source folder) are not sidecar docs when that
     folder is inside the root.
     """
@@ -913,8 +869,6 @@ class IndexSettings:
     matlab_version: str = mat_naming.DEFAULT_MATLAB_VERSION
     sidecar_suffixes: tuple[str, ...] = ()
     source_dir: str | None = None
-    #: suffixes of Simulink documentation files, in priority order
-    simulink_doc_suffixes: tuple[str, ...] = ()
 
     @classmethod
     def from_config(cls, config, srcdir):
@@ -931,9 +885,6 @@ class IndexSettings:
             matlab_version=config.matlab_version,
             sidecar_suffixes=sidecar_suffix_list(config.matlab_src_sidecar_suffixes),
             source_dir=os.path.normpath(os.fspath(srcdir)),
-            simulink_doc_suffixes=simulink_doc_suffix_list(
-                config.matlab_simulink_doc_suffixes
-            ),
         )
 
 
@@ -943,15 +894,16 @@ class SourceIndex:
 
     - ``index``: source path -> record ``{reference, type, mtime, size,
       warnings, unreadable, matlab_name, private, scope}``, in walk order;
+      ``unreadable`` is False, or why the file cannot be read;
     - ``entities``: folder reference -> ``MatModule`` with its ``members``;
     - ``matlab_names``: MATLAB name -> path references;
     - ``text_cache``: ``(path, mtime_ns, size)`` -> decoded text;
     - ``sidecars``: sidecar doc path -> ``{reference, mtime, size}``, in walk
       order. Sidecar docs are not read, named or members of their folder, so
-      they never shadow code (plan.md Section 2.11).
-    - ``simulink_docs``: Simulink documentation file path -> ``{reference,
-      mtime, size}``: a file with a suffix of ``simulink_doc_suffixes`` and
-      the exact name of a Simulink file next to it. It is not a sidecar doc.
+      they never shadow code.
+    - ``sphinx_sources``: the folders below the root with a ``conf.py`` of
+      their own, the Sphinx source folders of other projects; their files
+      are not sidecar docs.
     """
 
     settings: IndexSettings
@@ -960,22 +912,23 @@ class SourceIndex:
     matlab_names: dict = field(default_factory=dict)
     text_cache: dict = field(default_factory=dict)
     sidecars: dict = field(default_factory=dict)
-    simulink_docs: dict = field(default_factory=dict)
+    sphinx_sources: list = field(default_factory=list)
 
 
-def build_index(settings, old_index=None):
+def build_index(settings, old_index=None, warn_unreadable=True):
     """Run the index stage for ``settings`` without a Sphinx app.
 
     Walks the root, reads and classifies each selected file once and names
     files and folders the MATLAB way. Records in ``old_index`` (``{path:
     record}`` of an earlier run) are reused for files whose ``(mtime, size)``
     did not change. Warnings go through ``sphinx.util.logging``
-    (``type="mat"``).
+    (``type="mat"``); with ``warn_unreadable`` False, not for a file that
+    cannot be read: the caller reports it from the record (``unreadable``).
     """
     out = SourceIndex(settings)
     if os.path.isdir(settings.root):
         try:
-            _Indexer(out, old_index or {}).run()
+            _Indexer(out, old_index or {}, warn_unreadable=warn_unreadable).run()
         except Exception as e:  # pragma: no cover - defensive: log an indexer bug
             import traceback
 
@@ -996,10 +949,11 @@ def sidecar_paths(settings):
 
 
 def _documentation_files(settings):
+    """Return the ``SourceIndex`` of a walk that records only the sidecar
+    docs and the Sphinx source folders of other projects.
+    """
     out = SourceIndex(settings)
-    if (settings.sidecar_suffixes or settings.simulink_doc_suffixes) and (
-        os.path.isdir(settings.root)
-    ):
+    if settings.sidecar_suffixes and os.path.isdir(settings.root):
         # The index stage warns about the walk.
         with suppress_logging():
             _Indexer(out, {}, sidecars_only=True).run()
@@ -1007,16 +961,17 @@ def _documentation_files(settings):
 
 
 class _Indexer:
-    """The index stage (plan.md Section 2.1): walk the project root and read,
+    """The index stage: walk the project root and read,
     decode and classify each source file once. Records of files whose
     ``(path, mtime, size)`` did not change are reused without reading.
-    Sidecar docs (plan.md Section 2.11) are recorded, not read. With
+    Sidecar docs are recorded, not read. With
     ``sidecars_only`` the walk records sidecar docs only.
     """
 
-    def __init__(self, out, old_index, sidecars_only=False):
+    def __init__(self, out, old_index, sidecars_only=False, warn_unreadable=True):
         settings = out.settings
         self.out = out
+        self.warn_unreadable = warn_unreadable
         self.basedir = settings.root
         self.old_index = old_index
         self.sources = SourceFilter(settings.include, settings.exclude)
@@ -1025,7 +980,6 @@ class _Indexer:
         self.pending = {}
         self.sidecars_only = sidecars_only
         self.sidecar_suffixes = frozenset(settings.sidecar_suffixes)
-        self.simulink_doc_suffixes = frozenset(settings.simulink_doc_suffixes)
         # The Sphinx source folder inside the root holds the documentation.
         docs = settings.source_dir
         if docs is not None and not (
@@ -1033,7 +987,10 @@ class _Indexer:
             and os.path.normcase(docs) != os.path.normcase(self.basedir)
         ):
             docs = None
-        self.docs = docs
+        # Folders whose .md and .rst files are documents, not sidecar docs:
+        # the Sphinx source folder, and folders with a conf.py of their own
+        # (added by list())
+        self.documentation = [docs] if docs is not None else []
         # make's build folder (BUILDDIR = _build) exists before the first build
         self.build_dir = None
         if settings.source_dir is not None:
@@ -1131,88 +1088,31 @@ class _Indexer:
             return True
         if mod.ref != ROOT_REFERENCE and sphinx_output(mod.path, keys):
             return False
-        sidecars = bool(self.sidecar_suffixes) and not (
-            self.docs is not None and _within(mod.path, self.docs)
-        )
+        if mod.ref != ROOT_REFERENCE and SPHINX_CONF in keys:
+            self.documentation.append(mod.path)
+            self.out.sphinx_sources.append(mod.path)
         denied = []
         seen = {}  # reference: the first name on disk that has it
-        # documentation file candidates, and the stems of Simulink files
-        loose, simulink_stems = [], set()
+        loose = []  # sidecar doc candidates
         for key in keys:
-            if _undecodable(key):
-                _warn(
-                    "parse_error",
-                    f"{mod.ref}: the name {os.fsencode(key)!r} is not valid UTF-8; "
-                    "it is not documented.",
-                )
+            entry = self.entry(mod, key, denied)
+            if entry is None:
                 continue
-            path = os.path.join(mod.path, key)
-            ref = join_reference(mod.ref, unicodedata.normalize("NFC", key))
-            try:
-                st = os.stat(path)
-            except PermissionError as err:  # e.g. a folder listed but not entered
-                if not key.startswith("."):  # skipped folders stay quiet
-                    denied.append(err)
-                continue
-            except OSError:  # e.g. a broken link
-                continue
+            path, ref, st = entry
             if stat.S_ISDIR(st.st_mode):
-                # VCS and editors; Sphinx output (more in list())
-                if key.startswith(".") or os.path.normcase(path) == self.build_dir:
-                    continue
-                ref += "/"
-                if not self.sources.walks(ref):
-                    continue
-                if (extension := file_like_folder(key)) is not None:
-                    logger.error(
-                        "[sphinxcontrib-matlabdomain] %s: a folder must not be "
-                        "named like a %s file; its contents are not documented.",
-                        ref,
-                        extension,
-                        type="mat",
-                        subtype="folder_name",
-                    )
-                    continue
-                child_chain = self.folder_chain(path, ref, key, chain)
-                if child_chain is None or self.twin(seen, key, ref):
-                    continue
-                self.pending[ref] = (MatModule(key, path, ref), child_chain)
-                mod.members.append((key, ref))
+                if (
+                    folder_ref := self.add_folder(key, path, ref, chain, seen)
+                ) is not None:
+                    mod.members.append((key, folder_ref))
                 continue
             handler = handler_for(path)
             if handler is None:
-                suffix = os.path.splitext(key)[1]
-                if suffix in self.sidecar_suffixes | self.simulink_doc_suffixes:
+                if os.path.splitext(key)[1] in self.sidecar_suffixes:
                     loose.append((key, path, ref, st))
                 continue
-            if handler.blocks and self.sources.includes(ref):
-                simulink_stems.add(os.path.splitext(key)[0])
-            if self.sidecars_only or not self.sources.includes(ref):
-                continue
-            if (_is_link(path) and self.outside(path, ref)) or self.twin(
-                seen, key, ref
-            ):
-                continue
-            self.index_file(handler, path, ref, st)
-            mod.members.append((os.path.splitext(key)[0], ref))
-        for key, path, ref, st in loose:
-            stem, suffix = os.path.splitext(key)
-            simulink_doc = (
-                suffix in self.simulink_doc_suffixes and stem in simulink_stems
-            )
-            if not (simulink_doc or (sidecars and suffix in self.sidecar_suffixes)):
-                continue
-            if (
-                not self.sources.includes(ref)
-                or (_is_link(path) and self.outside(path, ref))
-                or self.twin(seen, key, ref)
-            ):
-                continue
-            record = {"reference": ref, "mtime": st.st_mtime_ns, "size": st.st_size}
-            if simulink_doc:
-                self.out.simulink_docs[path] = record
-            else:
-                self.out.sidecars[path] = record
+            if self.add_file(handler, key, path, ref, st, seen):
+                mod.members.append((os.path.splitext(key)[0], ref))
+        self.add_sidecars(mod, loose, seen)
         if denied:
             _warn(
                 "parse_error",
@@ -1220,6 +1120,89 @@ class _Indexer:
                 f"({denied[0].strerror or denied[0]}); they are not documented.",
             )
         return True
+
+    @staticmethod
+    def entry(mod, key, denied):
+        """Return the path, reference and ``os.stat`` result of the name
+        ``key`` in the folder ``mod``; None for a name that is not valid UTF-8
+        (with a warning) or cannot be stat'ed. Permission errors of names that
+        do not start with a dot are added to ``denied``.
+        """
+        if _undecodable(key):
+            _warn(
+                "parse_error",
+                f"{mod.ref}: the name {os.fsencode(key)!r} is not valid UTF-8; "
+                "it is not documented.",
+            )
+            return None
+        path = os.path.join(mod.path, key)
+        ref = join_reference(mod.ref, unicodedata.normalize("NFC", key))
+        try:
+            st = os.stat(path)
+        except PermissionError as err:  # e.g. a folder listed but not entered
+            if not key.startswith("."):  # skipped folders stay quiet
+                denied.append(err)
+            return None
+        except OSError:  # e.g. a broken link
+            return None
+        return path, ref, st
+
+    def add_folder(self, key, path, ref, chain, seen):
+        """Queue the subfolder ``key`` (file reference ``ref``) for the walk
+        and return its reference, which ends in ``/``; None for a folder that
+        is skipped.
+        """
+        # VCS and editors; Sphinx output (more in list())
+        if key.startswith(".") or os.path.normcase(path) == self.build_dir:
+            return None
+        ref += "/"
+        if not self.sources.walks(ref):
+            return None
+        if (extension := file_like_folder(key)) is not None:
+            logger.error(
+                "[sphinxcontrib-matlabdomain] %s: a folder must not be "
+                "named like a %s file; its contents are not documented.",
+                ref,
+                extension,
+                type="mat",
+                subtype="folder_name",
+            )
+            return None
+        child_chain = self.folder_chain(path, ref, key, chain)
+        if child_chain is None or self.twin(seen, key, ref):
+            return None
+        self.pending[ref] = (MatModule(key, path, ref), child_chain)
+        return ref
+
+    def add_file(self, handler, key, path, ref, st, seen):
+        """Index the source file ``key``, read by ``handler``; return False if
+        it is not documented.
+        """
+        if self.sidecars_only or not self.sources.includes(ref):
+            return False
+        if (_is_link(path) and self.outside(path, ref)) or self.twin(seen, key, ref):
+            return False
+        self.index_file(handler, path, ref, st)
+        return True
+
+    def add_sidecars(self, mod, loose, seen):
+        """Record the sidecar docs among the ``loose`` files of the folder
+        ``mod``; recorded, not read.
+        """
+        if any(_within(mod.path, folder) for folder in self.documentation):
+            return
+        for key, path, ref, st in loose:
+            if (
+                not self.sources.includes(ref)
+                or (_is_link(path) and self.outside(path, ref))
+                or self.twin(seen, key, ref)
+            ):
+                continue
+            self.out.sidecars[path] = {
+                "reference": ref,
+                "mtime": st.st_mtime_ns,
+                "size": st.st_size,
+            }
 
     def index_file(self, handler, path, ref, st):
         key = (path, st.st_mtime_ns, st.st_size)
@@ -1240,7 +1223,8 @@ class _Indexer:
                 kind, text, problems = handler.read(path, self.encoding)
                 unreadable = False
             except OSError as err:
-                kind, unreadable = UNKNOWN, True
+                cause = err.strerror or str(err) or type(err).__name__
+                kind, unreadable = UNKNOWN, cause
                 problems = [("parse_error", failure_message(err), None)]
             help_only = kind in (SCRIPT, FUNCTION) and text is not None
             help_only = help_only and is_help_only(cast(str, text))
@@ -1255,17 +1239,18 @@ class _Indexer:
             "unreadable": unreadable,
             "help_only": help_only,
         }
-        for subtype, message, row in problems:
-            _warn_file(ref, path, subtype, message, row)
+        if self.warn_unreadable or not unreadable:
+            for subtype, message, row in problems:
+                _warn_file(ref, path, subtype, message, row)
 
 
 def _index_shape(data):
-    """Return what names and lookups depend on: the folders, each file's
-    reference and type, and which Simulink documentation files exist.
+    """Return what names and lookups depend on: the folders and each file's
+    reference and type.
     """
     files = {path: (r["reference"], r["type"]) for path, r in data["index"].items()}
     folders = frozenset(r for r in data["entities_table"] if r[-1:] == "/")
-    return files, folders, frozenset(data["simulink_docs"])
+    return files, folders
 
 
 def analyze(app):
@@ -1286,7 +1271,6 @@ def analyze(app):
         data["parse_warnings"].clear()
     data["index"].clear()
     data["sidecars"].clear()
-    data["simulink_docs"].clear()
     data["matlab_names"].clear()
     dom.entities_table.clear()
     dom.reset_sources()
@@ -1303,14 +1287,6 @@ def analyze(app):
         source_index = build_index(settings, old_index)
         data["index"].update(source_index.index)
         data["sidecars"].update(source_index.sidecars)
-        data["simulink_docs"].update(source_index.simulink_docs)
-        if "myst_parser" not in app.extensions and any(
-            path.endswith(".md") for path in source_index.simulink_docs
-        ):
-            raise ConfigError(
-                "Simulink documentation files in Markdown (.md) need myst_parser in "
-                "extensions, or leave '.md' out of matlab_simulink_doc_suffixes."
-            )
         data["matlab_names"].update(source_index.matlab_names)
         dom.entities_table.update(source_index.entities)
         dom.text_cache.update(source_index.text_cache)
@@ -1322,7 +1298,7 @@ def analyze(app):
     dom.index_changed = old_shape is not None and old_shape != _index_shape(data)
 
 
-def outdated_docs(app, env, added, changed, removed):  # noqa: ARG001
+def outdated_docs(_app, env, _added, _changed, _removed):
     """``env-get-outdated``: documents that used a source file that changed,
     and, when files or folders were added, removed or changed type, every
     document that looked up sources.
@@ -1344,14 +1320,14 @@ def outdated_docs(app, env, added, changed, removed):  # noqa: ARG001
     ]
 
 
-def note_read_docs(app, env, docnames):  # noqa: ARG001
+def note_read_docs(_app, env, docnames):
     """``env-before-read-docs``: remember the documents this build reads."""
     dom = env.get_domain("mat")
     dom.read_docnames = list(docnames)
     dom.described_here = set()
 
 
-def warn_parsed_sources(app, env):  # noqa: ARG001
+def warn_parsed_sources(_app, env):
     """``env-updated``: parse-stage warnings, once per file that a document
     read in this build used, in index order (serial and parallel builds).
     """
@@ -1407,34 +1383,20 @@ def name_sources(source_index):
     matlab_names = source_index.matlab_names
     for path, record in source_index.index.items():
         ref = record["reference"]
-        naming = getattr(handler_by_extension(path), "naming", "code")
-        # a .slx that is no Simulink file (an LFS pointer) is nothing to call
-        if naming == "model" and record["type"] == UNKNOWN:
-            record.update(matlab_name=None, private=False, scope=None)
-            continue
         filename = os.path.basename(path)
-        if naming == "model":
-            name = mat_naming.form_model_name(
-                _naming_folder(ref), filename, namelengthmax, version
-            )
-        else:
-            name = mat_naming.form_matlab_name(
-                _naming_folder(ref),
-                filename,
-                record["type"] == "class",
-                namelengthmax,
-                version,
-            )
+        name = mat_naming.form_matlab_name(
+            _naming_folder(ref),
+            filename,
+            record["type"] == "class",
+            namelengthmax,
+            version,
+        )
         matlab_name = mat_naming.canonical_name(name) if name else None
         private = is_private_reference(ref)
         scope = _scope(folder_of(ref)) if name is not None else None
         record.update(matlab_name=matlab_name, private=private, scope=scope)
         if name is None:
-            if naming == "model":
-                reason = mat_naming.model_not_callable_reason(
-                    _naming_folder(ref), filename, namelengthmax
-                )
-            elif not private and not is_hidden(ref):
+            if not private and not is_hidden(ref):
                 reason = mat_naming.not_callable_reason(
                     _naming_folder(ref),
                     filename,
@@ -1442,17 +1404,15 @@ def name_sources(source_index):
                     namelengthmax,
                     version,
                 )
-            else:
-                continue
-            logger.warning(
-                "[sphinxcontrib-matlabdomain] %s is not callable in MATLAB %s "
-                "(%s); it is documented by its path reference.",
-                ref,
-                version,
-                reason,
-                type="mat",
-                subtype="not_callable",
-            )
+                logger.warning(
+                    "[sphinxcontrib-matlabdomain] %s is not callable in MATLAB %s "
+                    "(%s); it is documented by its path reference.",
+                    ref,
+                    version,
+                    reason,
+                    type="mat",
+                    subtype="not_callable",
+                )
             continue
         if matlab_name == name.pseudo_fullname:
             matlab_names.setdefault(matlab_name, []).append(ref)
@@ -1485,8 +1445,6 @@ def placeholder(kind, name, folder) -> Any:
     """Empty object of the index type ``kind`` for a file that failed to parse."""
     if kind == "application":
         return MatApplication(name, folder, "")
-    if kind in SIMULINK_TYPES:
-        return SIMULINK_TYPES[kind](name, folder, None)
     cls = {"class": MatClass, "function": MatFunction}.get(kind, MatScript)
     obj = cls.__new__(cls)
     MatObject.__init__(obj, name)
@@ -1554,6 +1512,9 @@ class MatObject:
     #: one-based file line of the first line of the help in a code file (None:
     #: no help, or help that is not on a file line)
     docstring_line: int | None = None
+    #: one-based line of the declaration in the code file (None: no
+    #: declaration line, as in a script or a folder)
+    line: int | None = None
     ref: str
     matlab_name: str
     private: bool
@@ -1564,9 +1525,10 @@ class MatObject:
         self.name = name
 
     def ref_role(self):
-        """Return the role used for references and automatic links"""
+        """Return the role used for references and automatic links."""
         return "ref"
 
+    @override
     def __reduce_ex__(self, protocol):
         # The ``__module__`` property breaks pickle's default class lookup, so
         # restore by class name. Live tree-sitter objects are dropped.
@@ -1578,15 +1540,22 @@ class MatObject:
 
     @property
     def __name__(self):
+        """The name of the object: autodoc reads ``__name__`` as it would a Python
+        object's.
+        """
         return self.name
 
+    @override
     def __repr__(self):
         # __str__() method not required, if not given, then __repr__() used
         return f'<{self.__class__.__name__}: "{self.name}">'
 
     def getter(self, name, *defargs) -> Any:
-        if name == "__name__":
-            return self.__name__
+        """Return attribute ``name`` for autodoc (``autodoc_attrgetter``), or the first
+        of ``defargs`` if the object has none.
+
+        Subclasses add their members and the attributes autodoc asks for.
+        """
         if defargs:
             return defargs[0]
         logger.debug(
@@ -1734,7 +1703,7 @@ class MatObject:
     def parse_mlappfile(mlappfile, name, path):
         """Read the metadata/appMetadata.xml file and
         the metadata/coreProperties.xml file description tags.
-        Parses the XML with the guards of the Simulink reader.
+        Reads them with the guards of ``mat_container``.
 
         :param mlappfile: Full path of ``.mlapp`` file.
         :type mlappfile: str
@@ -1743,15 +1712,15 @@ class MatObject:
         :param path: Folder reference of the folder containing :class:`MatApplication`.
         :type path: str
         :returns: :class:`MatApplication` representing the application.
-        :raises SimulinkFileError: for a file or member over a size limit, or XML
-            with a DTD or nested too deep.
+        :raises ContainerFileError: for a file or member over a size limit, or
+            XML with a DTD or nested too deep.
         """
         # Read contents of meta-data file
         # This might change in different Matlab versions
         # Note: `code` is a verbatim copy of the MATLAB source inside the App
         #       Variable `codeText` will contain the source.
-        # The size limits, the DTD refusal and the nesting limit of the
-        # Simulink reader; a violation is a SimulinkFileError.
+        # The size limits, the DTD refusal and the nesting limit of
+        # mat_container; a violation is a ContainerFileError.
         meta_part, core_part = "metadata/appMetadata.xml", "metadata/coreProperties.xml"
         meta_data, core_data = read_members(Path(mlappfile), (meta_part, core_part))
         meta = parse_xml(meta_data, meta_part)
@@ -1770,49 +1739,33 @@ class MatObject:
 
         return MatApplication(name, modname, docstring)
 
-    @staticmethod
-    def parse_simulink(path, name, folder) -> Any:
-        """Read a Simulink file (``.slx`` or ``.mdl``).
 
-        :returns: :class:`MatModel`, :class:`MatLibrary` or
-            :class:`MatSubsystemFile`.
-        :raises SimulinkFileError: for a file that is not a readable
-            Simulink file.
-        """
-        diagram = read_diagram(path)
-        return SIMULINK_TYPES[diagram.kind](name, folder, diagram)
-
-
-# TODO: get docstring and __all__ from contents.m if exists
+# TODO: get the docstring from Contents.m if it exists
 class MatModule(MatObject):
-    """All MATLAB modules are packages. A package is a folder that serves as the
-    namespace for any :class:`MatObjects` in the package folder. Sphinx will
-    treats objects without a namespace as builtins, so all MATLAB projects
-    should be packaged in a folder so that they will have a namespace. This
-    can also be accomplished by using the MATLAB +folder package scheme.
+    """A folder of the project: a plain folder, a namespace folder (``+name``)
+    or a class folder (``@name``). The index stage makes one for each
+    discovered folder; its members are the files and folders in it.
 
-    :param name: Name of :class:`MatObject`.
+    :param name: Name of the folder.
     :type name: str
-    :param path: Path of folder containing :class:`MatObject`.
+    :param path: Path of the folder on disk.
     :type path: str
     :param package: Folder reference (``target/+package/``; ``./`` for the root).
     :type package: str
     """
 
+    #: the attributes :meth:`getter` returns as they are
+    _MODULE_ATTRIBUTES = ("__name__", "__doc__")
+
     def __init__(self, name, path, package):
         super().__init__(name)
-        #: Path to module on disk, path to package's __init__.py
+        #: path of the folder on disk
         self.path = path
         #: folder reference
-        self.package = package
         self.ref = package
         #: ``(name, reference)`` of its files (name without extension) and
         #: folders in the order of their names on disk, set by the index stage
         self.members = None
-
-    def ref_role(self):
-        """Return the role used for references and automatic links"""
-        return "folder"
 
     def member_refs(self):
         """``(name, reference)`` of the files and folders in the folder."""
@@ -1832,47 +1785,16 @@ class MatModule(MatObject):
                     self.members.append((os.path.splitext(key)[0], ref))
         return self.members
 
-    def safe_getmembers(self):
-        """``(name, object)`` of the files and folders in the folder; every
-        file is parsed (or taken from the parse cache).
-        """
-        dom = _domain()
-        return [(name, resolve(dom, ref)) for name, ref in self.member_refs()]
-
     @property
     def __doc__(self):
+        """A folder has no help text of its own: autodoc reads ``__doc__`` as None."""
         return None
 
-    @property
-    def __all__(self):
-        return self.safe_getmembers()
-
-    @property
-    def __path__(self):
-        return [self.path]
-
-    @property
-    def __file__(self):
-        return self.path
-
-    @property
-    def __package__(self):
-        return self.package
-
+    @override
     def getter(self, name, *_defargs) -> Any:
         """:class:`MatModule` ``getter`` method to get attributes."""
-        if name == "__name__":
-            return self.__name__
-        elif name == "__doc__":
-            return self.__doc__
-        elif name == "__all__":
-            return self.__all__
-        elif name == "__file__":
-            return self.__file__
-        elif name == "__path__":
-            return self.__path__
-        elif name == "__package__":
-            return self.__package__
+        if name in self._MODULE_ATTRIBUTES:
+            return getattr(self, name)
         elif name == "__module__":
             logger.debug(
                 "[sphinxcontrib-matlabdomain] mod %s is a package "
@@ -1888,6 +1810,97 @@ class MatModule(MatObject):
                 return resolve(dom, next((r for r in refs if r[-1:] != "/"), refs[0]))
             # A path below the folder, e.g. with its extension (``f.m``).
             return _resolve_path(dom, join_reference(self.ref, name))
+
+
+def class_of_folder(dom, folder):
+    """Return the reference of the class of the class folder ``folder``: its
+    class file (``class_file_reference``) if that is a classdef, as for
+    ``_load_class_folder``; else None.
+    """
+    if not _is_class_folder(folder):
+        return None
+    ref = class_file_reference(folder)
+    record = dom.data["index"].get(dom.source_paths().get(ref))
+    return ref if record is not None and record["type"] == "class" else None
+
+
+def find_namespace(dom, name):
+    """Return the namespace with the MATLAB name ``name``
+    (:class:`MatNamespace`), or None when no ``+`` folder has that name. A
+    path reference is no namespace name.
+    """
+    _note_lookup(dom)
+    name = unicodedata.normalize("NFC", name.strip())
+    refs = sorted(r for r in dom.data["matlab_names"].get(name, ()) if r[-1:] == "/")
+    if not refs:
+        return None
+    return MatNamespace(name, [dom.entities_table[r] for r in refs])
+
+
+def warn_not_namespace(name, location):
+    """Warn ``mat.not_found``: ``name`` is no namespace of the project."""
+    logger.warning(
+        "[sphinxcontrib-matlabdomain] %r is not a namespace of the project; "
+        "write the MATLAB name of a namespace (a.b for +a/+b/)",
+        name,
+        type="mat",
+        subtype="not_found",
+        location=location,
+    )
+
+
+class MatNamespace(MatObject):
+    """A namespace: the ``+`` folders that have one MATLAB name, wherever
+    they are. It is not stored: :func:`find_namespace` makes it.
+
+    :param name: MATLAB name (``a.b``).
+    :param folders: its folders (:class:`MatModule`), sorted by reference.
+    """
+
+    def __init__(self, name, folders):
+        super().__init__(name)
+        self.matlab_name = name
+        self.ref = mat_naming.namespace_reference(name)
+        self.folders = folders
+        #: the first folder's path, the source :class:`MatModuleAnalyzer` names
+        self.path = folders[0].path
+
+    def member_refs(self):
+        """``(name, reference)`` of what is directly in the namespace, folder by
+        folder: the files of each folder, one per name as in a folder's
+        ``:members:`` (a file before a class folder), and the class of each
+        class folder (``class_of_folder``). Not ``private/``, subfolders and
+        other namespaces.
+        """
+        dom = _domain()
+        found = []
+        for folder in self.folders:
+            names = {}
+            # files first; a stable sort keeps the folder's order
+            listed = sorted(folder.member_refs(), key=lambda m: m[1][-1:] == "/")
+            for name, ref in listed:
+                if ref[-1:] == "/":
+                    ref = class_of_folder(dom, ref)
+                    if ref is None:
+                        continue
+                    name = name[1:]
+                names.setdefault(name, ref)
+            found.extend(names.items())
+        return found
+
+    @property
+    def __doc__(self):
+        """A namespace has no help text of its own: autodoc reads ``__doc__``
+        as None.
+        """
+        return None
+
+    @override
+    def getter(self, name, *defargs) -> Any:
+        """Return None: autodoc asks a namespace for its ``__doc__`` (it has
+        no help text of its own) and ``__module__`` (none, as for a folder).
+        """
+        return None
 
 
 class MatFunction(MatObject):
@@ -1918,27 +1931,24 @@ class MatFunction(MatObject):
         #: line of the declaration (one-based)
         self.line = parsed_function.line
 
+    @override
     def ref_role(self):
-        """Return the role used for references and automatic links"""
+        """Return the role used for references and automatic links."""
         return "func"
 
     @property
     def __doc__(self):
+        """The help text of the function: autodoc reads it as ``__doc__``, as it would
+        the docstring of a Python object.
+        """
         return self.docstring
 
     @property
     def __module__(self):
+        """The folder reference of the folder that holds the function: autodoc reads it
+        as ``__module__``, the module of a Python object.
+        """
         return self.module
-
-    def getter(self, name, *defargs) -> Any:
-        if name == "__name__":
-            return self.__name__
-        elif name == "__doc__":
-            return self.__doc__
-        elif name == "__module__":
-            return self.__module__
-        else:
-            return super().getter(name, *defargs)
 
 
 class MatClass(MatObject):
@@ -1951,6 +1961,9 @@ class MatClass(MatObject):
     :param tokens: List of tokens parsed from mfile by Pygments.
     :type tokens: list
     """
+
+    #: the attributes :meth:`getter` returns as they are
+    _CLASS_ATTRIBUTES = ("__doc__", "__module__")
 
     def __init__(self, name, modname, tokens, encoding):
         super().__init__(name)
@@ -1980,29 +1993,42 @@ class MatClass(MatObject):
         #: ``{name: {"attrs", "docstring", "line"}}`` of the events
         self.events = parsed_class.events
 
+    @override
     def ref_role(self):
-        """Return the role used for references and automatic links"""
+        """Return the role used for references and automatic links."""
         return "class"
 
     def fullname(self, env):  # noqa: ARG002
-        """Return the path reference of the class, for use as a link target"""
+        """Return the path reference of the class, for use as a link target."""
         return self.ref
 
     def link(self, env, name=None):  # noqa: ARG002
-        """Return a link for the class object"""
+        """Return a link for the class object."""
         title = name or getattr(self, "matlab_name", None) or self.ref
         return f":mat:class:`{title} <{self.ref}>`"
 
     @property
     def __module__(self):
+        """The folder reference of the folder that holds the class: autodoc reads it as
+        ``__module__``, the module of a Python object.
+        """
         return self.module
 
     @property
     def __doc__(self):
+        """The help text of the class: autodoc reads it as ``__doc__``, as it would the
+        docstring of a Python object.
+        """
         return self.docstring
 
     @property
     def __bases__(self):
+        """Base class name -> its :class:`MatClass`, or None when no class of that name
+        is found from the class's folder.
+
+        Like the ``__bases__`` of a Python class; the base class links of the class
+        documenter read it.
+        """
         bases_ = dict.fromkeys(list(self.bases))  # make copy of bases
         dom = _domain()
         folder = folder_of(self.ref) if getattr(self, "ref", None) else None
@@ -2015,16 +2041,28 @@ class MatClass(MatObject):
 
         return bases_
 
+    def inherited_members(self, stop=frozenset()):
+        """Return ``{name: (member, owner)}``: the members a subclass inherits from
+        the project classes among its bases (``__bases__``), each with the
+        :class:`MatClass` that declares it.
+
+        The class's own members come first, then the bases depth-first, left to
+        right as the ``classdef`` lists them; the first owner of a name wins. Not
+        inherited: constructors, enumeration values and private members. A base
+        named in ``stop`` (its name or MATLAB name) is not walked, nor its bases
+        through it. Each class is walked once, so a diamond or a cycle of bases
+        ends.
+        """
+        found = {}
+        taken = set(_member_names(self))
+        _walk_bases(self, stop, {self.ref}, taken, found)
+        return found
+
+    @override
     def getter(self, name, *defargs) -> Any:
         """:class:`MatClass` ``getter`` method to get attributes."""
-        if name == "__name__":
-            return self.__name__
-        elif name == "__doc__":
-            return self.__doc__
-        elif name == "__module__":
-            return self.__module__
-        elif name == "__bases__":
-            return self.__bases__
+        if name in self._CLASS_ATTRIBUTES:
+            return getattr(self, name)
         elif name in self.properties:
             return MatProperty(name, self, self.properties[name])
         elif name in self.enumerations:
@@ -2043,7 +2081,59 @@ class MatClass(MatObject):
             return super().getter(name, *defargs)
 
 
+def _member_names(cls):
+    """Names of the properties, methods, enumeration values and events of ``cls``."""
+    return [*cls.properties, *cls.methods, *cls.enumerations, *cls.events]
+
+
+def is_private(member):
+    """Return True for a member whose ``Access`` (else ``GetAccess``, else
+    ``ListenAccess``) is ``private``: subclasses do not inherit it.
+    """
+    attrs = getattr(member, "attrs", None) or {}
+    level = attrs.get("Access") or attrs.get("GetAccess") or attrs.get("ListenAccess")
+    return isinstance(level, str) and level.strip("'\"") == "private"
+
+
+def _inheritable(base):
+    """``(name, member)`` of the members of ``base`` a subclass inherits: its
+    properties, methods except the constructor, and events; not private ones.
+    """
+    names = [*base.properties, *base.methods, *base.events]
+    members = ((name, base.getter(name)) for name in names if name != base.name)
+    return [(name, member) for name, member in members if not is_private(member)]
+
+
+def _stopped(base, stop):
+    """Return True if ``stop`` names ``base``: its name or its MATLAB name."""
+    return base.name in stop or getattr(base, "matlab_name", None) in stop
+
+
+def _walk_bases(cls, stop, visited, taken, found):
+    """Add to ``found`` the inheritable members of the bases of ``cls`` whose
+    names are not ``taken``, depth-first; ``visited`` holds the references of
+    the classes walked.
+    """
+    for base in cls.__bases__.values():
+        if base is None or base.ref in visited or _stopped(base, stop):
+            continue
+        visited.add(base.ref)
+        for name, member in _inheritable(base):
+            if name not in taken:
+                taken.add(name)
+                found[name] = (member, base)
+        _walk_bases(base, stop, visited, taken, found)
+
+
 class MatProperty(MatObject):
+    """A property of a MATLAB class.
+
+    :param name: Name of the property.
+    :param cls: The :class:`MatClass` that declares it.
+    :param attrs: What the parser read: ``attrs``, ``default``, ``docstring``,
+        ``size``, ``type`` and ``validators``.
+    """
+
     def __init__(self, name, cls, attrs):
         super().__init__(name)
         self.cls = cls
@@ -2051,67 +2141,115 @@ class MatProperty(MatObject):
         self.default = attrs["default"]
         self.docstring = attrs["docstring"]
         self.docstring_line = attrs.get("docstring_line")
+        self.line = attrs.get("line")
         self.size = attrs["size"]
         self.type = attrs["type"]
         self.validators = attrs["validators"]
 
+    @override
     def ref_role(self):
-        """Return the role used for references and automatic links"""
+        """Return the role used for references and automatic links."""
         return "attr"
 
     @property
     def __module__(self):
+        """The folder reference of the folder that holds the class of the property:
+        autodoc reads it as ``__module__``, the module of a Python object.
+        """
         return self.cls.module
 
     @property
     def __doc__(self):
+        """The help text of the property: autodoc reads it as ``__doc__``, as it would
+        the docstring of a Python object.
+        """
         return self.docstring
 
 
 class MatEnumeration(MatObject):
+    """A member of the enumeration block of a MATLAB class.
+
+    :param name: Name of the enumeration member.
+    :param cls: The :class:`MatClass` that declares it.
+    :param attrs: What the parser read: ``docstring``.
+    """
+
     def __init__(self, name, cls, attrs):
         super().__init__(name)
         self.cls = cls
         self.docstring = attrs["docstring"]
         self.docstring_line = attrs.get("docstring_line")
+        self.line = attrs.get("line")
         #: constructor arguments (``Red (1, 0, 0)``), or None
         self.args = attrs.get("args")
 
+    @override
     def ref_role(self):
-        """Return the role used for references and automatic links"""
+        """Return the role used for references and automatic links."""
         return "enum"
 
     @property
     def __module__(self):
+        """The folder reference of the folder that holds the class of the enumeration
+        member: autodoc reads it as ``__module__``, the module of a Python object.
+        """
         return self.cls.module
 
     @property
     def __doc__(self):
+        """The help text of the enumeration member: autodoc reads it as ``__doc__``, as
+        it would the docstring of a Python object.
+        """
         return self.docstring
 
 
 class MatEvent(MatObject):
+    """An event of a MATLAB class.
+
+    :param name: Name of the event.
+    :param cls: The :class:`MatClass` that declares it.
+    :param attrs: What the parser read: ``attrs`` and ``docstring``.
+    """
+
     def __init__(self, name, cls, attrs):
         super().__init__(name)
         self.cls = cls
         self.attrs = attrs["attrs"]
         self.docstring = attrs["docstring"]
         self.docstring_line = attrs.get("docstring_line")
+        self.line = attrs.get("line")
 
+    @override
     def ref_role(self):
-        """Return the role used for references and automatic links"""
+        """Return the role used for references and automatic links."""
         return "event"
 
     @property
     def __module__(self):
+        """The folder reference of the folder that holds the class of the event: autodoc
+        reads it as ``__module__``, the module of a Python object.
+        """
         return self.cls.module
 
     @property
     def __doc__(self):
+        """The help text of the event: autodoc reads it as ``__doc__``, as it would the
+        docstring of a Python object.
+        """
         return self.docstring
 
 
 class MatMethod(MatFunction):
+    """A method of a MATLAB class, declared in its classdef file or in a function file
+    of its class folder.
+
+    :param name: Name of the method.
+    :param parsed_function: The parser's result for the method
+        (``MatFunctionParser``, or ``MatSignature`` without a body).
+    :param modname: Folder reference of the class's folder.
+    :param cls: The :class:`MatClass` of the method.
+    """
+
     from_class_folder: bool
 
     def __init__(self, name, parsed_function, modname, cls):
@@ -2130,20 +2268,32 @@ class MatMethod(MatFunction):
         self.cls = cls
         self.attrs = parsed_function.attrs
 
+    @override
     def ref_role(self):
-        """Return the role used for references and automatic links"""
+        """Return the role used for references and automatic links."""
         return "meth"
 
     @property
+    @override
     def __module__(self):
         return self.module
 
     @property
+    @override
     def __doc__(self):
         return self.docstring
 
 
 class MatScript(MatObject):
+    """A MATLAB script: a ``.m`` file whose first code is not ``function`` or
+    ``classdef``.
+
+    :param name: File name without extension.
+    :param modname: Folder reference of its folder.
+    :param tks: The root node of the file's tree-sitter tree.
+    :param encoding: The encoding of the file.
+    """
+
     def __init__(self, name, modname, tks, encoding):
         super().__init__(name)
         parsed_script = MatScriptParser(tks, encoding)
@@ -2157,10 +2307,16 @@ class MatScript(MatObject):
 
     @property
     def __doc__(self):
+        """The help text of the script: autodoc reads it as ``__doc__``, as it would the
+        docstring of a Python object.
+        """
         return self.docstring
 
     @property
     def __module__(self):
+        """The folder reference of the folder that holds the script: autodoc reads it as
+        ``__module__``, the module of a Python object.
+        """
         return self.module
 
 
@@ -2184,124 +2340,17 @@ class MatApplication(MatObject):
 
     @property
     def __doc__(self):
+        """The help text of the app (its summary and description): autodoc reads it as
+        ``__doc__``, as it would the docstring of a Python object.
+        """
         return self.docstring
 
     @property
     def __module__(self):
+        """The folder reference of the folder that holds the app: autodoc reads it as
+        ``__module__``, the module of a Python object.
+        """
         return self.module
-
-
-class MatSimulinkFile(MatObject):
-    """A Simulink file: model, library or subsystem file (S5 documents them).
-
-    :param name: File name without extension.
-    :param modname: Folder reference of its folder.
-    :param diagram: What ``mat_simulink.read_diagram`` read; None for a
-        placeholder.
-    """
-
-    def __init__(self, name, modname, diagram):
-        super().__init__(name)
-        self.module = modname
-        self.diagram = diagram
-        #: the description saved in the file, else the system mask's
-        self.docstring = None
-        if diagram is not None:
-            mask = diagram.system_mask
-            self.docstring = diagram.description or (mask.description if mask else "")
-
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        # a subclass's own ``__doc__`` and ``__module__`` hide the properties
-        for name in ("__doc__", "__module__"):
-            type.__setattr__(cls, name, MatSimulinkFile.__dict__[name])
-
-    #: object type: the directive and role
-    objtype = ""
-
-    def ref_role(self):
-        return self.objtype
-
-    @property
-    def __doc__(self):
-        return self.docstring
-
-    @property
-    def __module__(self):
-        return self.module
-
-
-class MatModel(MatSimulinkFile):
-    """A Simulink model file."""
-
-    objtype = "simulink_model"
-
-
-class MatSubsystemFile(MatSimulinkFile):
-    """A Simulink subsystem file (the target of a Subsystem Reference)."""
-
-    objtype = "simulink_subsystem_reference"
-
-
-class MatLibrary(MatSimulinkFile):
-    """A Simulink library; its members are the blocks of the library walk,
-    by their path below the library.
-    """
-
-    objtype = "simulink_library"
-
-    def getter(self, name, *defargs) -> Any:
-        blocks = self.diagram.library_blocks if self.diagram is not None else ()
-        # The exact path first; else a space for a line break, as in a role.
-        for same in (lambda path: path == name, lambda path: same_block(path, name)):
-            for block in blocks:
-                if same(block.path):
-                    return MatBlock(block, self)
-        return super().getter(name, *defargs)
-
-
-class MatBlock(MatObject):
-    """A block of a library found by the library walk.
-
-    :param block: The ``mat_simulink.LibraryBlock``.
-    :param library: The :class:`MatLibrary` that holds it.
-    """
-
-    def __init__(self, block, library):
-        super().__init__(block.path)
-        self.block = block
-        self.library = library
-        #: it has a section in the library's documentation file
-        self.has_doc_section = False
-        self.module = library.module
-        self.docstring = block.description or (
-            block.mask.description if block.mask else ""
-        )
-        if hasattr(library, "ref"):
-            self.ref = f"{library.ref}/{block.path}"
-
-    @property
-    def __doc__(self):
-        return self.docstring
-
-    @property
-    def __module__(self):
-        return self.module
-
-
-#: Simulink index type -> object class
-SIMULINK_TYPES = {
-    "model": MatModel,
-    "library": MatLibrary,
-    "subsystem": MatSubsystemFile,
-}
-#: object type (directive and role name) -> object class
-SIMULINK_CLASSES = {
-    "simulink_model": MatModel,
-    "simulink_library": MatLibrary,
-    "simulink_subsystem_reference": MatSubsystemFile,
-    "simulink_library_block": MatBlock,
-}
 
 
 class MatcodeError(Exception):
@@ -2310,18 +2359,29 @@ class MatcodeError(Exception):
 
 class MatModuleAnalyzer:
     """Stands in for Sphinx's ``ModuleAnalyzer`` in autodoc: the source order
-    of a folder's files and of its classes' members (``tagorder``).
+    of a folder's or namespace's files and of its classes' members
+    (``tagorder``).
     """
 
     # folder reference -> analyzer, or the MatcodeError of an unknown folder
-    cache = {}
+    cache: ClassVar[dict[str, Any]] = {}
 
     @classmethod
     def for_module(cls, modname):
+        """Return the analyzer of the folder ``modname`` (a folder reference) or
+        namespace (a namespace reference), cached per reference; raise
+        :class:`MatcodeError` if neither has that reference (autodoc calls
+        ``ModuleAnalyzer.for_module`` the same way).
+        """
         entry = cls.cache.get(modname)
         if entry is None:
-            mod = resolve(_domain(), modname)
-            if isinstance(mod, MatModule):
+            dom = _domain()
+            namespace = mat_naming.namespace_name(modname)
+            if namespace is None:
+                mod = resolve(dom, modname)
+            else:
+                mod = find_namespace(dom, namespace)
+            if isinstance(mod, (MatModule, MatNamespace)):
                 entry = cls(mod)
             else:
                 entry = MatcodeError(f"error importing {modname!r}")

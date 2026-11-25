@@ -1,10 +1,11 @@
-"""Sidecar docs (plan.md Section 2.11, Phase 12): the index, the
+"""Sidecar docs: the index, the
 ``mat:autosidecar`` directive, links, the ``:mat:sidecar:`` role, the layouts,
 incremental and parallel builds, ``scmd apidoc`` and
 ``matlab-api-check``.
 """
 
 import json
+import ntpath
 import os
 import shutil
 import struct
@@ -13,7 +14,7 @@ import sys
 import time
 import zlib
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 
 import pytest
 import sphinx.builders
@@ -215,8 +216,10 @@ def test_sidecar_suffix_list():
 def test_source_filter_default_exclusions():
     class Config:
         matlab_src_code_project_root = None
-        matlab_src_include_patterns = ["**/*"]
-        matlab_src_exclude_patterns = list(mat_types.DEFAULT_EXCLUSION_PATTERNS)
+        matlab_src_include_patterns: ClassVar[list[str]] = ["**/*"]
+        matlab_src_exclude_patterns: ClassVar[list[str]] = list(
+            mat_types.DEFAULT_EXCLUSION_PATTERNS
+        )
 
     sources = mat_types.source_filter(Config)
     assert not sources.includes("README.md")
@@ -543,8 +546,10 @@ def test_paths_on_another_drive_are_left_alone(make_app, project, monkeypatch):
     assert dom.sidecar_doc("+demo/guide.md") == "api/+demo/guide-md"
 
 
-@pytest.mark.skipif(os.name != "nt", reason="drives are a Windows thing")
-def test_source_path_on_another_drive():
+def test_source_path_on_another_drive(monkeypatch, condition):
+    if condition("Windows (paths on two drives)", os.name == "nt") == "simulated":
+        # Windows' own rule for paths.
+        monkeypatch.setattr(mat_sidecars.os.path, "relpath", ntpath.relpath)
     sidecar = mat_sidecars._Sidecar("a.md", "Z:\\src\\a.md", "C:\\docs", None)
     assert sidecar.source_path("Z:\\src\\img.png") is None
     assert sidecar.source_path("C:\\docs\\img.png") == "/img.png"
@@ -768,6 +773,43 @@ def test_root_inside_the_source_folder(make_app, tmp_path):
     assert read_docs(again) == []
 
 
+@pytest.mark.parametrize("sidecars", [True, False])
+def test_another_sphinx_source_folder_inside_the_source_folder(
+    make_app, tmp_path, sidecars
+):
+    # The root inside the source folder: the pages of a folder with its own
+    # conf.py are not read by the build, as long as sidecar docs are on.
+    docs = tmp_path / "docs"
+    conf = (
+        'extensions = ["sphinxcontrib.matlab"]\nmatlab_src_code_project_root = "src"\n'
+    )
+    if sidecars:
+        conf += 'matlab_src_sidecar_suffixes = [".rst"]\n'
+    write(
+        docs,
+        {
+            "conf.py": conf + 'exclude_patterns = ["_build"]\n',
+            "index.rst": "Index\n=====\n"
+            + (".. mat:autosidecar:: notes.rst\n" if sidecars else ""),
+            "src/f.m": "function f\nend\n",
+            "src/notes.rst": "Notes\n=====\n",
+            "src/old/conf.py": 'project = "old"\n',
+            "src/old/index.rst": "Old\n===\n\n.. automodule:: gone\n",
+        },
+    )
+    app = build(make_app, docs)
+    if not sidecars:
+        # without sidecar suffixes nothing is added
+        assert app.config.exclude_patterns == ["_build"]
+        return
+    assert app.config.exclude_patterns == ["_build", "src/notes.rst", "src/old"]
+    assert warnings(app) == []
+    assert sorted(app.env.found_docs) == ["index"]
+    assert not (Path(app.outdir) / "src" / "old" / "index.html").exists()
+    assert sorted(app.env.get_domain("mat").sidecar_paths()) == ["notes.rst"]
+    assert read_docs(build(make_app, docs)) == []
+
+
 def test_source_folder_inside_the_root(make_app, tmp_path):
     repo = tmp_path / "repo"
     write(
@@ -788,6 +830,41 @@ def test_source_folder_inside_the_root(make_app, tmp_path):
     assert "docs/about.md" not in dom.sidecar_paths()
     assert "about" in app.env.found_docs
     assert warnings(app) == []
+
+
+def test_another_sphinx_source_folder_is_not_sidecar_docs(make_app, tmp_path):
+    # A folder with its own conf.py (an older documentation set) holds pages
+    # of another Sphinx project; its code is still indexed. The root's own
+    # conf.py does not count.
+    write(
+        tmp_path,
+        {
+            "docs/conf.py": CONF
+            + 'matlab_apidoc_output_dir = "api"\nmatlab_apidoc_group = "folder"\n',
+            "docs/index.rst": "Index\n=====\n\n.. toctree::\n\n   api/index\n",
+            "src/conf.py": "",
+            "src/notes.rst": "Notes\n=====\n\nSee :mat:func:`helper`.\n",
+            "src/old/conf.py": 'project = "old"\n',
+            "src/old/index.rst": "Old\n===\n\n.. automodule:: gone\n",
+            "src/old/sub/page.md": "# Page\n\n```{automodule} gone\n```\n",
+            "src/old/sub/helper.m": "function helper\n%HELPER Help.\nend\n",
+        },
+    )
+    settings = IndexSettings(str(tmp_path / "src"), sidecar_suffixes=(".md", ".rst"))
+    source_index = build_index(settings)
+    assert [r["reference"] for r in source_index.sidecars.values()] == ["notes.rst"]
+    assert mat_types.sidecar_paths(settings) == list(source_index.sidecars)
+    assert [r["reference"] for r in source_index.index.values()] == ["old/sub/helper.m"]
+    docs = tmp_path / "docs"
+    assert main(["-q", "-c", str(docs)]) == 0
+    assert sorted(
+        p.relative_to(docs / "api").as_posix() for p in (docs / "api").rglob("*.rst")
+    ) == ["index.rst", "notes-rst.rst", "old/sub/index.rst", "root.rst"]
+    app = build(make_app, docs)
+    assert warnings(app) == []
+    check = build(make_app, docs, "matlab-api-check")
+    report = json.loads((Path(check.outdir) / "api-check.json").read_text("utf-8"))
+    assert report["summary"]["checked"]["sidecar"] == 1
 
 
 # --- scmd apidoc ----------------------------------------------------

@@ -1,13 +1,9 @@
-"""sphinxcontrib.matlab_quickstart._write.
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+"""What ``scmd quickstart`` writes.
 
-What ``scmd quickstart`` writes (plan.md Section 2.13): the
-files of the Sphinx source folder from the templates, and the edits
-outside it: the docs dependency group through ``uv add --frozen``, lines in
-``.gitignore`` and ``.gitattributes``, and, for a project with Simulink
-files, the MATLAB function behind their Help links (``linker_files``). It
-never touches ``uv.lock``, the project's MATLAB code or CI, and never
-commits.
+It writes the files of the Sphinx source folder from the templates, and the
+edits outside it: the docs dependency group through ``uv add --frozen`` and
+lines in ``.gitignore`` and ``.gitattributes``. It never touches ``uv.lock``,
+the project's MATLAB code or CI, and never commits.
 """
 
 from __future__ import annotations
@@ -22,7 +18,6 @@ from pathlib import Path
 from sphinx.util.template import ReSTRenderer
 
 from ..mat_api_check import RULES
-from ..mat_simulink import MATLAB_TOOLS
 from ..mat_types import DEFAULT_EXCLUSION_PATTERNS
 from ._detect import SECTION_FILES
 
@@ -190,36 +185,6 @@ def write_files(docs, files, dry_run):
     return out
 
 
-LINKER_FOLDER = "+sphinxcontrib/+matlabdomain"
-LINKER = "simulinkDocumentationLinker"
-#: the exclusion pattern of the linker's folder
-LINKER_EXCLUDE = "+sphinxcontrib/"
-#: the address of ``make livehtml`` (sphinx-autobuild's default)
-LIVE_SERVER = "http://127.0.0.1:8000/"
-
-
-def linker_files(root, docs_rel, published=""):
-    """Return ``{name: bytes}`` below ``root``: the function behind the Help
-    links of Simulink files, and its settings unless they exist (the user
-    may have set the published site; builds never change them).
-    """
-    source = MATLAB_TOOLS / "+sphinxcontrib" / "+matlabdomain" / f"{LINKER}.m"
-    files = {f"{LINKER_FOLDER}/{LINKER}.m": source.read_bytes()}
-    settings = f"{LINKER_FOLDER}/{LINKER}.json"
-    if not os.path.isfile(os.path.join(root, *settings.split("/"))):
-        text = json.dumps(
-            {
-                "mode": "local",
-                "local": f"{docs_rel}/_build/html/",
-                "server": LIVE_SERVER,
-                "published": published,
-            },
-            indent=1,
-        )
-        files[settings] = (text + "\n").encode("utf-8")
-    return files
-
-
 def missing_lines(path, lines):
     """Return the ``lines`` that ``path`` does not have yet."""
     try:
@@ -255,7 +220,7 @@ def run(command, cwd):
         encoding="utf-8",
         errors="replace",
     )
-    return proc.returncode, (proc.stdout + proc.stderr).strip()
+    return proc.returncode, (proc.stdout + proc.stderr).rstrip()
 
 
 def git_dirty(root):

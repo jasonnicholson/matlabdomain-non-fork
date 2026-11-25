@@ -1,5 +1,5 @@
-"""Chooser pages are rendered only when they may differ from the files on disk
-(G4-F11): a build that writes no document page, whose chooser data is that of
+"""Chooser pages are rendered only when they may differ from the files on disk:
+a build that writes no document page, whose chooser data is that of
 ``mat/choosers.json`` and whose chooser files all exist renders none.
 
 Rendered pages are counted through ``html-page-context``, not timed.
@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 
 import pytest
-from sphinx.errors import ExtensionError
+from sphinx.errors import ConfigError
 from test_apidoc import FUNCTION
 from test_incremental_equals_clean import MINIMAL_CONF, _write, minimal
 
@@ -230,7 +230,9 @@ def test_unowned_state_is_not_overwritten(make_app, tmp_path):
     path = Path(app.outdir) / mat_urls.STATE
     path.parent.mkdir(parents=True)
     path.write_text('{"mine": 1}', encoding="utf-8")
-    with pytest.raises(ExtensionError, match="unowned file"):
+    with pytest.raises(
+        ConfigError, match="is in the way of a file of the stable addresses"
+    ):
         mat_urls.add_script(app)
     app.cleanup()
     assert path.read_text(encoding="utf-8") == '{"mine": 1}'

@@ -22,6 +22,7 @@ from sphinx.util.inventory import InventoryFile
 
 
 def load(path):
+    """Return role -> set of object names of the ``objects.inv`` at ``path``."""
     with open(path, "rb") as f:
         inv = InventoryFile.load(cast(Any, f), "", lambda _base, uri: uri)
     inv = getattr(inv, "data", inv)
@@ -46,31 +47,12 @@ def to_path_ref(root, dotted):
     return "/".join(parts) + "/"
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    parser.add_argument("inventories", nargs="+", type=Path)
-    parser.add_argument(
-        "--root", type=Path, help="the MATLAB project root (to map 0.x names)"
-    )
-    parser.add_argument(
-        "--show",
-        type=int,
-        default=10,
-        help="objects to list per kind and side (default 10)",
-    )
-    args = parser.parse_args()
-    if len(args.inventories) == 1:
-        for role, names in sorted(load(args.inventories[0]).items()):
-            print(f"{role:20} {len(names):6}")
-        return
-    if len(args.inventories) != 2:
-        parser.error("give one inventory, or two to compare")
-    old, new = load(args.inventories[0]), load(args.inventories[1])
+def map_old_names(old, root):
+    """Map the 0.x dotted names of ``old`` (role -> names) to path references
+    through ``root``, in place; return the names not found below it.
+    """
     unmapped = []
-    root = args.root.resolve() if args.root else None
-    for role, names in list(old.items()) if root else []:
+    for role, names in list(old.items()):
         if role == "mat:module":
             # 0.x modules are 1.0 folders; class folders and the root get no object.
             folders = old.setdefault("mat:folder", set())
@@ -89,8 +71,13 @@ def main():
                     unmapped.append(f"{role} {name}")
                 mapped.add(ref or name)
             old[role] = mapped
-    if "mat-modindex" in old.get("std:label", set()):
-        old["std:label"] = (old["std:label"] - {"mat-modindex"}) | {"mat-folderindex"}
+    return unmapped
+
+
+def print_comparison(old, new, show):
+    """Print the object counts of ``old`` and ``new`` by kind, the objects only
+    one side has (``show`` per kind and side) and the objects whose kind changed.
+    """
     print(f"{'kind':20} {'old':>6} {'new':>6} {'old only':>9} {'new only':>9}")
     details = []
     for role in sorted(set(old) | set(new)):
@@ -98,7 +85,7 @@ def main():
         print(f"{role:20} {len(o):6} {len(n):6} {len(o - n):9} {len(n - o):9}")
         for side, names in (("old only", o - n), ("new only", n - o)):
             if names:
-                shown = sorted(names)[: args.show]
+                shown = sorted(names)[:show]
                 more = (
                     f" (+{len(names) - len(shown)} more)"
                     if len(names) > len(shown)
@@ -115,6 +102,38 @@ def main():
     if moved:
         print("\nkind changed:", dict(moved))
     print("".join(details))
+
+
+def main():
+    """Print the object counts of one inventory, or compare two (see the module
+    docstring).
+    """
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument("inventories", nargs="+", type=Path)
+    parser.add_argument(
+        "--root", type=Path, help="the MATLAB project root (to map 0.x names)"
+    )
+    parser.add_argument(
+        "--show",
+        type=int,
+        default=10,
+        help="objects to list per kind and side (default 10)",
+    )
+    args = parser.parse_args()
+    first, *rest = args.inventories
+    if not rest:
+        for role, names in sorted(load(first).items()):
+            print(f"{role:20} {len(names):6}")
+        return
+    if len(rest) > 1:
+        parser.error("give one inventory, or two to compare")
+    old, new = load(first), load(rest[0])
+    unmapped = map_old_names(old, args.root.resolve()) if args.root else []
+    if "mat-modindex" in old.get("std:label", set()):
+        old["std:label"] = (old["std:label"] - {"mat-modindex"}) | {"mat-folderindex"}
+    print_comparison(old, new, args.show)
     if unmapped:
         print(
             f"\n0.x names not found below the root ({len(unmapped)}):\n  "

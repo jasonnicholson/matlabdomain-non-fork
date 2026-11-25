@@ -1,6 +1,6 @@
 """Intersphinx between a library built with scmd apidoc and a
 consumer project: MATLAB-name, path and named-inventory references, and what
-survives when an object moves to another API page (plan.md Section 2.3). The
+survives when an object moves to another API page. The
 library's inventory points to the stable addresses (``mat/ref/``).
 """
 
@@ -194,6 +194,7 @@ REFERENCES = {
     "name_any": ":any:`geom.Circle`",
     "name_named": ":external+lib:mat:func:`scale`",
     "name_prefixed": ":mat:func:`lib:scale`",
+    "name_external_prefixed": ":external:mat:func:`lib:scale`",
     "name_caption": ":mat:class:`A circle <geom.Circle>`",
     "name_local": ":mat:func:`scale`",
     "name_private": ":mat:func:`check`",
@@ -226,6 +227,7 @@ EXPECTED = {
     "name_any": (f"{BASE}mat/ref/%2Bgeom/Circle.m.html", "geom.Circle"),
     "name_named": (f"{BASE}mat/ref/util/scale.m.html", "scale"),
     "name_prefixed": (f"{BASE}mat/ref/util/scale.m.html", "scale"),
+    "name_external_prefixed": (f"{BASE}mat/ref/util/scale.m.html", "scale"),
     "name_caption": (f"{BASE}mat/ref/%2Bgeom/Circle.m.html", "A circle"),
     # The consumer's own object wins over the library's.
     "name_local": ("#mat-util/scale.m", "scale()"),
@@ -258,25 +260,10 @@ def test_consumer_links_to_the_library(make_app, tmp_path):
             assert url.partition("#")[2] in anchors(outdir, url)
 
 
-def test_consumer_links_to_a_block_with_a_line_break(make_app, tmp_path):
-    # The library's objects.inv names the block as a role writes its target
-    # (spaces for the line break); the consumer resolves it to its stable page.
-    from test_names_properties import _build
-
-    outdir, _, _, _ = _build(make_app, tmp_path / "lib", ["Two\\nLines", "Plain"])
-    mapping = {"lib": (BASE, str(outdir / "objects.inv"))}
-    role = ":mat:simulink_library_block:`odd.mdl/Two Lines`"
-    links, warnings = build_consumer(
-        make_app, tmp_path / "app", mapping, {"block": role}
-    )
-    assert warnings == ""
-    href, text = links["block"]
-    assert href == f"{BASE}mat/ref/odd.mdl~2FTwo~0ALines.html"
-    assert (outdir / unquote(href.removeprefix(BASE))).is_file()
-    assert text == "odd/Two Lines"
-
-
-def test_names_in_several_inventories(make_app, tmp_path):
+def several_inventories(root):
+    """Write the inventories "one" and "two" below ``root``; return the
+    ``intersphinx_mapping``.
+    """
     entries = {
         "one": [
             ("a/f.m", "function", "api.html#mat-a/f.m", "f"),
@@ -290,9 +277,14 @@ def test_names_in_several_inventories(make_app, tmp_path):
     }
     mapping = {}
     for name, items in entries.items():
-        write_inventory(tmp_path / name / "objects.inv", name, items)
+        write_inventory(root / name / "objects.inv", name, items)
         uri = f"https://{name}.example.invalid/"
-        mapping[name] = (uri, str(tmp_path / name / "objects.inv"))
+        mapping[name] = (uri, str(root / name / "objects.inv"))
+    return mapping
+
+
+def test_names_in_several_inventories(make_app, tmp_path):
+    mapping = several_inventories(tmp_path)
     references = {
         "any": ":mat:func:`f`",
         "one": ":mat:func:`one:f`",
@@ -327,7 +319,131 @@ def test_names_in_several_inventories(make_app, tmp_path):
     assert warnings.count("WARNING") == 4
 
 
-# --- repaging (plan.md open items L1/L2) -------------------------------------
+def test_external_and_any_roles_in_several_inventories(make_app, tmp_path):
+    mapping = several_inventories(tmp_path)
+    references = {
+        "external": ":external:mat:func:`g`",
+        "any": ":any:`g`",
+        "external_missing": ":external:mat:func:`nosuch`",
+        "any_missing": ":any:`nosuch`",
+        # one mat.ambiguous warning each, and no "not found"
+        "external_ambiguous": ":external:mat:func:`f`",
+        "any_ambiguous": ":any:`f`",
+    }
+    links, warnings = build_consumer(make_app, tmp_path / "app", mapping, references)
+    assert links == {
+        "external": ("https://one.example.invalid/api.html#mat-a/g.m", "g"),
+        "any": ("https://one.example.invalid/api.html#mat-a/g.m", "g"),
+        "external_missing": (None, "nosuch()"),
+        "any_missing": (None, "nosuch"),
+        "external_ambiguous": (None, "f()"),
+        "any_ambiguous": (None, "f"),
+    }
+    assert "external mat:func reference target not found: nosuch" in warnings
+    assert "'any' reference target not found: nosuch" in warnings
+    ambiguous = "'f' matches several objects: one:a/f.m, two:b/f.m; write one of them"
+    assert warnings.count(ambiguous) == 2
+    assert warnings.count("WARNING") == 4
+
+
+ONE = "https://one.example.invalid/api.html"
+TWO = "https://two.example.invalid/api.html"
+
+
+def two_versions(root):
+    """Write the inventories "one" and "two" below ``root``, with the same
+    references (two versions of one library); return the
+    ``intersphinx_mapping``.
+    """
+    entries = [
+        ("+p/C.m", "class", "api.html#mat-+p/C.m", "p.C"),
+        ("+p/f.m", "function", "api.html#mat-+p/f.m", "p.f"),
+    ]
+    mapping = {}
+    for name in ("one", "two"):
+        write_inventory(root / name / "objects.inv", name, entries)
+        mapping[name] = (
+            f"https://{name}.example.invalid/",
+            str(root / name / "objects.inv"),
+        )
+    return mapping
+
+
+def test_two_versions_of_one_library(make_app, tmp_path):
+    mapping = two_versions(tmp_path)
+    references = {
+        "path_one": ":mat:func:`one:+p/f.m`",
+        "path_two": ":mat:func:`two:+p/f.m`",
+        "named_one": ":external+one:mat:class:`p.C`",
+        "named_two": ":external+two:mat:func:`p.f`",
+        "name_two": ":mat:class:`two:p.C`",
+        # The prefix names the inventory, also for a MATLAB name.
+        "name_one": ":mat:class:`one:p.C`",
+        "function_one": ":mat:func:`one:p.f`",
+        "ambiguous": ":mat:class:`p.C`",
+    }
+    links, warnings = build_consumer(make_app, tmp_path / "app", mapping, references)
+    assert links == {
+        "path_one": (f"{ONE}#mat-+p/f.m", "p.f"),
+        "path_two": (f"{TWO}#mat-+p/f.m", "p.f"),
+        "named_one": (f"{ONE}#mat-+p/C.m", "p.C"),
+        "named_two": (f"{TWO}#mat-+p/f.m", "p.f"),
+        "name_two": (f"{TWO}#mat-+p/C.m", "p.C"),
+        "name_one": (f"{ONE}#mat-+p/C.m", "p.C"),
+        "function_one": (f"{ONE}#mat-+p/f.m", "p.f"),
+        "ambiguous": (None, "p.C"),
+    }
+    assert (
+        "'p.C' matches several objects: one:+p/C.m, two:+p/C.m; write one of them"
+        in warnings
+    )
+    assert warnings.count("WARNING") == 1
+
+
+def test_external_role_with_an_inventory_prefix(make_app, tmp_path):
+    mapping = two_versions(tmp_path)
+    references = {
+        "name_two": ":external:mat:func:`two:p.f`",
+        "class_two": ":external:mat:class:`two:p.C`",
+        # the prefix names the inventory, by MATLAB name and by path
+        "name_one": ":external:mat:func:`one:p.f`",
+        "class_one": ":external:mat:class:`one:p.C`",
+        "path_one": ":external:mat:func:`one:+p/f.m`",
+        "path_two": ":external:mat:func:`two:+p/f.m`",
+        "unprefixed": ":external:mat:func:`p.f`",
+        "named": ":external+one:mat:func:`p.f`",
+        # a prefix in the target of :external+lib: is part of the name
+        "named_same": ":external+one:mat:func:`one:p.f`",
+        "named_other": ":external+one:mat:func:`two:p.f`",
+        # no inventory of that name
+        "no_inventory": ":external:mat:func:`nolib:p.f`",
+        "colon": ":external:mat:func:`x:y`",
+    }
+    links, warnings = build_consumer(make_app, tmp_path / "app", mapping, references)
+    assert links == {
+        "name_two": (f"{TWO}#mat-+p/f.m", "p.f"),
+        "class_two": (f"{TWO}#mat-+p/C.m", "p.C"),
+        "name_one": (f"{ONE}#mat-+p/f.m", "p.f"),
+        "class_one": (f"{ONE}#mat-+p/C.m", "p.C"),
+        "path_one": (f"{ONE}#mat-+p/f.m", "p.f"),
+        "path_two": (f"{TWO}#mat-+p/f.m", "p.f"),
+        "unprefixed": (None, "p.f()"),
+        "named": (f"{ONE}#mat-+p/f.m", "p.f"),
+        "named_same": (None, "one:p.f()"),
+        "named_other": (None, "two:p.f()"),
+        "no_inventory": (None, "nolib:p.f()"),
+        "colon": (None, "x:y()"),
+    }
+    assert (
+        "'p.f' matches several objects: one:+p/f.m, two:+p/f.m; write one of them"
+        in warnings
+    )
+    for target in ("one:p.f", "two:p.f", "nolib:p.f", "x:y"):
+        assert f"external mat:func reference target not found: {target} " in warnings
+    assert warnings.count("WARNING") == 5
+
+
+# --- repaging: an object moves to another API page ---------------------------
 
 # (group, page size, page before, page after) of util/scale.m when
 # util/alpha.m is added: it sorts first, so scale.m moves to the next page.

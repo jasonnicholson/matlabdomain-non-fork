@@ -4,19 +4,19 @@ Generating pages: ``scmd apidoc``
 ``scmd apidoc`` writes :term:`reST` pages that document every MATLAB file
 below a project root with the auto :term:`directives <directive>`: by default one page per
 namespace, as MATLAB sees namespaces, or one page per folder. A large
-project then needs no hand-written directives, and new files appear in the
-docs when you run it again. It is the MATLAB counterpart of Sphinx's
-``sphinx-apidoc``, with a deliberately small surface: its settings come
-from ``conf.py``, and its flags only control a run. For different output,
-edit its templates or write your own script on its Python :term:`API`
-(:ref:`apidoc-write-your-own`); that makes sense when you want
-fine-grained control over the generated output.
+project then needs no hand-written :term:`directives <directive>`, and new
+files appear in the docs when you run it again. It is the MATLAB counterpart
+of :term:`Sphinx`'s ``sphinx-apidoc``, with a deliberately small surface: its
+settings come from ``conf.py``, and its flags only control a run. For
+different output, edit its templates or write your own script on its
+Python :term:`API` (:ref:`apidoc-write-your-own`); that makes sense when you
+want fine-grained control over the generated output.
 
 A worked example
 ----------------
 
 The repository's ``examples/apidoc`` folder is a complete example: a small
-MATLAB project, its Sphinx project with the generated pages, and an edited
+MATLAB project, its :term:`Sphinx` project with the generated pages, and an edited
 copy of the templates. The test suite regenerates the pages, compares them
 with the committed ones and builds the project with ``-W``, so everything
 shown here is current.
@@ -108,8 +108,7 @@ With :confval:`matlab_apidoc_group` ``"namespace"`` (the default):
 * One page for the global namespace, titled ``Global``: the files outside
   any namespace, in plain folders at any depth.
 * Each page has a local table of contents and sections in this order:
-  Functions, Classes, Scripts, Apps, Simulink Models, Simulink Libraries,
-  Simulink Subsystem References, Simulink Library Blocks, Sidecar docs.
+  Functions, Classes, Scripts, Apps, Sidecar docs.
   Within a section, entries are sorted by title, ignoring case.
 * A page holds at most :confval:`matlab_apidoc_page_size` entries (100 by
   default; sidecar docs count). A longer namespace gets several pages,
@@ -118,7 +117,7 @@ With :confval:`matlab_apidoc_group` ``"namespace"`` (the default):
   removing a file can move the entries after it to another page, and so
   change their address (:ref:`library-changes`).
 * The root page (the toc file, ``index`` by default, always written) has
-  one flat toctree: Global first, then the namespaces sorted by name,
+  one flat :term:`toctree`: Global first, then the namespaces sorted by name,
   ignoring case. Nested namespaces are listed like the others
   (``demo``, ``demo.geometry``), so the navigation stays one level deep.
 * Files in ``private/`` folders are left out (only the files of their
@@ -136,16 +135,15 @@ With ``"folder"``:
 * One page per folder that has a file or sidecar doc to document; a
   folder with nothing of its own gets no page. The root folder's page is
   ``root``.
-* The root page (the toc file) has one flat toctree, as in namespace
+* The root page (the toc file) has one flat :term:`toctree`, as in namespace
   grouping: the root folder's page first, then the folders sorted by path,
   ignoring case, so the navigation stays one level deep.
 * The title is the folder's path: ``folder +demo/``, ``folder utils/``,
   ``folder ./`` for the root. A namespace spread over several folders
   (``a/+ns/``, ``b/+ns/``) gets a page per folder, each with its own title;
-  the ``mat:autofolder`` signature still shows ``namespace ns``.
+  the ``mat:autofolder`` :term:`signature` still shows ``namespace ns``.
   The page has ``mat:autofolder`` (without ``:members:``), a local table of
-  contents, and sections in this order: Classes, Functions, Scripts, Apps,
-  then the Simulink sections as in namespace grouping.
+  contents, and sections in this order: Classes, Functions, Scripts, Apps.
   A long folder gets several pages, split at
   :confval:`matlab_apidoc_page_size` entries like a namespace
   (``folder utils/ (101-200)``). ``private/``
@@ -157,18 +155,15 @@ With ``"folder"``:
 
 In both:
 
-* Simulink libraries are read for their masked blocks (the only files
-  apidoc reads): each gets an entry in Simulink Library Blocks, titled
-  ``library/Group/Block``. A library that cannot be read gets a
-  ``mat.apidoc`` warning and no block entries.
 * Each file gets a heading, its MATLAB name (or its path when MATLAB cannot
-  call it), and an auto directive with its full path reference:
+  call it), and an auto :term:`directive` with its full path reference:
   ``mat:autoclass`` with ``:members:``, ``:undoc-members:`` and
   ``:show-inheritance:``, ``mat:autofunction``, ``mat:autoscript`` or
   ``mat:autoapplication``. A base class that is one of MATLAB's own
   (``< handle``) is shown as text (:confval:`matlab_external_names`).
-  Sphinx also adds documented classes to the local table of
-  contents, so a class appears there twice (its heading and its signature);
+  :term:`Sphinx` also adds documented classes to the local table of
+  contents, so a class appears there twice (its heading and its
+  :term:`signature`);
   ``toc_object_entries = False`` in ``conf.py`` hides the second.
 * Class folders get no page of their own: their class is listed with the
   files of the folder above (its namespace). The function files of a class
@@ -194,7 +189,9 @@ It runs ``conf.py`` as ``sphinx-build`` does and reads:
   :confval:`matlab_src_sidecar_suffixes`;
 * ``suppress_warnings``: the warnings it names are not printed
   (:doc:`warnings`);
-* its own settings, which the build ignores:
+* its own settings, which the build does not use, except HTML builds
+  read :confval:`matlab_apidoc_output_dir` (a build gives one
+  ``mat.config`` warning for another one that is not valid):
 
   .. list-table::
      :header-rows: 1
@@ -219,7 +216,7 @@ It runs ``conf.py`` as ``sphinx-build`` does and reads:
        - one page per file
      * - :confval:`matlab_apidoc_maxdepth`
        - ``4``
-       - the ``:maxdepth:`` of the toctrees
+       - the ``:maxdepth:`` of the :term:`toctrees <toctree>`
      * - :confval:`matlab_apidoc_tocfile`
        - ``"index"``
        - the name of the root page
@@ -229,6 +226,10 @@ It runs ``conf.py`` as ``sphinx-build`` does and reads:
      * - :confval:`matlab_apidoc_remove_old`
        - ``True``
        - remove marked pages that are no longer pages
+
+A value that only the build or ``matlab-api-check`` uses is not needed
+here; one that is not valid is a ``mat.config`` warning, and the command
+goes on, so it runs on a project that is not ready to build yet.
 
 Paths in ``conf.py`` are relative to its folder. No flag overrides a
 setting, so the command and the build agree; :doc:`../reference/cli`
@@ -264,8 +265,8 @@ Run it whenever the MATLAB files change; the pages stay accurate:
 
 * Every generated file starts with the marker line ``.. Generated by
   scmd apidoc.``. A marked page whose text changed is rewritten.
-  Files are written only when their text changes, so Sphinx does not read
-  unchanged pages again. Line endings do not count: pages checked out with
+  Files are written only when their text changes, so :term:`Sphinx` does not
+  read unchanged pages again. Line endings do not count: pages checked out with
   CRLF (git ``core.autocrlf`` on Windows) are unchanged.
 * Marked files below the output folder that are no longer pages (of
   deleted or moved folders) are deleted, with the folders this leaves
@@ -288,7 +289,7 @@ Run it before each build
 The build does not run the generator; run it first. ``sphinx-build``
 finds the new pages as usual.
 
-A ``Makefile`` target (Sphinx's ``Makefile`` passes other targets to
+A ``Makefile`` target (:term:`Sphinx`'s ``Makefile`` passes other targets to
 ``sphinx-build``):
 
 .. code-block:: text
@@ -370,7 +371,7 @@ Write your own
 
 For full control (several project roots, settings computed per folder,
 pages written next to other generated files), write a short script on the
-Python API that the command itself uses. The example's ``make_api.py``
+Python :term:`API` that the command itself uses. The example's ``make_api.py``
 writes the same pages as ``scmd apidoc --conf-dir docs``; the test suite
 checks that it does:
 
@@ -383,8 +384,8 @@ It takes three steps:
    (an absolute path), ``include`` and ``exclude`` (tuples of patterns as
    in :confval:`matlab_src_include_patterns`, with ``/``, relative to the
    root), ``encoding``, ``matlab_version``, ``sidecar_suffixes`` and
-   ``source_dir`` (the Sphinx source folder). The defaults are those of
-   the build.
+   ``source_dir`` (the :term:`Sphinx` :term:`source folder <source
+   directory>`). The defaults are those of the build.
 2. ``sphinxcontrib.mat_types.build_index(settings)`` indexes the files, as
    the build does, and returns a ``SourceIndex``.
 3. ``sphinxcontrib.matlab_apidoc.generate(source_index, options)`` writes
@@ -394,7 +395,8 @@ It takes three steps:
    paths as given, not relative to ``conf.py``), for the file suffix
    (``suffix``, default ``"rst"``) and for the flags ``-f``
    and ``-n`` (``force``, ``dry_run``).
-   It returns a ``Result``: ``pages`` (the docnames, without suffix), the
+   It returns a ``Result``: ``pages`` (the :term:`docnames <document name>`,
+   without suffix), the
    lists of files ``created``, ``updated``, ``unchanged``, ``kept`` and
    ``removed`` and of files and folders ``renamed`` (paths relative to the
    output folder), and ``changed``, true when a file was (or with

@@ -1,7 +1,4 @@
-"""sphinxcontrib.matlab.
-~~~~~~~~~~~~~~~~~~~~
-
-The MATLAB domain.
+"""The MATLAB domain: its object directives, roles, indices and lookup.
 
 :copyright: Copyright by the sphinxcontrib-matlabdomain team, see AUTHORS.
 :license: BSD, see LICENSE for details.
@@ -9,23 +6,23 @@ The MATLAB domain.
 
 import functools
 import itertools
-import json
 import re
 import unicodedata
-from typing import cast
+from typing import Any, ClassVar, cast
 
 from docutils import nodes
 from docutils.parsers.rst import Directive, directives
 from sphinx import addnodes
 from sphinx.directives import ObjectDescription
 from sphinx.domains import Domain, Index, ObjType
-from sphinx.errors import ConfigError
 from sphinx.locale import _ as translation
 from sphinx.roles import XRefRole
 from sphinx.transforms.post_transforms import SphinxPostTransform
 from sphinx.util.docfields import Field, GroupedField, TypedField
+from sphinx.util.docutils import SphinxDirective
 from sphinx.util.logging import getLogger
 from sphinx.util.nodes import make_refnode
+from sphinx.util.typing import OptionSpec, RoleFunction
 
 from . import (
     mat_api_check,
@@ -40,7 +37,7 @@ from . import mat_documenters as doc
 
 # Public: a conf.py extends it (matlab_external_names = [*DEFAULT_EXTERNAL_NAMES, ...]).
 from .mat_config import DEFAULT_EXTERNAL_NAMES as DEFAULT_EXTERNAL_NAMES
-from .mat_simulink import _linker as simulink_linker
+from .mat_typing import override
 
 logger = getLogger("matlab-domain")
 
@@ -52,6 +49,7 @@ class MatTypedField(TypedField):
     objects, so an unresolved type gives no "target not found" warning.
     """
 
+    @override
     def make_xref(
         self,
         rolename,
@@ -69,35 +67,21 @@ class MatTypedField(TypedField):
         return node
 
 
-def keep_unresolved_references(app, env, node, contnode):
-    # Runs after intersphinx (priority 900), so other projects' names still link.
+def keep_unresolved_references(app, _env, node, contnode):
+    """``missing-reference``: render an unresolved MATLAB reference as its text, without
+    a warning, when it is a type, an ambiguous name (also of an ``:any:`` role) or a
+    name in ``matlab_external_names``.
+
+    Runs after intersphinx (priority 900), so other projects' names still link.
+    """
+    if node.get("mat:ambiguous"):  # warned
+        return contnode
     if node.get("refdomain") != "mat":
         return None
     external = _external_names(tuple(app.config.matlab_external_names))
-    if (
-        node.get("mat:type")
-        or node.get("mat:ambiguous")
-        or external.fullmatch(node.get("reftarget", ""))
-        or _outside_simulink_file(env, node)
-    ):
+    if node.get("mat:type") or external.fullmatch(node.get("reftarget", "")):
         return contnode
     return None
-
-
-def _outside_simulink_file(env, node):
-    """Return True for a Simulink role whose target names no Simulink file of
-    the project (a MathWorks library such as ``simulink/Sources``).
-    """
-    if node.get("reftype") not in SIMULINK_LABELS:
-        return False
-    target = node.get("reftarget", "")
-    file, _ = mat_naming.parse_reference(target)
-    if file and mat_naming.is_block_container(file.rpartition("/")[2]):
-        return False  # a path reference
-    refs = env.get_domain("mat").data["matlab_names"].get(target.split("/", 1)[0], ())
-    return not any(
-        mat_naming.is_block_container(ref.rpartition("/")[2]) for ref in refs
-    )
 
 
 def check_inventories(app, env, node, contnode):
@@ -114,17 +98,47 @@ def check_inventories(app, env, node, contnode):
 
 class CheckExternalReferences(SphinxPostTransform):
     """``check_inventories`` for the ``:external:`` roles, which intersphinx
-    resolves before the ``missing-reference`` event.
+    resolves before the ``missing-reference`` event; and ``:external:`` with
+    ``lib:`` in the target resolved in ``lib`` alone, as ``:external+lib:``.
     """
 
     default_priority = 8  # before intersphinx's IntersphinxRoleResolver (9)
 
-    def run(self, **kwargs):  # noqa: ARG002
+    @override
+    def run(self, **kwargs):
         for node in list(self.document.findall(addnodes.pending_xref)):
             if "intersphinx" in node and node.get("refdomain") == "mat":
                 contnode = node[0].deepcopy()
-                if _check_inventories(self.env, node, contnode) is not None:
-                    node.replace_self(contnode)
+                result = _check_inventories(self.env, node, contnode)
+                if result is None:
+                    result = _resolve_in_named_inventory(self.env, node, contnode)
+                if result is not None:
+                    node.replace_self(result)
+
+
+def _resolve_in_named_inventory(env, node, contnode):
+    """Return the link of an ``:external:`` role whose target starts with the
+    name of an inventory (``lib:name``) in that inventory, or None (then
+    intersphinx warns with the target as written).
+    """
+    from sphinx.ext.intersphinx import (
+        InventoryAdapter,
+        resolve_reference_in_inventory,
+    )
+
+    target = node["reftarget"]
+    prefix, colon, rest = target.partition(":")
+    if (
+        node["inventory"] is not None
+        or not colon
+        or prefix not in InventoryAdapter(env).named_inventory
+    ):
+        return None
+    node["reftarget"], node["inventory"] = rest, prefix
+    try:
+        return resolve_reference_in_inventory(env, prefix, node, contnode)
+    finally:
+        node["reftarget"], node["inventory"] = target, None
 
 
 def _check_inventories(env, node, contnode):
@@ -151,7 +165,14 @@ def _check_inventories(env, node, contnode):
         mat_types.warn_ambiguous(target, labels, node, "write one of them")
         return contnode
     if not found:
-        return None
+        link = _namespace_folder(inventories, names, node, target, contnode)
+        if link is None and "intersphinx" in node:
+            # intersphinx warns "not found" for an :external: role whose
+            # MATLAB name is ambiguous; mat.ambiguous says more
+            env.get_domain("mat").get_full_qualified_name(node)
+            if node.get("mat:ambiguous"):
+                return contnode
+        return link
     uri, found_in = next(iter(found.items()))
     if (
         env.config.matlab_link_shadowed_files_to_chooser_pages
@@ -164,7 +185,8 @@ def _check_inventories(env, node, contnode):
         for ref, item in inventories[found_in].get(f"mat:{objtype}", {}).items()
         # Sphinx < 8.2: (project, version, uri, display name)
         if ref != target
-        and (getattr(item, "display_name", None) or item[3]) == target
+        and target
+        in ((getattr(item, "display_name", None) or item[3]), _plus_name(ref))
         and not mat_naming.is_private_reference(ref)
     }
     prefix = "" if len(names) == 1 else f"{found_in}:"
@@ -173,26 +195,65 @@ def _check_inventories(env, node, contnode):
     return contnode
 
 
+def _named_in_inventories(inventories, names, objtypes, target):
+    """Return ``{(inventory, reference): label}`` of the non-private entries
+    of ``objtypes`` in the inventories ``names`` whose display name is
+    ``target`` (the MATLAB name).
+    """
+    found = {}
+    for name in names:
+        for objtype in objtypes:
+            for ref, item in inventories[name].get(f"mat:{objtype}", {}).items():
+                # Sphinx < 8.2: (project, version, uri, display name)
+                display = getattr(item, "display_name", None) or item[3]
+                # ``ref == target``: a chooser page's entry
+                if (
+                    display != target
+                    or ref == target
+                    or mat_naming.is_private_reference(ref)
+                ):
+                    continue
+                label = f"{name}:{ref}" if len(names) > 1 else ref
+                found.setdefault((name, ref), label)
+    return found
+
+
+def _namespace_folder(inventories, names, node, target, contnode):
+    """Return a link to the only folder of the namespace ``target`` that a
+    ``:mat:namespace:`` role names in another project that documents no
+    namespace object (the role accepts any type), or None.
+    """
+    if node["reftype"] != "namespace" or _named_in_inventories(
+        inventories, names, ["namespace"], target
+    ):
+        return None
+    found = _named_in_inventories(inventories, names, ["folder"], target)
+    if len(found) != 1:
+        return None
+    name, ref = next(iter(found))
+    item = inventories[name]["mat:folder"][ref]
+    # Sphinx < 8.2: (project, version, uri, display name)
+    uri = getattr(item, "uri", None) or item[2]
+    link = nodes.reference("", "", internal=False, refuri=uri, reftitle=ref)
+    if not node.get("refexplicit"):  # the MATLAB name, without ``lib:``
+        contnode = contnode.__class__(target, target, classes=contnode["classes"])
+    link += contnode
+    return link
+
+
+def _plus_name(ref):
+    """Return the MATLAB name the ``+`` folders at the end of the folder
+    reference ``ref`` form (``a/+p/+q/`` -> ``p.q``), or None.
+    """
+    parts = mat_naming.split_folder(ref) if ref[-1:] == "/" else []
+    names = list(itertools.takewhile(lambda p: p[:1] == "+", reversed(parts)))
+    return ".".join(p[1:] for p in reversed(names)) or None
+
+
 @functools.cache
 def _external_names(patterns):
     # (?!) matches nothing: no patterns.
     return re.compile("|".join(f"(?:{p})" for p in patterns) or "(?!)")
-
-
-def check_external_names(app, config):  # noqa: ARG001
-    names = config.matlab_external_names
-    if isinstance(names, str) or not isinstance(names, (list, tuple)):
-        raise ConfigError(f"matlab_external_names must be a list, not {names!r}.")
-    for pattern in names:
-        if not isinstance(pattern, str):
-            raise ConfigError(f"matlab_external_names: {pattern!r} must be a str.")
-        try:
-            re.compile(pattern)
-        except re.error as err:
-            raise ConfigError(
-                f"matlab_external_names: {pattern!r} is not a regular "
-                f"expression ({err})."
-            ) from err
 
 
 # REs for MATLAB signatures: a MATLAB name or path reference, then optional
@@ -257,7 +318,7 @@ def _pseudo_parse_arglist(signode, arglist):
 class MatObjectDirective(ObjectDescription):
     """Description of a general MATLAB object."""
 
-    option_spec = {
+    option_spec: ClassVar[OptionSpec] = {
         "noindex": directives.flag,
         "no-index": directives.flag,
         "annotation": directives.unchanged,
@@ -265,7 +326,7 @@ class MatObjectDirective(ObjectDescription):
         "reference": directives.unchanged,
     }
 
-    doc_field_types = [
+    doc_field_types: ClassVar[list[Field]] = [
         MatTypedField(
             "parameter",
             label=translation("Parameters"),
@@ -330,6 +391,7 @@ class MatObjectDirective(ObjectDescription):
         """
         return False
 
+    @override
     def handle_signature(self, sig, signode):
         """Transform a MATLAB signature into RST nodes.
 
@@ -392,15 +454,17 @@ class MatObjectDirective(ObjectDescription):
             signode += addnodes.desc_annotation(f" {anno}", f" {anno}")
         return ref, display
 
-    def _source_reference(self, name, accept=mat_types.is_code_object):
+    def _source_reference(self, name):
         # A directive written by hand: use the source file it names, if any.
         dom = self.env.get_domain("mat")
         folder = self.env.temp_data.get("mat:folder")
-        location = (self.env.docname, self.lineno)
-        found = mat_types.find_one(dom, name, folder, accept, location)
+        found = mat_types.find_one(dom, name, folder, location=self.get_location())
         if found:
             return found[0], mat_types.display_name(dom, found[0])
-        return (mat_naming.join_reference(folder, name) if folder else name), name
+        # below the current folder; a current namespace has no single folder
+        if folder and folder[-1:] == "/":
+            return mat_naming.join_reference(folder, name), name
+        return name, name
 
     def get_index_text(self, folder, name_cls):  # pragma: no cover - abstract
         """Return the text for the index entry of the object."""
@@ -410,14 +474,15 @@ class MatObjectDirective(ObjectDescription):
     def _is_same_object(node, fullname):
         return isinstance(node, addnodes.desc_signature) and fullname in node["names"]
 
-    def add_target_and_index(self, name_cls, sig, signode):  # noqa: ARG002 - required by Sphinx API
+    @override
+    def add_target_and_index(self, name_cls, sig, signode):
         ref, display = name_cls
         target_id = mat_naming.make_target_id(ref)
 
-        # the page and the line of the directive written there
+        # the directive a person wrote: the outermost auto directive of
+        # generated content, else this one
         location = (
-            self.env.docname,
-            self.env.temp_data.get(mat_directives.PAGE_LINE, self.lineno),
+            self.env.temp_data.get(mat_sidecars.PAGE_LOCATION) or self.get_location()
         )
         # note target
         if target_id not in self.state.document.ids:
@@ -445,6 +510,7 @@ class MatObjectDirective(ObjectDescription):
             entry = ("single", indextext, target_id, "", None)
             self.indexnode["entries"].append(entry)
 
+    @override
     def before_content(self):
         # needed for automatic qualification of members (reset in subclasses)
         self.clsname_set = False
@@ -453,6 +519,7 @@ class MatObjectDirective(ObjectDescription):
         if self.names:
             self.env.temp_data["mat:objfolder"] = mat_naming.folder_of(self.names[0][0])
 
+    @override
     def after_content(self):
         if self.clsname_set:
             self.env.temp_data["mat:class"] = None
@@ -462,9 +529,11 @@ class MatObjectDirective(ObjectDescription):
 class MatModulelevel(MatObjectDirective):
     """Description of an object on folder level (functions, data, application)."""
 
+    @override
     def needs_arglist(self):
         return self.objtype == "function"
 
+    @override
     def get_index_text(self, folder, name_cls):
         if self.objtype == "function":
             return translation("%s() (function in %s)") % (name_cls[1], folder)
@@ -476,95 +545,16 @@ class MatModulelevel(MatObjectDirective):
             return ""
 
 
-class MatSimulinkObject(MatObjectDirective):
-    """Description of a Simulink model, library, subsystem file or library
-    block. The signature is its name as Simulink shows it, without
-    arguments; a ``:reference:`` with a newline is written as JSON text.
-    """
-
-    doc_field_types = [
-        *MatObjectDirective.doc_field_types,
-        TypedField(
-            "maskparameter",
-            label=translation("Mask parameters"),
-            names=("maskparam",),
-            typenames=("maskparamtype",),
-            can_collapse=True,
-        ),
-    ]
-
-    def handle_signature(self, sig, signode):
-        sig = sig.strip()
-        reference = self.options.get("reference")
-        if reference:
-            ref = json.loads(reference) if reference[:1] == '"' else reference
-            display = sig
-        else:
-            accept = mat_types.simulink_accepts(
-                mat_types.SIMULINK_CLASSES[self.objtype]
-            )
-            ref, display = self._source_reference(sig, accept)
-            display = display.replace("\n", " ")
-        _, members = mat_naming.parse_reference(ref)
-        shown = members[0].replace("\n", " ") if members else ""
-        if shown and display.endswith(shown) and len(display) > len(shown):
-            prefix, shown = display[: -len(shown)], shown
-        else:
-            prefix, shown = mat_naming.split_display(display)
-
-        signode["module"] = mat_naming.folder_of(ref)
-        signode["class"] = ""
-        signode["fullname"] = display
-        label = f"{SIMULINK_LABELS[self.objtype]} "
-        signode += addnodes.desc_annotation(label, label)
-        if prefix:
-            signode += addnodes.desc_addname(prefix, prefix)
-        signode += addnodes.desc_name(shown, shown)
-        return ref, display
-
-    def transform_content(self, content_node):
-        """Put the Simulink documentation file where the autodoc directive's
-        placeholder comment is.
-        """
-        super().transform_content(content_node)
-        for node in content_node.children:
-            if (
-                isinstance(node, nodes.comment)
-                and node.astext() == doc.SIMULINK_DOC_PLACEHOLDER
-            ):
-                found = []
-                if self.names:  # pragma: no branch - autodoc gives a reference
-                    ref = self.names[0][0]
-                    found = mat_sidecars.simulink_documentation(self, ref)
-                content_node.replace(node, found)
-                return
-
-    def get_index_text(self, folder, name_cls):
-        return translation("%s (%s in %s)") % (
-            name_cls[1],
-            SIMULINK_LABELS[self.objtype],
-            folder,
-        )
-
-
-#: object type -> what its signature calls it
-SIMULINK_LABELS = {
-    "simulink_model": translation("Simulink model"),
-    "simulink_library": translation("Simulink library"),
-    "simulink_subsystem_reference": translation("Simulink subsystem reference"),
-    "simulink_library_block": translation("Simulink library block"),
-}
-
-
 class MatClasslike(MatObjectDirective):
     """Description of a class."""
 
     flags = ("abstract", "sealed")
-    option_spec = {
+    option_spec: ClassVar[OptionSpec] = {
         **MatObjectDirective.option_spec,
         **dict.fromkeys(flags, directives.flag),
     }
 
+    @override
     def _object_hierarchy_parts(self, sig):
         """Return a tuple of strings, one entry for each part of the object's \
            hierarchy (e.g. ``('package', 'Class')``).
@@ -577,16 +567,20 @@ class MatClasslike(MatObjectDirective):
         """
         return tuple(sig.attributes.get("fullname").split("."))
 
+    @override
     def _toc_entry_name(self, sig):
         # TODO respecting the configuration setting ``toc_object_entries_show_parents``
         return mat_naming.split_display(sig.attributes.get("fullname"))[1]
 
+    @override
     def get_signature_prefix(self):
         return f"{self.flag_prefix()}{self.objtype} "
 
+    @override
     def get_index_text(self, folder, name_cls):
         return translation("%s (class in %s)") % (name_cls[1], folder)
 
+    @override
     def before_content(self):
         MatObjectDirective.before_content(self)
         # A class signature always parses (mat_sig_re matches any line).
@@ -598,14 +592,17 @@ class MatClasslike(MatObjectDirective):
 class MatClassmember(MatObjectDirective):
     """Description of a class member (methods, attributes)."""
 
+    @override
     def needs_arglist(self):
         return self.objtype.endswith("method")
 
+    @override
     def get_signature_prefix(self):
         static = "static " if self.objtype == "staticmethod" else ""
         return f"{self.flag_prefix()}{static}"
 
-    def get_index_text(self, folder, name_cls):  # noqa: ARG002
+    @override
+    def get_index_text(self, folder, name_cls):
         name = name_cls[1]
         kind = {
             "method": translation("%s() (%s method)"),
@@ -618,6 +615,7 @@ class MatClassmember(MatObjectDirective):
             return f"{name}()" if self.objtype.endswith("method") else name
         return kind % (member, clsname)
 
+    @override
     def before_content(self):
         MatObjectDirective.before_content(self)
         if self.names and not self.env.temp_data.get("mat:class"):
@@ -632,7 +630,7 @@ class MatMethodlike(MatClassmember):
     """Description of a method."""
 
     flags = ("abstract", "sealed")
-    option_spec = {
+    option_spec: ClassVar[OptionSpec] = {
         **MatObjectDirective.option_spec,
         **dict.fromkeys(flags, directives.flag),
     }
@@ -642,21 +640,22 @@ class MatAttributelike(MatClassmember):
     """Description of a property or enumeration value."""
 
     flags = ("abstract", "constant", "dependent", "read-only")
-    option_spec = {
+    option_spec: ClassVar[OptionSpec] = {
         **MatObjectDirective.option_spec,
         **dict.fromkeys(flags, directives.flag),
     }
 
 
 class MatFolder(MatObjectDirective):
-    """Description of a folder.
-
-    A valid ``+`` folder shows ``namespace <MATLAB name>``; any other folder
-    shows ``folder <path reference>``. ``@Class`` folders are documented
-    through their class. Sets the current folder like ``mat:currentfolder``.
+    """Description of a folder. The only folder of a namespace is shown as
+    ``namespace <MATLAB name>`` (``MATLABDomain.folder_name``); any other
+    folder as ``folder <path reference>``. The argument may also be the
+    MATLAB name of a namespace with one folder. ``@Class`` folders are
+    documented through their class. Sets the current folder like
+    ``mat:currentfolder``.
     """
 
-    option_spec = {
+    option_spec: ClassVar[OptionSpec] = {
         "platform": lambda x: x,
         "synopsis": lambda x: x,
         "noindex": directives.flag,
@@ -664,11 +663,10 @@ class MatFolder(MatObjectDirective):
         "deprecated": directives.flag,
     }
 
+    @override
     def handle_signature(self, sig, signode):
         dom = cast(MATLABDomain, self.env.get_domain("mat"))
-        ref = mat_types.folder_reference(
-            dom, sig, location=(self.env.docname, self.lineno)
-        )
+        ref = mat_types.folder_reference(dom, sig, location=self.get_location())
         if ref.rstrip("/").rpartition("/")[2].startswith("@"):
             logger.warning(
                 "[sphinxcontrib-matlabdomain] %s is a class folder; "
@@ -676,36 +674,32 @@ class MatFolder(MatObjectDirective):
                 ref,
                 type="mat",
                 subtype="directive",
-                location=(self.env.docname, self.lineno),
+                location=self.get_location(),
             )
             raise ValueError
-        entity = dom.entities_table.get(ref)
-        if entity is not None:
-            namespace = getattr(entity, "matlab_name", None)
-        elif ref != mat_naming.ROOT_REFERENCE:
-            namespace = mat_naming.folder_namespace(
-                ref.rstrip("/"),
-                mat_naming.default_namelengthmax(self.env.config.matlab_version),
-                self.env.config.matlab_version,
-            )
-        else:
-            namespace = None
-        kind, display = ("namespace", namespace) if namespace else ("folder", ref)
+        name = dom.folder_name(ref)
+        if name is None:
+            return self._signature(signode, ref, ref)
+        return self._signature(signode, ref, name, "namespace")
 
+    def _signature(self, signode, ref, display, kind=None):
         signode["module"] = ref
         signode["class"] = ""
         signode["fullname"] = display
-        signode += addnodes.desc_annotation(f"{kind} ", f"{kind} ")
+        kind = f"{kind or self.objtype} "
+        signode += addnodes.desc_annotation(kind, kind)
         signode += addnodes.desc_name(display, display)
         return ref, display
 
-    def get_index_text(self, folder, name_cls):  # noqa: ARG002
+    @override
+    def get_index_text(self, folder, name_cls):
         ref, display = name_cls
         if display == ref:
             return translation("%s (folder)") % display
         return translation("%s (namespace)") % display
 
-    def add_target_and_index(self, name_cls, sig, signode):  # noqa: ARG002 - required by Sphinx API
+    @override
+    def add_target_and_index(self, name_cls, sig, signode):
         ref, display = name_cls
         target_id = mat_naming.make_target_id(ref)
         if target_id not in self.state.document.ids:
@@ -713,8 +707,9 @@ class MatFolder(MatObjectDirective):
             signode["ids"].append(target_id)
             signode["first"] = not self.names
             self.state.document.note_explicit_target(signode)
-        # Like the former module directive, a folder may be described on
-        # several pages without a duplicate warning; the last one wins.
+        # Like the former module directive, a folder or namespace may be
+        # described on several pages without a duplicate warning; the last
+        # one wins.
         dom = cast(MATLABDomain, self.env.get_domain("mat"))
         dom.note_object(
             ref,
@@ -729,19 +724,56 @@ class MatFolder(MatObjectDirective):
         entry = ("single", self.get_index_text(ref, name_cls), target_id, "", None)
         self.indexnode["entries"].append(entry)
 
+    @override
     def run(self):
         result = super().run()
         if self.names:
             folder = self.names[0][0]
         else:
             folder = mat_types.folder_reference(
-                self.env.get_domain("mat"), self.arguments[0]
+                self.env.get_domain("mat"),
+                self.arguments[0],
+                location=self.get_location(),
             )
         self.env.temp_data["mat:folder"] = folder
         return result
 
 
-class MatCurrentFolder(Directive):
+class MatNamespace(MatFolder):
+    """Description of a namespace, shown as ``namespace <MATLAB name>``: one
+    object, however many ``+`` folders have the name. The argument is the
+    MATLAB name. Relative names resolve in the namespace until the next
+    folder or namespace directive.
+    """
+
+    @override
+    def handle_signature(self, sig, signode):
+        dom = cast(MATLABDomain, self.env.get_domain("mat"))
+        namespace = mat_types.find_namespace(dom, sig)
+        if namespace is None:
+            mat_types.warn_not_namespace(sig.strip(), self.get_location())
+            raise ValueError
+        return self._signature(signode, namespace.ref, namespace.matlab_name)
+
+    @override
+    def get_index_text(self, folder, name_cls):
+        return translation("%s (namespace)") % name_cls[1]
+
+    @override
+    def before_content(self):
+        super().before_content()
+        if self.names:
+            self.env.temp_data["mat:objfolder"] = self.names[0][0]
+
+    @override
+    def run(self):
+        result = ObjectDescription.run(self)
+        # the current namespace (a namespace reference), or none
+        self.env.temp_data["mat:folder"] = self.names[0][0] if self.names else None
+        return result
+
+
+class MatCurrentFolder(SphinxDirective):
     """Set the current folder for relative references without documenting it.
 
     ``None`` clears it; ``.`` is the project root.
@@ -751,16 +783,16 @@ class MatCurrentFolder(Directive):
     required_arguments = 1
     optional_arguments = 0
     final_argument_whitespace = True
-    option_spec = {}
+    option_spec: ClassVar[OptionSpec] = {}
 
+    @override
     def run(self):
-        env = self.state.document.settings.env
         folder = self.arguments[0].strip()
-        env.temp_data["mat:folder"] = (
+        self.env.temp_data["mat:folder"] = (
             None
             if folder == "None"
             else mat_types.folder_reference(
-                env.get_domain("mat"), folder, location=(env.docname, self.lineno)
+                self.env.get_domain("mat"), folder, location=self.get_location()
             )
         )
         return []
@@ -781,9 +813,24 @@ def _short_title(title):
 
 
 class MatXRefRole(XRefRole):
+    """The roles of the MATLAB domain (``mat:func``, ``mat:class``, ...): they record
+    the current folder and class, which the reference is resolved from.
+    """
+
+    def help_folder(self):
+        """Return the folder of the code file whose help text the role is
+        written in (for an inherited member, the folder of the base), or None
+        outside help text.
+        """
+        ref = mat_sidecars.help_reference(self.get_source_info()[0])
+        return None if ref is None else mat_naming.folder_of(ref)
+
+    @override
     def process_link(self, env, refnode, has_explicit_title, title, target):
-        refnode["mat:folder"] = env.temp_data.get("mat:objfolder") or env.temp_data.get(
-            "mat:folder"
+        refnode["mat:folder"] = (
+            self.help_folder()
+            or env.temp_data.get("mat:objfolder")
+            or env.temp_data.get("mat:folder")
         )
         cls = env.temp_data.get("mat:class")
         refnode["mat:class"] = cls[0] if cls else None
@@ -811,6 +858,7 @@ class MATLABFolderIndex(Index):
     localname = translation("MATLAB Folder Index")
     shortname = translation("folder index")
 
+    @override
     def generate(self, docnames=None):
         content = {}
         objects = self.domain.data["objects"]
@@ -841,7 +889,7 @@ class MATLABDomain(Domain):
 
     name = "mat"
     label = "MATLAB"
-    object_types = {
+    object_types: ClassVar[dict[str, ObjType]] = {
         "function": ObjType(translation("function"), "func", "obj"),
         "data": ObjType(translation("data"), "data", "obj"),
         "class": ObjType(translation("class"), "class", "obj"),
@@ -850,15 +898,12 @@ class MATLABDomain(Domain):
         "attribute": ObjType(translation("attribute"), "attr", "obj"),
         "event": ObjType(translation("event"), "event", "obj"),
         "folder": ObjType(translation("folder"), "folder", "obj"),
+        "namespace": ObjType(translation("namespace"), "namespace", "obj"),
         "script": ObjType(translation("script"), "scpt", "obj"),
         "application": ObjType(translation("application"), "app", "obj"),
-        **{
-            objtype: ObjType(label, objtype, "obj")
-            for objtype, label in SIMULINK_LABELS.items()
-        },
     }
 
-    directives = {
+    directives: ClassVar[dict[str, type[Directive]]] = {
         "function": MatModulelevel,
         "data": MatModulelevel,
         "class": MatClasslike,
@@ -867,12 +912,12 @@ class MATLABDomain(Domain):
         "attribute": MatAttributelike,
         "event": MatClassmember,
         "folder": MatFolder,
+        "namespace": MatNamespace,
         "currentfolder": MatCurrentFolder,
         "script": MatModulelevel,
         "application": MatModulelevel,
-        **dict.fromkeys(SIMULINK_LABELS, MatSimulinkObject),
     }
-    roles = {
+    roles: ClassVar[dict[str, RoleFunction | XRefRole]] = {
         "data": MatXRefRole(),
         "func": MatXRefRole(fix_parens=True),
         "class": MatXRefRole(),
@@ -882,29 +927,36 @@ class MATLABDomain(Domain):
         "event": MatXRefRole(),
         "meth": MatXRefRole(fix_parens=True),
         "folder": MatXRefRole(),
+        "namespace": MatXRefRole(),
         "obj": MatXRefRole(),
         "scpt": MatXRefRole(),
         "app": MatXRefRole(),
-        **{objtype: MatXRefRole() for objtype in SIMULINK_LABELS},
         # A sidecar doc, by path reference; the text is its title.
         "sidecar": XRefRole(),
     }
-    initial_data = {
+    initial_data: ClassVar[dict[str, Any]] = {
         # Per-document registrations (cleared/merged by docname).
-        "objects": {},  # path reference -> docname, objtype, display name
-        "folders": {},  # folder reference -> docname, synopsis, platform, deprecated
+        # path reference (or namespace reference) -> docname, objtype,
+        # display name
+        "objects": {},
+        # folder or namespace reference -> docname, synopsis, platform,
+        # deprecated
+        "folders": {},
         "doc_sources": {},  # docname -> {source path: (mtime_ns, size)} it used
-        "sidecar_docs": {},  # docname -> {sidecar reference: title} it renders
+        # docname -> {sidecar reference: (title, id of its section)} it renders
+        "sidecar_docs": {},
         # docname -> [(sidecar reference, kind, target, line)]: broken relative
         # links and missing images in the sidecar docs it renders
         "sidecar_issues": {},
         # docname -> True: it has a reference to a MATLAB object
         "xref_docs": {},
-        # docname -> {reference: (line, objtype, display, folder)}: the objects
-        # and folders the document describes, from which "objects" and
-        # "folders" are derived (``reconcile``): the line of the directive on
-        # the page (None for a folder, which never warns as a duplicate) and,
-        # for a folder, its "folders" data (synopsis, platform, deprecated)
+        # docname -> {reference: (location, objtype, display, folder)}: the
+        # objects and folders the document describes, from which "objects" and
+        # "folders" are derived (``reconcile``): where a duplicate warning
+        # points, ``file:line`` of the directive a person wrote (None for a
+        # folder or namespace, which never warns as a duplicate) and,
+        # for a folder or namespace, its "folders" data (synopsis, platform,
+        # deprecated)
         "described": {},
         # Shared source state, rebuilt by ``mat_types.analyze`` each build;
         # files are parsed lazily (see ``mat_types``).
@@ -912,8 +964,6 @@ class MATLABDomain(Domain):
         #                 matlab_name, private, scope}
         "index": {},
         "sidecars": {},  # sidecar doc path -> {reference, mtime, size}
-        # Simulink documentation file path -> {reference, mtime, size}
-        "simulink_docs": {},
         "parse_cache": {},  # (path, mtime_ns, size) -> parsed MatObject
         "parse_warnings": {},  # (path, mtime_ns, size) -> parse-stage warnings
         "entities_table": {},  # path reference -> MatObject (files and folders)
@@ -929,8 +979,8 @@ class MATLABDomain(Domain):
     }
     # Bump when the layout of ``initial_data`` (the pickled domain data) or the
     # parsed objects it caches change, so Sphinx drops stale cached environments.
-    data_version = 30
-    indices = [
+    data_version = 36
+    indices: ClassVar[list[type[Index]]] = [
         MATLABFolderIndex,
     ]
 
@@ -938,7 +988,9 @@ class MATLABDomain(Domain):
         super().__init__(env)
         # display name -> references of documented objects (built lazily)
         self._displays = None
-        self._spaced: dict[str, str] = {}  # built with _displays
+        # namespace name -> references of the documented folders that have
+        # it (built with _displays)
+        self._folder_names: dict[str, list[str]] = {}
         # mat_urls.addresses (built lazily)
         self._stable_urls = None
         # sidecar reference -> the first document that renders it (built lazily)
@@ -973,6 +1025,8 @@ class MATLABDomain(Domain):
         self.text_cache = {}
         # files or folders were added, removed or changed type
         self.index_changed = False
+        # the namespace names of folders come from the index
+        self._displays = None
 
     def source_paths(self):
         """Path reference -> source path of every indexed file."""
@@ -991,10 +1045,12 @@ class MATLABDomain(Domain):
             }
         return self._sidecars
 
-    def note_sidecar(self, ref, title, issues):
-        """Record that the document being read renders the sidecar doc ``ref``."""
+    def note_sidecar(self, ref, title, anchor, issues):
+        """Record that the document being read renders the sidecar doc ``ref``
+        in the section with the id ``anchor`` ("" for none).
+        """
         docname = self.env.docname
-        self.data["sidecar_docs"].setdefault(docname, {})[ref] = title
+        self.data["sidecar_docs"].setdefault(docname, {})[ref] = (title, anchor)
         self.data["sidecar_issues"].setdefault(docname, []).extend(
             (ref, *issue) for issue in issues
         )
@@ -1013,16 +1069,22 @@ class MATLABDomain(Domain):
 
     @property
     def entities_table(self):
+        """Path reference -> parsed :class:`~sphinxcontrib.mat_types.MatObject` of the
+        files and folders parsed so far.
+        """
         return self.data["entities_table"]
 
     def note_object(self, name, objtype, display=None, location=None, folder=None):
         """Register a documented object (``name`` is its path reference); a
         folder description passes its ``folders`` data as ``folder``.
 
-        Warns on duplicates only when ``location`` is given, about the
-        description before it in a fresh build's reading order (sorted
-        documents) if that one is in this process or in a document not read
-        in this build; ``reconcile`` and ``check_consistency`` warn the rest.
+        ``location`` is where the description is written (``file:line``, see
+        ``MatObjectDirective.add_target_and_index``); the first one in a
+        document is kept. Warns on duplicates only when ``location`` is
+        given, about the description before it in a fresh build's reading
+        order (sorted documents) if this process read that one in this
+        build; ``check_consistency`` warns about one another process read,
+        ``reconcile`` about one not read in this build.
         """
         docname = self.env.docname
         display = display or name
@@ -1033,17 +1095,10 @@ class MATLABDomain(Domain):
         if location is not None and (old is None or old[0] is None):
             earlier = [d for d in pages.get(name, ()) if d < docname]
             other = max(earlier) if earlier else None
-            # A description in a document that another process read in this
-            # build (a parallel-read worker forked after another chunk was
-            # merged) is check_consistency's to warn about.
-            if other is not None and (
-                other in self.described_here or other not in self.read_docnames
-            ):
+            if other is not None and other in self.described_here:
                 self._warn_duplicate(name, other, location)
-        line = old[0] if old is not None and old[0] is not None else None
-        if line is None and location is not None:
-            line = location[1]
-        described[name] = (line, objtype, display, folder)
+        where = old[0] if old is not None and old[0] is not None else location
+        described[name] = (where, objtype, display, folder)
         pages.setdefault(name, set()).add(docname)
         self._touched.add(name)
         self.data["objects"][name] = (docname, objtype, display)
@@ -1064,8 +1119,10 @@ class MATLABDomain(Domain):
         """``env-updated``, after all reading and merging: each reference
         described or cleared in this build gets the entry of the last document
         that describes it in sorted order (a fresh build's reading order), or
-        none. Warns a document not read in this build about the one before it
-        that was read (a fresh build reads the later one later).
+        none. Warns each pair of neighbouring documents that describe it of
+        which this build read exactly one, at the later one about the earlier
+        one, as a fresh build does: every process sees the unread one, so
+        this is the one place that warns such a pair once.
         """
         touched, self._touched = self._touched, set()
         if not touched:
@@ -1081,9 +1138,9 @@ class MATLABDomain(Domain):
                 data["folders"].pop(ref, None)
                 continue
             for earlier, later in itertools.pairwise(docs):
-                line = described[later][ref][0]
-                if earlier in read and later not in read and line is not None:
-                    self._warn_duplicate(ref, earlier, (later, line))
+                where = described[later][ref][0]
+                if (earlier in read) != (later in read) and where is not None:
+                    self._warn_duplicate(ref, earlier, where)
             winner = docs[-1]
             _, objtype, display, _ = described[winner][ref]
             data["objects"][ref] = (winner, objtype, display)
@@ -1096,16 +1153,22 @@ class MATLABDomain(Domain):
         self._displays = self._stable_urls = None
 
     def _warn_duplicate(self, name, other, location):
+        """Warn at ``location`` that ``name`` is also described in the document
+        ``other``, naming where that description is written (``file:line``),
+        else the page.
+        """
+        written = self.data["described"][other][name][0]
         logger.warning(
             "[sphinxcontrib-matlabdomain] duplicate object description of %s, "
             "other instance in %s, use :no-index: for one of them",
             name,
-            self.env.doc2path(other),
+            written or self.env.doc2path(other),
             type="mat",
             subtype="duplicate",
             location=location,
         )
 
+    @override
     def clear_doc(self, docname):
         for ref, (fn, _, _) in list(self.data["objects"].items()):
             if fn == docname:
@@ -1128,6 +1191,7 @@ class MATLABDomain(Domain):
         self._displays = self._stable_urls = None
         self._sidecar_docs = None
 
+    @override
     def process_doc(self, env, docname, document):
         if slugs := document.get("matlab_sidecar_slugs"):
             metadata = env.metadata[docname]
@@ -1138,6 +1202,7 @@ class MATLABDomain(Domain):
         ):
             self.data["xref_docs"][docname] = True
 
+    @override
     def merge_domaindata(self, docnames, otherdata):
         # Merge per-document registrations from a parallel-read worker, and
         # the files it parsed, so the next build need not parse them again.
@@ -1185,15 +1250,14 @@ class MATLABDomain(Domain):
         self._displays = self._stable_urls = None
         self._sidecar_docs = None
 
+    @override
     def check_consistency(self):
         # Duplicates that parallel-read workers could not see: as a serial
         # build does, each description warns about the one before it in
-        # sorted order, at the line of its directive, where the two were read
-        # in different chunks; a worker warned the pairs within its chunk
-        # (chunks are runs of sorted documents). Known difference from serial:
-        # in an incremental -j build, an unchanged page that describes the
-        # object is in every worker's data, so two changed pages in different
-        # chunks both warn about it (one warning more than serial).
+        # sorted order, at the location of its directive, where the two were
+        # read in different chunks; a worker warned the pairs within its chunk
+        # (chunks are runs of sorted documents); reconcile warns the pairs
+        # with a document not read in this build.
         chunks = self._chunks
         self._chunks = {}
         self._chunk_count = 0
@@ -1204,50 +1268,110 @@ class MATLABDomain(Domain):
         pages = self._pages()
         for ref in sorted(refs):
             for earlier, later in itertools.pairwise(sorted(pages[ref])):
-                line = described[later][ref][0]
+                where = described[later][ref][0]
                 if (
-                    line is not None
+                    where is not None
                     and earlier in chunks
                     and later in chunks
                     and chunks[earlier] != chunks[later]
                 ):
-                    self._warn_duplicate(ref, earlier, (later, line))
+                    self._warn_duplicate(ref, earlier, where)
 
     def _by_display(self, name):
         if self._displays is None:
             self._displays = {}
-            # a block with a line break in its name, by its reference with
-            # spaces; the first of those that collapse to one form (in sorted
-            # order) has it
-            self._spaced = {}
+            self._folder_names = {}
             # by reference: the merge order of a parallel read does not matter
-            for ref, (_, _, display) in sorted(self.data["objects"].items()):
+            for ref, (_, objtype, display) in sorted(self.data["objects"].items()):
                 self._displays.setdefault(display, []).append(ref)
-            for ref in sorted(self.data["objects"]):
-                if mat_naming.has_line_break(ref):
-                    self._spaced.setdefault(mat_naming.collapse_space(ref), ref)
+                entity = self.entities_table.get(ref) if objtype == "folder" else None
+                if namespace := getattr(entity, "matlab_name", None):
+                    self._folder_names.setdefault(namespace, []).append(ref)
         return self._displays.get(name, [])
-
-    def _documented(self, ref):
-        """Return the documented reference ``ref`` names: itself, or the block
-        it names with spaces for line breaks (as a role's target writes it).
-        """
-        if ref in self.data["objects"]:
-            return ref
-        self._by_display("")
-        return self._spaced.get(ref, ref)
 
     def _scope(self, reference):
         # Folder a documented object's MATLAB name is visible from.
         return mat_types.source_scope(self, reference)
 
+    def folder_name(self, ref):
+        """Return the MATLAB name the folder ``ref`` is shown by: its
+        namespace's, when no other indexed folder has that name; else None.
+        A folder the index does not have keeps the name its path forms.
+        """
+        entity = self.entities_table.get(ref)
+        if entity is None:
+            if ref == mat_naming.ROOT_REFERENCE:
+                return None
+            version = self.env.config.matlab_version
+            return mat_naming.folder_namespace(
+                ref.rstrip("/"), mat_naming.default_namelengthmax(version), version
+            )
+        name = getattr(entity, "matlab_name", None)
+        folders = [r for r in self.data["matlab_names"].get(name, ()) if r[-1:] == "/"]
+        return name if len(folders) == 1 else None
+
+    def object_name(self, ref):
+        """Return the MATLAB name of the documented object ``ref``, or None:
+        its display name, or, for a folder shown by its path, the name of its
+        namespace (which other folders have too).
+        """
+        _, objtype, display = self.data["objects"][ref]
+        if display != ref:
+            return display
+        if objtype == "folder":
+            return getattr(self.entities_table.get(ref), "matlab_name", None)
+        return None
+
+    def without_own_folders(self, refs):
+        """Return ``refs`` without the folders of a namespace object among
+        them: the name of a described namespace is the namespace's.
+        """
+        objects = self.data["objects"]
+        names = {objects[r][2] for r in refs if objects[r][1] == "namespace"}
+        return [
+            r
+            for r in refs
+            if not (objects[r][1] == "folder" and self.object_name(r) in names)
+        ]
+
+    def _steps(self, folder, cls, name):
+        """Return the steps of ``find_obj``: (candidates, first only) pairs."""
+        objects = self.data["objects"]
+        namespace = mat_naming.namespace_name(folder) if folder else None
+        if namespace is not None:
+            folder = None
+        exact = [name]
+        if cls:
+            exact.append(f"{cls}.{name}")
+        if folder:
+            exact.append(mat_naming.join_reference(folder, name))
+        # Exact references are tried in order.
+        steps = [([r for r in exact if r in objects], True)]
+        if namespace is not None:
+            steps.append((self._by_display(f"{namespace}.{name}"), False))
+        if folder:
+            steps.append(
+                ([r for r in self._by_display(name) if self._scope(r) == folder], False)
+            )
+        for refs in (self._by_display(name), self._folder_names.get(name, ())):
+            public = [r for r in refs if not mat_naming.is_private_reference(r)]
+            steps.append((public, False))
+        if not name.endswith("/"):
+            folders = [f"{name}/"]
+            if folder:
+                folders.append(f"{mat_naming.join_reference(folder, name)}/")
+            steps.append(([r for r in folders if r in objects], True))
+        return steps
+
     def find_obj(self, folder, cls, name, type, searchmode=0):
-        """Find documented objects for ``name`` (plan.md Section 2.3).
+        """Find documented objects for ``name``.
 
         1. exact path reference; 2. relative to the class ``cls`` and the
         folder ``folder`` (a path below it or a MATLAB name visible from it,
-        including its ``private/``); 3. a MATLAB name, excluding private
-        files; 4. a folder path without its trailing ``/``. With
+        including its ``private/``), or, when ``folder`` is a namespace
+        reference, a MATLAB name in that namespace; 3. a MATLAB name,
+        excluding private files, then a ``+`` folder by the MATLAB name of
+        its namespace; 4. a folder path without its trailing ``/``. With
         ``searchmode`` 1 (``.name``), a non-private MATLAB-name suffix as last
         resort. Return a list of (reference, object entry) tuples; several
         entries mean the name is ambiguous.
@@ -1264,40 +1388,15 @@ class MATLABDomain(Domain):
 
         if name == ".":
             name = mat_naming.ROOT_REFERENCE
-        exact = [name]
-        if cls:
-            exact.append(f"{cls}.{name}")
-        if folder:
-            exact.append(mat_naming.join_reference(folder, name))
-        exact = [self._documented(r) for r in exact]
-        # (candidates, first only): exact references are tried in order.
-        steps = [([r for r in exact if r in objects], True)]
-        if folder:
-            steps.append(
-                ([r for r in self._by_display(name) if self._scope(r) == folder], False)
-            )
-        steps.append(
-            (
-                [
-                    r
-                    for r in self._by_display(name)
-                    if not mat_naming.is_private_reference(r)
-                ],
-                False,
-            )
-        )
-        if not name.endswith("/"):
-            folders = [f"{name}/"]
-            if folder:
-                folders.append(f"{mat_naming.join_reference(folder, name)}/")
-            steps.append(([r for r in folders if r in objects], True))
+        steps = self._steps(folder, cls, name)
         # Objects of the role's type first (``:class:`C``` inside class C is the
         # class, not its constructor), then any type.
         for typed in (True, False) if objtypes is not None else (False,):
             for refs, first_only in steps:
                 if typed:
                     refs = [r for r in refs if objects[r][1] in objtypes]
-                refs = list(dict.fromkeys(refs))[: 1 if first_only else None]
+                refs = self.without_own_folders(dict.fromkeys(refs))
+                refs = refs[: 1 if first_only else None]
                 if refs:
                     return [(r, objects[r]) for r in refs]
         if searchmode == 1:
@@ -1312,7 +1411,7 @@ class MATLABDomain(Domain):
 
     def _refnode(self, builder, fromdocname, ref, entry, contnode):
         docname, objtype, title = entry
-        if objtype == "folder" and ref in self.data["folders"]:
+        if objtype in ("folder", "namespace") and ref in self.data["folders"]:
             _, synopsis, platform, deprecated = self.data["folders"][ref]
             if synopsis:
                 title += f": {synopsis}"
@@ -1329,6 +1428,7 @@ class MATLABDomain(Domain):
             title,
         )
 
+    @override
     def resolve_xref(self, env, fromdocname, builder, type, target, node, contnode):
         if type == "sidecar":
             return self._resolve_sidecar(
@@ -1351,31 +1451,37 @@ class MATLABDomain(Domain):
         return self._refnode(builder, fromdocname, ref, entry, contnode)
 
     def _resolve_sidecar(self, env, fromdocname, builder, target, node, contnode):
-        # A link to a sidecar doc goes to the document that renders it; without
-        # text of its own it shows the sidecar doc's title.
+        # A link to a sidecar doc goes to the document that renders it, or in
+        # that document to its section; without text of its own it shows the
+        # sidecar doc's title.
         ref = unicodedata.normalize("NFC", target)
         docname = self.sidecar_doc(ref)
         if docname is None:
             return None
+        title, section = self.data["sidecar_docs"][docname][ref]
         if not node.get("refexplicit"):
-            title = self.data["sidecar_docs"][docname][ref]
             contnode = nodes.inline(title, title, classes=contnode["classes"])
         # A Markdown heading's slug (myst_heading_anchors) names its section.
         anchor = node.get("reftargetid") or ""
         slugs = env.metadata.get(docname, {}).get("myst_slugs", {})
         if anchor in slugs:
             anchor = slugs[anchor][1]
+        if not anchor and docname == fromdocname:
+            anchor = section
         return make_refnode(builder, fromdocname, docname, anchor, contnode)
 
     def _shadowed(self, matches):
         """Return True for objects of one MATLAB name that the project accepts
         (``matlab_link_shadowed_files_to_chooser_pages``).
         """
+        names = {self.object_name(ref) for ref, _ in matches}
         return (
             self.env.config.matlab_link_shadowed_files_to_chooser_pages
-            and len({entry[2] for _, entry in matches}) == 1
+            and len(names) == 1
+            and None not in names
         )
 
+    @override
     def get_full_qualified_name(self, node):
         """Return the path reference of an intersphinx target that is a MATLAB
         name, or None.
@@ -1387,6 +1493,10 @@ class MATLABDomain(Domain):
         (``:external+lib:`` or ``lib:``) or else in any inventory. Several,
         also the same reference in several inventories: a ``mat.ambiguous``
         warning, and the target stays unlinked.
+
+        Intersphinx looks a reference returned for ``lib:name`` up in every
+        inventory, so for that form this returns None and notes ``lib``:
+        intersphinx then tries ``name`` in ``lib``, and calls this again.
         """
         from sphinx.ext.intersphinx import InventoryAdapter
 
@@ -1394,28 +1504,17 @@ class MATLABDomain(Domain):
             return None
         inventories = InventoryAdapter(self.env).named_inventory
         target = unicodedata.normalize("NFC", node["reftarget"]).removesuffix("()")
-        named = node.get("inventory")
+        named = node.get("inventory") or node.get("mat:inventory")
         prefix, colon, rest = target.partition(":")
         if named is None and colon and prefix in inventories:
+            if "intersphinx" not in node:  # an :external: role is not tried again
+                node["mat:inventory"] = prefix
+                return None
             named, target = prefix, rest
         names = [named] if named is not None else sorted(inventories)
         role = node["reftype"]
         objtypes = self.object_types if role == "any" else self.objtypes_for_role(role)
-        found = {}
-        for name in names:
-            for objtype in objtypes or ():
-                for ref, item in inventories[name].get(f"mat:{objtype}", {}).items():
-                    # Sphinx < 8.2: (project, version, uri, display name)
-                    display = getattr(item, "display_name", None) or item[3]
-                    # ``ref == target``: a chooser page's entry
-                    if (
-                        display != target
-                        or ref == target
-                        or mat_naming.is_private_reference(ref)
-                    ):
-                        continue
-                    label = f"{name}:{ref}" if len(names) > 1 else ref
-                    found.setdefault((name, ref), label)
+        found = _named_in_inventories(inventories, names, objtypes or (), target)
         if len(found) > 1:
             node["mat:ambiguous"] = True
             # One site's duplicates: its chooser page, if it has one, was
@@ -1429,35 +1528,20 @@ class MATLABDomain(Domain):
             return None
         return next(iter(found), (None, None))[1]
 
-    def inventory_name(self, ref):
-        """Return the name of ``ref`` in ``objects.inv``, or None when it has
-        none. That is ``ref``, but with spaces for the line breaks of a block's
-        name (one line of the file per entry): the form a role's target has.
-        When that form is another object's reference or the form of an earlier
-        block, the block has no entry.
-        """
-        if not mat_naming.has_line_break(ref):
-            return ref
-        name = mat_naming.collapse_space(ref)
-        return name if self._documented(name) == ref else None
-
+    @override
     def get_objects(self):
         for ref, (docname, objtype, display) in self.data["objects"].items():
-            name = self.inventory_name(ref)
-            if name is None:
-                continue
-            if mat_naming.has_line_break(display):
-                display = mat_naming.collapse_space(display)
             yield (
-                name,
+                ref,
                 display,
                 objtype,
                 docname,
                 mat_naming.make_target_id(ref),
-                0 if objtype == "folder" else 1,
+                0 if objtype in ("folder", "namespace") else 1,
             )
 
-    def resolve_any_xref(self, env, fromdocname, builder, target, node, contnode):  # noqa: ARG002 - required by Sphinx API
+    @override
+    def resolve_any_xref(self, env, fromdocname, builder, target, node, contnode):
         searchmode = (node.hasattr("refspecific") and 1) or 0
         matches = self.find_obj(
             node.get("mat:folder"), node.get("mat:class"), target, None, searchmode
@@ -1480,19 +1564,54 @@ class MATLABDomain(Domain):
 
 
 def analyze(app):
+    """``builder-inited``: index the project's sources (``mat_types.analyze``)."""
     mat_types.analyze(app)
 
 
-def check_config_names(app, config):  # noqa: ARG001
+def check_config_names(_app, config):
+    """``config-inited``: ConfigError for a ``matlab_*`` name in ``conf.py`` that
+    this version does not have.
+    """
     # vars(config): names another extension set earlier (sphinx-multiproject).
     names = {*config._raw_config, *vars(config)}
     mat_types.check_config_names(names, config._options)
 
 
+def _warn_config(problems):
+    for problem in problems:
+        logger.warning(
+            "[sphinxcontrib-matlabdomain] %s", problem, type="mat", subtype="config"
+        )
+
+
 def ensure_configuration(app, config):
+    """``config-inited``: ConfigError for a bad ``matlab_*`` value that every
+    builder uses (``mat_config.check_values``) or source settings that do
+    not fit the files (``mat_config.check_sources``); one warning for each
+    bad value that only ``scmd apidoc`` uses.
+    """
+    run = frozenset({mat_config.PAGES})
+    problems = mat_config.check_values(config, run, mat_config.START_VALUES)
     mat_config.check_sources(config, app.srcdir)
-    if config.matlab_auto_link not in (None, "basic", "all"):
-        raise ConfigError("matlab_auto_link must be None, 'basic', or 'all'.")
+    _warn_config(problems)
+
+
+def check_builder_configuration(app):
+    """``builder-inited``, before the index stage: the same for the values of
+    HTML builds and of ``matlab-api-check``, which the builder decides; the
+    api-check builder reads its selection file.
+    """
+    run = {mat_config.PAGES}
+    if mat_urls.writes_html_pages(app.builder):
+        run.add(mat_config.HTML)
+    api_check = isinstance(app.builder, mat_api_check.MatlabApiCheckBuilder)
+    if api_check:
+        run.add(mat_config.API_CHECK)
+    _warn_config(
+        mat_config.check_values(app.config, frozenset(run), mat_config.BUILDER_VALUES)
+    )
+    if api_check:
+        app.builder.selection = mat_api_check.selected_files(app.config)
 
 
 def _get_version():
@@ -1504,7 +1623,7 @@ def _get_version():
         return "0.0.0"
 
 
-def reconcile_objects(app, env):  # noqa: ARG001
+def reconcile_objects(_app, env):
     """``env-updated`` (main process, before the environment is pickled and
     before ``env-get-updated``): derive "objects" and "folders" of the
     references described or cleared in this build (``MATLABDomain.reconcile``).
@@ -1513,14 +1632,16 @@ def reconcile_objects(app, env):  # noqa: ARG001
 
 
 def setup(app):
+    """Register the MATLAB domain, its directives, documenters, builders, config values
+    and event handlers with Sphinx.
+    """
     # The mat:auto* directives read autodoc's config values.
     app.setup_extension("sphinx.ext.autodoc")
     app.connect("config-inited", check_config_names)
     app.connect("config-inited", ensure_configuration)
-    app.connect("config-inited", check_external_names)
+    app.connect("config-inited", mat_directives.check_inherited_members)
     app.connect("config-inited", mat_sidecars.check_config)
-    app.connect("config-inited", mat_api_check.check_config)
-    app.connect("config-inited", simulink_linker.check_config)
+    app.connect("builder-inited", check_builder_configuration)
     app.connect("builder-inited", analyze)
     app.connect("env-get-outdated", mat_types.outdated_docs)
     app.connect("env-before-read-docs", mat_types.note_read_docs)
@@ -1536,7 +1657,6 @@ def setup(app):
     app.connect("env-get-outdated", mat_urls.note_pages)
     app.connect("env-get-updated", mat_urls.pages_to_write)
     app.connect("build-finished", mat_urls.write_redirects)
-    app.connect("build-finished", simulink_linker.write_settings)
 
     app.add_domain(MATLABDomain)
     app.add_builder(mat_api_check.MatlabApiCheckBuilder)
@@ -1545,6 +1665,11 @@ def setup(app):
     app.registry.add_documenter("mat:folder", doc.MatFolderDocumenter)
     app.add_directive_to_domain(
         "mat", "autofolder", mat_directives.MatlabAutodocDirective
+    )
+
+    app.registry.add_documenter("mat:namespace", doc.MatNamespaceDocumenter)
+    app.add_directive_to_domain(
+        "mat", "autonamespace", mat_directives.MatlabAutodocDirective
     )
 
     app.registry.add_documenter("mat:function", doc.MatFunctionDocumenter)
@@ -1592,13 +1717,8 @@ def setup(app):
         "mat", "autoapplication", mat_directives.MatlabAutodocDirective
     )
 
-    for documenter in doc.SIMULINK_DOCUMENTERS:
-        app.registry.add_documenter(f"mat:{documenter.objtype}", documenter)
-        app.add_directive_to_domain(
-            "mat", f"auto{documenter.objtype}", mat_directives.MatlabAutodocDirective
-        )
-
     app.add_autodoc_attrgetter(mat_types.MatModule, mat_types.MatModule.getter)
+    app.add_autodoc_attrgetter(mat_types.MatNamespace, mat_types.MatNamespace.getter)
     app.add_autodoc_attrgetter(doc.MatClass, doc.MatClass.getter)
     app.add_directive_to_domain("mat", "autosidecar", mat_sidecars.AutoSidecar)
 

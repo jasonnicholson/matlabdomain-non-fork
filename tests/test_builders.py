@@ -1,18 +1,16 @@
 """Every builder finishes a small project without an exception or a warning,
-and the HTML-format builders leave redirects that lead somewhere (G4-T10).
+and the HTML-format builders leave redirects that lead somewhere.
 
 The project sets what a builder needs to be quiet (``version``, ``copyright``,
 ``man_pages``), so a warning here is the extension's.
 """
 
-import shutil
 from pathlib import Path
 from typing import Any, cast
 
 import pytest
 from sphinx.util.inventory import InventoryFile
 
-SLX = Path(__file__).parent / "simulink" / "fixtures" / "R2026b" / "slx"
 BUILDERS = (
     "html",
     "dirhtml",
@@ -84,8 +82,6 @@ Tiny
 
 .. mat:autoclass:: Box
    :members:
-
-.. mat:autosimulink_model:: probeModel
 """
 
 
@@ -93,7 +89,6 @@ def tiny_project(tmp_path):
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "scale.m").write_text(FUNCTION)
     (tmp_path / "src" / "Box.m").write_text(CLASS)
-    shutil.copyfile(SLX / "probeModel.slx", tmp_path / "src" / "probeModel.slx")
     (tmp_path / "conf.py").write_text(CONF)
     (tmp_path / "index.rst").write_text(INDEX)
     return tmp_path
@@ -120,7 +115,7 @@ def test_builder_finishes_a_tiny_project_without_warning(make_app, tmp_path, bui
 def test_builders_without_html_pages_get_no_stable_addresses(
     make_app, tmp_path, builder
 ):
-    """Stable addresses are for builders that write ``.html`` pages (G4-F9)."""
+    """Stable addresses are for builders that write ``.html`` pages."""
     app, status, warnings = build(make_app, tiny_project(tmp_path), builder)
     out = Path(app.outdir)
     suffix = {"json": ".fjson", "pickle": ".fpickle"}[builder]

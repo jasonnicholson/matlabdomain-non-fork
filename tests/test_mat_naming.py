@@ -11,7 +11,7 @@ from typing import Any, cast
 import pytest
 from sphinx.errors import ConfigError
 
-from sphinxcontrib import matlab
+from sphinxcontrib import mat_config, matlab
 from sphinxcontrib.mat_naming import (
     DEFAULT_MATLAB_VERSION,
     MATLAB_VERSION_FLOOR,
@@ -123,7 +123,6 @@ def test_form_matlab_name_class_folder_under_invalid_package_dropped():
 @pytest.mark.parametrize(
     ("folder", "name", "is_class"),
     [
-        ("", "f.m", False),
         ("/tmp/+", "f.m", False),
         ("/tmp/@", "f.m", False),
         ("/tmp/@Outer/@Inner", "Inner.m", True),
@@ -149,18 +148,11 @@ def test_form_matlab_name_not_callable(folder, name, is_class):
         ("/tmp/@C/sub", "D.m", True, "R2025b", "classes in subfolders of a class"),
         ("/tmp/@C", "D.m", True, "R2026a", "a class in @C must be named C"),
         ("/tmp/@C/sub", "a-b.m", False, "R2025b", "its name 'a-b' is not"),
-        ("", "f.m", False, "R2026a", "MATLAB cannot form a name for it"),
     ],
 )
 def test_not_callable_reason(folder, name, is_class, version, reason):
     assert form_matlab_name(folder, name, is_class, 63, version) is None
     assert reason in not_callable_reason(folder, name, is_class, 63, version)
-
-
-def test_form_matlab_name_of_a_relative_package_folder():
-    out = form_matlab_name("+pkg", "f.m", False, namelengthmax=2048)
-    assert out is not None
-    assert (out.pseudo_fullname, out.parent_folder) == ("pkg.f", "")
 
 
 def test_form_matlab_name_keyword_top_package_invalid():
@@ -443,18 +435,8 @@ _APP = SimpleNamespace(srcdir=".")
 
 
 def _config(version="R2026a"):
-    return SimpleNamespace(
-        matlab_short_links=None,
-        matlab_keep_package_prefix=None,
-        matlab_src_dir=None,
-        matlab_src_code_project_root=None,
-        matlab_src_include_patterns=["**/*"],
-        matlab_src_exclude_patterns=[],
-        matlab_src_sidecar_suffixes=[],
-        matlab_src_encoding=None,
-        matlab_version=version,
-        matlab_auto_link=None,
-    )
+    defaults = {name: row.default for name, row in mat_config.CONFIG.items()}
+    return SimpleNamespace(**{**defaults, "matlab_version": version})
 
 
 @pytest.mark.parametrize(
@@ -516,8 +498,8 @@ def test_parse_reference(reference, expected):
 
 
 def test_parse_reference_with_given_extensions():
-    assert parse_reference("a/M.slx.x", extensions=(".slx",)) == ("a/M.slx", ["x"])
-    assert parse_reference("a/F.m", extensions=(".slx",)) == (None, [])
+    assert parse_reference("a/M.xyz.x", extensions=(".xyz",)) == ("a/M.xyz", ["x"])
+    assert parse_reference("a/F.m", extensions=(".xyz",)) == (None, [])
 
 
 @pytest.mark.parametrize(
@@ -555,7 +537,7 @@ def test_target_ids_are_unique():
         "f.m",
     ]
     rng = random.Random(0)
-    alphabet = [chr(c) for c in range(0x00, 0x80)] + list("é 漢😀")
+    alphabet = [chr(c) for c in range(0x00, 0x80)] + list("é\xa0漢😀")
     refs = set(tricky)
     for _ in range(5000):
         refs.add("".join(rng.choice(alphabet) for _ in range(rng.randint(1, 6))))

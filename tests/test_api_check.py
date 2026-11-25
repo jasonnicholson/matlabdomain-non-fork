@@ -1,6 +1,7 @@
-"""The matlab-api-check builder (plan.md Section 2.9, Phase 9)."""
+"""The matlab-api-check builder."""
 
 import json
+import re
 import shutil
 import zipfile
 from pathlib import Path
@@ -14,7 +15,6 @@ from sphinxcontrib import mat_api_check
 from sphinxcontrib.mat_types import MatObject
 
 ROOT = Path(__file__).parent / "roots" / "test_api_check"
-SIMULINK = Path(__file__).parent / "simulink" / "fixtures" / "R2026b" / "slx"
 BUILDER = "matlab-api-check"
 ALL_RULES = mat_api_check.RULES
 
@@ -134,7 +134,6 @@ def test_root_findings(make_app, root):
         "hidden": 1,
         "unreadable": 0,
         "not_parsed": 0,
-        "simulink_files": 0,
     }
     assert summary["rules"] == mat_api_check.DEFAULT_RULES
     assert "selection" not in summary
@@ -156,8 +155,7 @@ def test_root_findings(make_app, root):
     assert lines[39:42] == [
         "Checked: 11 functions, 2 classes, 8 methods, 1 properties, 0 events, "
         "2 scripts, 0 apps, 0 sidecars",
-        "Not checked: 2 ignored, 1 hidden, 0 unreadable, 0 not parsed, "
-        "0 simulink files",
+        "Not checked: 2 ignored, 1 hidden, 0 unreadable, 0 not parsed",
         "Findings: 17 errors, 21 warnings",
     ]
     assert lines[-5:] == [
@@ -203,39 +201,81 @@ def test_severities(make_app, root, rules, status, expected):
         assert logged == count
 
 
-@pytest.mark.parametrize(
-    ("setting", "match"),
-    [
-        ('matlab_api_check_rules = ["inputs"]', "must be a dict"),
-        ('matlab_api_check_rules = {"input": "error"}', "unknown rule 'input'"),
-        ('matlab_api_check_rules = {"inputs": "fatal"}', "severity of 'inputs'"),
-        ('matlab_api_check_ignore_patterns = "tests/**"', "must be a list"),
-        ('matlab_api_check_ignore_patterns = ["/abs/**"]', "must be relative"),
-        (r'matlab_api_check_ignore_patterns = ["a\\b.m"]', "must use '/'"),
-        ("matlab_api_check_files = 3", "must be None, a list"),
-        ('matlab_api_check_files = ["/abs.m"]', "must be relative"),
-        ('matlab_api_check_files = ["../x.m"]', "leaves matlab_src_code_project_root"),
-        (r'matlab_api_check_files = ["a\\b.m"]', "must use '/'"),
-        ('matlab_api_check_files = ["good.m", ""]', "is not a glob pattern"),
-    ],
-    ids=[
-        "not-dict",
-        "unknown-rule",
-        "severity",
-        "patterns-str",
-        "absolute",
-        "backslash",
-        "files-type",
-        "files-absolute",
-        "files-outside",
-        "files-backslash",
-        "files-empty-entry",
-    ],
-)
+CONFIG_ERRORS = [
+    ('matlab_api_check_rules = ["inputs"]', "must be a dict"),
+    ('matlab_api_check_rules = {"input": "error"}', "unknown rule 'input'"),
+    ('matlab_api_check_rules = {"inputs": "fatal"}', "severity of 'inputs'"),
+    ('matlab_api_check_ignore_patterns = "tests/**"', "must be a list"),
+    ('matlab_api_check_ignore_patterns = ["/abs/**"]', "must be relative"),
+    (r'matlab_api_check_ignore_patterns = ["a\\b.m"]', "must use '/'"),
+    ("matlab_api_check_files = 3", "must be None, a list"),
+    ('matlab_api_check_files = ["/abs.m"]', "must be relative"),
+    ('matlab_api_check_files = ["../x.m"]', "leaves matlab_src_code_project_root"),
+    (r'matlab_api_check_files = ["a\\b.m"]', "must use '/'"),
+    ('matlab_api_check_files = ["good.m", ""]', "is not a glob pattern"),
+]
+CONFIG_ERROR_IDS = [
+    "not-dict",
+    "unknown-rule",
+    "severity",
+    "patterns-str",
+    "absolute",
+    "backslash",
+    "files-type",
+    "files-absolute",
+    "files-outside",
+    "files-backslash",
+    "files-empty-entry",
+]
+
+
+@pytest.mark.parametrize(("setting", "match"), CONFIG_ERRORS, ids=CONFIG_ERROR_IDS)
 def test_config_errors(make_app, root, setting, match):
     conf = root / "conf.py"
     conf.write_text(f"{conf.read_text()}{setting}\n")
     with pytest.raises(ConfigError, match=match):
+        make_app(BUILDER, srcdir=root)
+
+
+@pytest.mark.parametrize(("setting", "match"), CONFIG_ERRORS, ids=CONFIG_ERROR_IDS)
+def test_config_errors_warn_in_other_builders(make_app, root, setting, match):
+    """Another builder does not use the value: one warning, and it goes on.
+    A wrong type that Sphinx checks is left to Sphinx's own warning.
+    """
+    conf = root / "conf.py"
+    conf.write_text(f"{conf.read_text()}{setting}\n")
+    app = make_app("html", srcdir=root)
+    name = setting.split()[0]
+    text = re.sub(r"\x1b\[[0-9;]*m", "", app.warning.getvalue())
+    warnings = [line for line in text.splitlines() if name in line]
+    assert len(warnings) == 1
+    if match in {"must be a dict", "must be a list"}:  # a wrong type
+        assert f"The config value `{name}' has type" in warnings[0]
+        return
+    assert re.search(match, warnings[0])
+    assert warnings[0].endswith(
+        "It is used only by the matlab-api-check builder; this build ignores it. "
+        "[mat.config]"
+    )
+
+
+def test_a_selection_file_is_read_only_by_the_check(make_app, root):
+    conf = root / "conf.py"
+    conf.write_text(f'{conf.read_text()}matlab_api_check_files_from = "missing.txt"\n')
+    app = make_app("html", srcdir=root)
+    assert "missing.txt" not in app.warning.getvalue()
+
+
+def test_ignore_unmatched_is_true_or_false(make_app, root):
+    """A string is no longer True: a failing selection cannot pass by it."""
+    conf = root / "conf.py"
+    conf.write_text(
+        f"{conf.read_text()}matlab_api_check_files = ['deleted.m']\n"
+        "matlab_api_check_ignore_unmatched = 'no'\n"
+    )
+    with pytest.raises(
+        ConfigError, match=r"^matlab_api_check_ignore_unmatched must be bool, not 'no'"
+    ):
         make_app(BUILDER, srcdir=root)
 
 
@@ -566,19 +606,18 @@ CONF = (
 BROKEN = "classdef {name}\n% {name} HELP\nmethods\nfunction obj = {name}()\nend\n"
 
 
-def test_simulink_files_pass_through(make_app, tmp_path):
+def test_files_not_of_their_type_warn_once(make_app, tmp_path, odd_files):
     (tmp_path / "conf.py").write_text(CONF)
     (tmp_path / "index.rst").write_text("Index\n=====\n")
-    for name in ("probeModel", "probeLib"):
-        shutil.copyfile(SIMULINK / f"{name}.slx", tmp_path / f"{name}.slx")
-    (tmp_path / "lfs.slx").write_text(
-        "version https://git-lfs.github.com/spec/v1\noid sha256:00\nsize 1\n"
-    )
+    (tmp_path / "empty.odd").write_bytes(b"")
+    (tmp_path / "text.odd").write_text("not an odd file\n")
     app = build(make_app, tmp_path)
-    assert findings(app) == set()
-    not_checked = report(app)["summary"]["not_checked"]
-    assert not_checked["simulink_files"] == 2
-    assert not_checked["not_parsed"] == 1
+    warnings = app.warning.getvalue()
+    for name in ("empty.odd", "text.odd"):
+        assert warnings.count(name) == 1, warnings
+    assert "documented without content" not in warnings
+    assert "text.odd is not an odd file." in warnings
+    assert report(app)["summary"]["not_checked"]["not_parsed"] == 2
 
 
 def test_apps_failed_parses_and_parse_warnings(make_app, tmp_path):
@@ -740,15 +779,13 @@ def test_selected_file_members(make_app, root):
         "hidden": 0,
         "unreadable": 0,
         "not_parsed": 0,
-        "simulink_files": 0,
         "not_selected": 15,
     }
     assert text_lines(app)[-15:-12] == [
         "Selected: 3 of 18 files by 3 entries, 0 matching no file",
         "Checked: 1 functions, 1 classes, 7 methods, 1 properties, 0 events, "
         "0 scripts, 0 apps, 0 sidecars",
-        "Not checked: 1 ignored, 0 hidden, 0 unreadable, 0 not parsed, "
-        "0 simulink files, 15 not selected",
+        "Not checked: 1 ignored, 0 hidden, 0 unreadable, 0 not parsed, 15 not selected",
     ]
 
 
@@ -766,7 +803,6 @@ def test_selected_files_exclusions(make_app, root):
         "hidden": 1,
         "unreadable": 0,
         "not_parsed": 0,
-        "simulink_files": 0,
         "not_selected": 16,
     }
     assert summary["selection"]["unmatched"] == []
@@ -932,6 +968,10 @@ def test_selected_sidecars(make_app, tmp_path):
     assert summary["checked"]["sidecar"] == 1
     assert summary["not_checked"]["not_selected"] == 2
     assert summary["selection"]["selected"] == 1
+    # The files of the Selected line are the indexed files and sidecar docs.
+    assert "Selected: 1 of 3 files by 1 entries, 0 matching no file" in (
+        text_lines(app)
+    )
 
 
 # --- selection from a file, unmatched entries ---------------------------------
@@ -1176,14 +1216,12 @@ def test_example_label(make_app, tmp_path):
 
 
 def test_section_label_values():
-    config = SimpleNamespace(
-        matlab_api_check_section_labels={
-            "inputs": ["Eingaben", "  Zwei   Worte ", "EINGABEN", "<Built-In>"],
-            "example": ("Beispiel",),
-            "name-value": [],
-        }
-    )
-    assert mat_api_check.section_labels(config) == (
+    value = {
+        "inputs": ["Eingaben", "  Zwei   Worte ", "EINGABEN", "<Built-In>"],
+        "example": ("Beispiel",),
+        "name-value": [],
+    }
+    assert mat_api_check.section_labels(value) == (
         ("example", ("beispiel",)),
         ("inputs", ("<built-in>", "eingaben", "zwei worte")),
         ("name-value", ()),

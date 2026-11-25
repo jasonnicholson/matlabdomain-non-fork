@@ -1,4 +1,4 @@
-"""An incremental HTML build gives the same output as a clean one (G4-T3).
+"""An incremental HTML build gives the same output as a clean one.
 
 For each edit: a clean HTML build of a small project, the edit, an incremental
 HTML build into the same output and doctree folders, and a clean HTML build of
@@ -6,8 +6,8 @@ the edited project in fresh folders. The two output trees must be equal under
 ``snapshot``. The two-builder variant runs ``matlab-api-check`` and ``text``
 on the same doctree folder (other output folders) between the edit and the
 incremental HTML build, as the user guide allows for the API check. The three
-``*_after_another_builder`` tests show each cause of G4-T3 on the smallest
-project, with api-check alone (fixed by G4-F8: the HTML build that follows
+``*_after_another_builder`` tests show each cause of a difference on the smallest
+project, with api-check alone (the fix: the HTML build that follows
 another builder's reading writes every page once, and removes the pages of
 documents gone since its last build).
 
@@ -19,10 +19,8 @@ their size and get a new path and time.
 
 import json
 import os
-import re
 import shutil
 import time
-import zipfile
 from pathlib import Path
 from typing import Any, cast
 
@@ -34,7 +32,6 @@ from test_apidoc import FUNCTION
 from sphinxcontrib.matlab_apidoc import main as apidoc
 
 ROOT = Path(__file__).parent
-MODEL = ROOT / "simulink" / "fixtures" / "R2020a" / "slx" / "probeModel.slx"
 
 CONF = (
     'project = "Edits"\n'
@@ -53,7 +50,7 @@ PAGES = {
     "links.rst": "Links\n=====\n\n"
     ":mat:func:`alpha`, :mat:func:`beta`, :mat:func:`gamma`, "
     ":mat:obj:`thing`, :mat:obj:`mexed`, :mat:func:`manual`, "
-    ":mat:obj:`model`, :mat:folder:`lib/`, :mat:folder:`core/`, "
+    ":mat:folder:`lib/`, :mat:folder:`core/`, "
     ":mat:sidecar:`lib/notes.rst`, :mat:sidecar:`lib/guide.rst`.\n",
     "p1.rst": "P1\n==\n\n.. mat:function:: manual(x)\n\n   Manual.\n",
     "p2.rst": "P2\n==\n\nNothing yet.\n",
@@ -81,23 +78,6 @@ def _write(root, path, text):
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(text, encoding="utf-8")
     _touch(target)
-
-
-def _set_description(slx, text):
-    """Rewrite the model description in ``slx`` (a different size)."""
-    with zipfile.ZipFile(slx) as z:
-        items = [(i, z.read(i.filename)) for i in z.infolist()]
-    with zipfile.ZipFile(slx, "w", zipfile.ZIP_DEFLATED) as z:
-        for info, data in items:
-            if info.filename == "metadata/coreProperties.xml":
-                data = re.sub(
-                    rb"<dc:description>.*?</dc:description>",
-                    f"<dc:description>{text}</dc:description>".encode(),
-                    data,
-                    flags=re.DOTALL,
-                )
-            z.writestr(info, data)
-    _touch(slx)
 
 
 def _rename(root, old, new):
@@ -133,9 +113,6 @@ EDITS = {
     ),
     "add_sidecar": lambda r: _write(r, "src/lib/guide.rst", "Guide\n=====\n\nNew.\n"),
     "remove_sidecar": lambda r: _remove(r, "src/lib/notes.rst"),
-    "change_slx": lambda r: _set_description(
-        r / "src/model.slx", "A changed and longer description"
-    ),
 }
 
 # Edits applied to a project that already has the state the edit removes.
@@ -149,7 +126,6 @@ def make_project(root, setup=None):
         target = root / path
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(text, encoding="utf-8")
-    shutil.copyfile(MODEL, root / "src" / "model.slx")
     if setup:
         EDITS[setup](root)
     stamp = time.time_ns() - 60 * 10**9
@@ -369,7 +345,7 @@ def test_removed_api_page_after_another_builder(make_app, tmp_path, check):
     assert not (outdir / "api/two/index.html").exists()
 
 
-# What each build writes (G4-F8). A build that read nothing and whose output
+# What each build writes. A build that read nothing and whose output
 # is in step with the environment writes nothing; one that follows another
 # builder's reading writes every page once.
 

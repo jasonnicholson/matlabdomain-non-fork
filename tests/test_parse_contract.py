@@ -1,7 +1,4 @@
-"""Parse contract in a build: classify() types, divergence and empty-file warnings.
-
-plan.md Phase 4, Sections 2.5-2.7.
-"""
+"""Parse contract in a build: classify() types, divergence and empty-file warnings."""
 
 import os
 import time
@@ -171,7 +168,7 @@ def test_divergence_and_empty_file_warnings(make_app, tmp_path, monkeypatch):
 
 
 def test_divergence_of_an_unused_file_is_not_reported(make_app, tmp_path):
-    # Only a parse finds it, and nothing uses the files (plan.md Section 2.10).
+    # Only a parse finds it, and nothing uses the files.
     write_project(tmp_path, SOURCES, "Index\n=====\n")
     app = make_app(srcdir=tmp_path)
     app.build()
@@ -281,10 +278,11 @@ def test_special_files_are_indexed_but_hidden(make_app, tmp_path):
     assert "WARNING" not in app.warning.getvalue()
 
 
-# --- Docstring position (Section 2.7) -----------------------------------------
+# --- Docstring position -------------------------------------------------------
 
 # name: (file lines, {object: MATLAB R2026a ``help`` text or None}). Verified
-# with ``help`` on these exact files; HEAD before Phase 4 matched 12 of 29.
+# with ``help`` on these exact files; before the parser followed ``help``, it
+# matched 12 of 29.
 HELP_CASES = {
     "fBefore": (
         ["% fBefore LEAD", "% second line", "function fBefore", "x = 1;", "end"],

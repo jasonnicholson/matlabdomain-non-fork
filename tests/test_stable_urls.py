@@ -9,13 +9,29 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from sphinx.errors import ExtensionError
+from sphinx.errors import ConfigError
 from test_apidoc import FUNCTION, write
-from test_intersphinx import anchors, build_library, inventory, resolve, target
+from test_config import assert_configuration_error, sphinx_build
+from test_intersphinx import (
+    anchors,
+    build_library,
+    follow,
+    inventory,
+    resolve,
+    target,
+)
 
 from sphinxcontrib import mat_urls
 from sphinxcontrib.matlab_apidoc import main as apidoc
+from sphinxcontrib.matlab_apidoc._generate import MARKER
 
+#: the error for a file the build did not write where a stable address goes
+IN_THE_WAY = (
+    r"^matlab_stable_urls: '.+' is in the way of a file of the stable "
+    r"addresses, and the build does not overwrite a file it did not write\. "
+    r"Remove or rename it \(html_extra_path or html_static_path may copy it "
+    r"there\), or set matlab_stable_urls = False\.$"
+)
 CHOICE = re.compile(
     r'<a class="reference internal" href="([^"]*)"><code[^>]*>'
     r'<span class="pre">([^<]*)</span></code></a> \((\w+)\)'
@@ -98,12 +114,32 @@ def test_unowned_stable_output_is_not_overwritten(make_app, tmp_path, conflict):
     target_path = Path(app.outdir) / conflict
     target_path.parent.mkdir(parents=True, exist_ok=True)
     target_path.write_text("user-owned content", encoding="utf-8")
-    with pytest.raises(ExtensionError, match="unowned file"):
+    with pytest.raises(ConfigError, match=IN_THE_WAY):
         if conflict.startswith("_static/"):
             mat_urls.add_script(app)
         else:
             app.build()
     assert target_path.read_text(encoding="utf-8") == "user-owned content"
+
+
+def test_a_file_of_html_extra_path_in_the_way_stops_sphinx_build(tmp_path, capsys):
+    (tmp_path / "conf.py").write_text(
+        'extensions = ["sphinxcontrib.matlab"]\nmatlab_src_code_project_root = "."\n'
+        'html_extra_path = ["extra"]\n'
+    )
+    (tmp_path / "index.rst").write_text("Index\n=====\n\n.. mat:autofunction:: one\n")
+    (tmp_path / "one.m").write_text("function one\n% ONE Help.\nend\n")
+    write(tmp_path, {"extra/mat/ref/one.m.html": "user-owned content"})
+    out = tmp_path / "_build"
+    assert sphinx_build(["-q", str(tmp_path), str(out)]) == 2
+    err = capsys.readouterr().err
+    message = re.search(IN_THE_WAY[1:-1], err)
+    assert message is not None
+    path = re.match(r"matlab_stable_urls: '(.+?)' is in the way", message[0])
+    assert path is not None
+    assert path[1].replace("\\\\", "/").endswith("/_build/mat/ref/one.m.html")
+    assert_configuration_error(err, message[0])
+    assert (out / "mat/ref/one.m.html").read_text() == "user-owned content"
 
 
 def test_unowned_chooser_is_not_overwritten(make_app, tmp_path):
@@ -120,7 +156,7 @@ def test_unowned_chooser_is_not_overwritten(make_app, tmp_path):
     target_path = Path(app.outdir) / "mat/name/helper.html"
     target_path.parent.mkdir(parents=True, exist_ok=True)
     target_path.write_text("user-owned content", encoding="utf-8")
-    with pytest.raises(ExtensionError, match="unowned file"):
+    with pytest.raises(ConfigError, match=IN_THE_WAY):
         app.build()
     assert target_path.read_text(encoding="utf-8") == "user-owned content"
 
@@ -211,38 +247,17 @@ def test_script_that_cannot_be_written(tmp_path, monkeypatch):
     assert warnings == ["[sphinxcontrib-matlabdomain] cannot write %s: %s"]
 
 
-def test_legacy_files_without_js_marker_are_owned(tmp_path):
+def test_files_without_a_marker_are_not_ours(tmp_path):
     script = tmp_path / "_static" / mat_urls.SCRIPT
     script.parent.mkdir()
     first_line = mat_urls._JS.partition("\n")[0]
-    script.write_text(f"{first_line}\nolder body\n", encoding="utf-8")
-    assert mat_urls._is_ours(script)
-    script.write_text("user content", encoding="utf-8")
-    assert not mat_urls._is_ours(script)
+    for text in (f"{first_line}\nolder body\n", "user content"):
+        script.write_text(text, encoding="utf-8")
+        assert not mat_urls._is_ours(script)
     refs = tmp_path / mat_urls.REFS
     refs.parent.mkdir()
     refs.write_text('window.matStableRefs = {"a.m": ""};\n', encoding="utf-8")
-    assert mat_urls._is_ours(refs)
-    other = tmp_path / "refs.js"
-    other.write_text('window.matStableRefs = {"a.m": ""};\n', encoding="utf-8")
-    assert not mat_urls._is_ours(other)
-
-
-def test_rebuild_over_legacy_output(make_app, tmp_path):
-    (tmp_path / "conf.py").write_text(
-        'extensions = ["sphinxcontrib.matlab"]\nmatlab_src_code_project_root = "."\n'
-    )
-    (tmp_path / "index.rst").write_text("Index\n=====\n\n.. mat:autofunction:: one\n")
-    (tmp_path / "one.m").write_text("function one\n% ONE Help.\nend\n")
-    outdir = tmp_path / "_build" / "html"
-    (outdir / mat_urls.ROOT).mkdir(parents=True)
-    (outdir / mat_urls.REFS).write_text("window.matStableRefs = {};\n")
-    (outdir / "_static").mkdir()
-    first_line = mat_urls._JS.partition("\n")[0]
-    (outdir / "_static" / mat_urls.SCRIPT).write_text(f"{first_line}\nold\n")
-    app = make_app(srcdir=tmp_path, builddir=tmp_path / "_build")
-    app.build()
-    assert refs_map(Path(app.outdir)) == {"one.m": ""}
+    assert not mat_urls._is_ours(refs)
 
 
 def test_unowned_refs_fail_before_pages_are_written(make_app, tmp_path):
@@ -253,7 +268,7 @@ def test_unowned_refs_fail_before_pages_are_written(make_app, tmp_path):
     refs = tmp_path / "_build" / "html" / mat_urls.REFS
     refs.parent.mkdir(parents=True)
     refs.write_text("user-owned content", encoding="utf-8")
-    with pytest.raises(ExtensionError, match="unowned file"):
+    with pytest.raises(ConfigError, match=IN_THE_WAY):
         make_app(srcdir=tmp_path, builddir=tmp_path / "_build")
     assert refs.read_text(encoding="utf-8") == "user-owned content"
     assert not (refs.parents[1] / "index.html").exists()
@@ -440,6 +455,10 @@ def test_stale_pages_outside_or_at_the_source_folder(tmp_path):
     (sources / "a.rst.txt").write_text("", encoding="utf-8")
     key = ("html", "out")
     dom = SimpleNamespace(data={"api_pages": {key: {"a", "b"}}})
+    # a and b are pages of scmd apidoc, c is hand-written
+    write(
+        tmp_path / "src", {"a.rst": f"{MARKER}\n", "b.rst": f"{MARKER}\n", "c.rst": ""}
+    )
 
     def run(output_dir, found):
         builder = SimpleNamespace(
@@ -455,7 +474,9 @@ def test_stale_pages_outside_or_at_the_source_folder(tmp_path):
             html_sourcelink_suffix=".txt",
         )
         app = SimpleNamespace(
-            env=SimpleNamespace(found_docs=found),
+            env=SimpleNamespace(
+                found_docs=found, doc2path=lambda doc: tmp_path / "src" / f"{doc}.rst"
+            ),
             config=config,
             builder=builder,
             srcdir=tmp_path / "src",
@@ -466,8 +487,136 @@ def test_stale_pages_outside_or_at_the_source_folder(tmp_path):
     run("../out", {"a", "b"})
     assert removed.is_file()
     assert dom.data["api_pages"][key] == set()
-    run(".", {"a", "b"})  # the source folder itself: every document
+    run(".", {"a", "b", "c"})  # the source folder itself: every page of apidoc
     assert dom.data["api_pages"][key] == {"a", "b"}
     run(".", {"b"})
     assert list((tmp_path / "out").iterdir()) == []
     assert dom.data["api_pages"][key] == {"b"}
+
+
+UNINDEXED_FOLDERS = """\
+Index
+=====
+
+.. mat:folder:: mex/
+
+.. mat:currentfolder:: tools
+
+.. mat:function:: fastSolve
+
+.. mat:currentfolder:: None
+
+Links: :mat:folder:`mex/` :mat:func:`tools/fastSolve`
+"""
+
+
+@pytest.mark.parametrize("root", ['"."', None])
+def test_hand_written_folders_that_are_not_indexed(make_app, tmp_path, root):
+    # mat:folder describes a folder without reading it, like mat:function
+    # (documenting.rst, "Writing directives by hand"); mat:currentfolder sets
+    # the folder of the references after it. With or without an index, they
+    # get their anchors, inventory lines and stable addresses, with no warning.
+    conf = 'extensions = ["sphinxcontrib.matlab"]\n'
+    if root:
+        conf += f"matlab_src_code_project_root = {root}\n"
+        write(tmp_path, {"f.m": FUNCTION.format(name="f")})
+    write(tmp_path, {"conf.py": conf, "index.rst": UNINDEXED_FOLDERS})
+    app = make_app(srcdir=tmp_path)
+    app.build()
+    assert app.warning.getvalue() == ""
+    assert {
+        name: entry for name, entry in inventory(app.outdir).items() if "/" in name
+    } == {
+        "mex/": ("mat/ref/mex/index.html", "-"),
+        "tools/fastSolve": ("mat/ref/tools/fastSolve.html", "fastSolve"),
+    }
+    assert follow(app.outdir, "mat/ref/mex/index.html") == "index.html#mat-mex/"
+    assert follow(app.outdir, "mat/ref/tools/fastSolve.html") == (
+        "index.html#mat-tools/fastSolve"
+    )
+    html = (app.outdir / "index.html").read_text(encoding="utf-8")
+    assert 'href="#mat-mex/"' in html
+    assert 'href="#mat-tools/fastSolve"' in html
+
+
+def build_removed_pages(make_app, tmp_path, output_dir, remove=(), notes="notes"):
+    """Run ``scmd apidoc`` and an HTML build of a project with ``util/alpha.m``,
+    ``util/scale.m`` and ``util/zeta.m``, one API page each below ``output_dir``,
+    and the hand-written orphan page ``notes``, after removing ``remove``.
+    """
+    if not (tmp_path / "conf.py").exists():
+        write(
+            tmp_path,
+            {
+                "conf.py": 'extensions = ["sphinxcontrib.matlab"]\n'
+                'matlab_src_code_project_root = "src"\n'
+                f"matlab_apidoc_output_dir = {output_dir!r}\n"
+                'matlab_apidoc_group = "folder"\nmatlab_apidoc_page_size = 1\n',
+                f"{notes}.rst": ":orphan:\n\nNotes\n=====\n\nHand-written.\n",
+                **{
+                    f"src/util/{name}.m": FUNCTION.format(name=name)
+                    for name in ("alpha", "scale", "zeta")
+                },
+            },
+        )
+        if output_dir != ".":
+            write(
+                tmp_path,
+                {"index.rst": "Index\n=====\n\n.. toctree::\n\n   api/index\n"},
+            )
+    for name in remove:
+        (tmp_path / name).unlink()
+    assert apidoc(["-q", "-c", str(tmp_path)]) == 0
+    app = make_app(srcdir=tmp_path)
+    app.build()
+    app.cleanup()
+    return Path(app.outdir)
+
+
+@pytest.mark.parametrize(("output_dir", "api"), [("api", "api/"), (".", "")])
+def test_pages_of_sources_apidoc_removed_go(make_app, tmp_path, output_dir, api):
+    outdir = build_removed_pages(make_app, tmp_path, output_dir)
+    gone = [
+        f"{api}util/index-3.html",
+        f"_sources/{api}util/index-3.rst.txt",
+        "mat/ref/util/zeta.m.html",
+        "mat/name/zeta.html",
+    ]
+    stay = [
+        "index.html",
+        "notes.html",
+        "_sources/notes.rst.txt",
+        f"{api}util/index.html",
+        f"{api}util/index-2.html",
+        f"_sources/{api}util/index-2.rst.txt",
+        "mat/ref/util/scale.m.html",
+        "mat/name/scale.html",
+    ]
+    assert all((outdir / p).is_file() for p in gone + stay)
+    notes = (outdir / "notes.html").read_bytes()
+    outdir = build_removed_pages(
+        make_app, tmp_path, output_dir, remove=["src/util/zeta.m"]
+    )
+    assert not any((outdir / p).exists() for p in gone)
+    assert all((outdir / p).is_file() for p in stay)
+    assert (outdir / "notes.html").read_bytes() == notes
+    assert follow(outdir, "mat/ref/util/scale.m.html") == (
+        f"{api}util/index-2.html#mat-util/scale.m"
+    )
+
+
+@pytest.mark.parametrize(
+    ("output_dir", "notes"), [("api", "api/notes"), (".", "notes")]
+)
+def test_pages_of_removed_hand_written_sources_stay(
+    make_app, tmp_path, output_dir, notes
+):
+    # Next to the API pages, a hand-written page has no marker line: its
+    # pages stay when its source is removed, as Sphinx keeps them.
+    outdir = build_removed_pages(make_app, tmp_path, output_dir, notes=notes)
+    stay = [f"{notes}.html", f"_sources/{notes}.rst.txt"]
+    assert all((outdir / p).is_file() for p in stay)
+    outdir = build_removed_pages(
+        make_app, tmp_path, output_dir, remove=[f"{notes}.rst"], notes=notes
+    )
+    assert all((outdir / p).is_file() for p in stay)

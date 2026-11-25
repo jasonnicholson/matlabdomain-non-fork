@@ -1,9 +1,7 @@
-"""sphinxcontrib.matlab_quickstart._cli.
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+"""Command line of ``scmd quickstart``.
 
-Command line of ``scmd quickstart`` (plan.md Section 2.13): the
-prompts with detected defaults, the answers file, the dry run, the writes
-and the report.
+It runs the prompts with detected defaults, the answers file, the dry run,
+the writes and the report.
 """
 
 from __future__ import annotations
@@ -44,7 +42,6 @@ KEYS = (
     "matlab_version",
     "group",
     "theme",
-    "html_baseurl",
     "exclude",
     "markdown",
     "sidecars",
@@ -87,9 +84,7 @@ def get_parser(prog="scmd quickstart"):
             "It stops before writing anything when DOCS/conf.py exists (unless "
             "--force) or when pyproject.toml, .gitignore or .gitattributes have "
             "uncommitted changes. It never touches uv.lock, the project's MATLAB "
-            "code or CI, and never commits. For a project with Simulink files it "
-            "adds +sphinxcontrib/+matlabdomain/simulinkDocumentationLinker.m and "
-            "its settings to ROOT, for Help links to the documentation."
+            "code or CI, and never commits."
         ),
     )
     parser.add_argument(
@@ -139,14 +134,11 @@ def get_parser(prog="scmd quickstart"):
 
 
 def _section(entry):
-    if isinstance(entry, str):
-        return entry
-    if (
-        isinstance(entry, (list, tuple))
-        and len(entry) == 2
-        and all(isinstance(part, str) for part in entry)
-    ):
-        return tuple(entry)
+    match entry:
+        case str():
+            return entry
+        case [str() as heading, str() as style]:
+            return heading, style
     raise ValueError(
         f"{NAPOLEON} must be a list of headings and [heading, style] pairs, "
         f"not {entry!r}."
@@ -173,13 +165,6 @@ def check_answer(key, value):
         if not isinstance(value, list):
             raise ValueError(f"{key} must be a list, not {value!r}.")
         value = [_section(entry) for entry in value]
-    elif key == "html_baseurl":
-        if not isinstance(value, str):
-            raise ValueError(f"{key} must be a text, not {value!r}.")
-        if value and not value.startswith(("https://", "http://")):
-            raise ValueError(
-                f"{key} must start with https:// or http://, not {value!r}."
-            )
     else:
         if not isinstance(value, str) or not value.strip():
             raise ValueError(f"{key} must be a text, not {value!r}.")
@@ -374,12 +359,6 @@ def _ask(prompter, facts, root, docs):
     p.ask("matlab_version", "MATLAB release the code targets", facts["version"])
     p.ask("group", "API pages per namespace or per folder", "namespace")
     p.ask("theme", "HTML theme", "furo")
-    p.ask(
-        "html_baseurl",
-        "URL of the published site (blank: not published yet)",
-        "",
-        shown="none",
-    )
     exclude = p.ask(
         "exclude",
         "Folders and files not to document (patterns relative to ROOT, "
@@ -427,7 +406,8 @@ def _ask_napoleon(prompter, headings):
 
 def _guide_install(facts):
     install = facts["install"]
-    if install.kind == "editable":
+    local = f"{_detect.DISTRIBUTION} @ file:"
+    if install.kind == "editable" or install.requirement.startswith(local):
         return _detect.Install("version", _detect.DISTRIBUTION)
     return install
 
@@ -519,19 +499,6 @@ def _apply(args, root, docs, answers, facts, files, dirty):
     return commands, written
 
 
-def _write_linker(args, root, docs_rel, published):
-    """Write the function behind the Help links of the Simulink files."""
-    written = _write.write_files(
-        root, _write.linker_files(root, docs_rel, published), args.dry_run
-    )
-    verbs = (
-        ("Would create", "Would update") if args.dry_run else ("Creating", "Updating")
-    )
-    for verb, names in zip(verbs, (written.created, written.updated), strict=True):
-        for name in names:
-            print(f"{verb} file {name} (Help links of the Simulink files).")
-
-
 def run(args):
     """Run the command for ``args``; return the exit status, or Stop."""
     start = time.perf_counter()
@@ -547,9 +514,7 @@ def run(args):
     facts = _facts(root)
     candidates = _ask(prompter, facts, root, docs)
     answers = prompter.answers
-    linker = os.path.join(root, *_write.LINKER_FOLDER.split("/"), f"{_write.LINKER}.m")
-    tools = [_write.LINKER_EXCLUDE] if os.path.isfile(linker) else []
-    exclude = pattern_list([*facts["exclude"], *answers["exclude"], *tools], "exclude")
+    exclude = pattern_list([*facts["exclude"], *answers["exclude"]], "exclude")
     settings = IndexSettings(
         root=root,
         exclude=tuple(exclude),
@@ -558,9 +523,9 @@ def run(args):
         source_dir=docs,
     )
     with _sphinx_warnings(sys.stderr) as warnings:
-        source_index = build_index(settings)
+        # As scmd apidoc: the generator says that it leaves the file out.
+        source_index = build_index(settings, warn_unreadable=False)
         found = _detect.survey(source_index)
-        simulink = bool(tools) or _detect.has_simulink(source_index)
         headings = _detect.napoleon_headings(found)
         _ask_napoleon(prompter, headings)
         path = facts["path"]
@@ -575,14 +540,11 @@ def run(args):
             "gitmodules": f"{rel_root}/.gitmodules",
             "suggestions": suggestions,
             "path_source": path.source if path else "",
-            "linker_exclude": _write.LINKER_EXCLUDE if simulink else "",
             # A contributor's guide names no folder of this machine.
             "install": "\n".join(_write.pip_lines(answers, _guide_install(facts))),
         }
         files = _write.render(answers, context)
         commands, written = _apply(args, root, docs, answers, facts, files, dirty)
-        if simulink:
-            _write_linker(args, root, docs_rel, answers["html_baseurl"])
         result = generate(
             source_index,
             ApidocOptions(
@@ -623,11 +585,18 @@ def run(args):
 
 
 def save_answers(args, root, answers):
-    """Offer to save the answers (default yes in a dry run)."""
-    if not prompt("Save the answers to a file", args.dry_run, yes_no):
+    """Offer to save the answers (default yes in a dry run). The end of
+    input (CI: nothing to read) is no.
+    """
+    default = os.path.abspath(args.answers or os.path.join(root, ANSWERS_FILE))
+    try:
+        if not prompt("Save the answers to a file", args.dry_run, yes_no):
+            return
+        reply = input(f"> File [{default}]: ").strip()
+    except EOFError:
+        print()
         return
-    default = args.answers or os.path.join(root, ANSWERS_FILE)
-    path = input(f"> File [{default}]: ").strip() or default
+    path = os.path.join(root, reply) if reply else default
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write(dumps(answers))
     print(f"Saved the answers: --answers {path} reads them back.")

@@ -2,10 +2,12 @@
 
 import os
 import re
+from typing import Any, cast
 
 import pytest
 from docutils import nodes
 from sphinx import addnodes
+from sphinx.util import console
 
 from sphinxcontrib import mat_types
 
@@ -103,6 +105,12 @@ def build(make_app, tmp_path, page, files=FILES, verbosity=0, **confoverrides):
     return app
 
 
+def located_warnings(app):
+    """Return the warnings without colors, locations below the source folder."""
+    text = cast(Any, console).strip_escape_sequences(app.warning.getvalue())
+    return text.replace(str(app.srcdir) + os.sep, "")
+
+
 def page(*directives):
     return "Index\n=====\n\n" + "\n".join(directives)
 
@@ -168,7 +176,13 @@ def test_explicit_members(make_app, tmp_path):
         page(".. mat:autoclass:: Access\n   :members: pub, priv, nothing\n"),
     )
     assert set(documented(app, "Access.m.")) == {"pub", "priv"}
-    assert "missing attribute nothing in object Access.m" in app.warning.getvalue()
+    # once, not once per member section, where the directive is written
+    warnings = located_warnings(app)
+    assert warnings.count("missing attribute nothing in object Access.m") == 1
+    assert (
+        "index.rst:4: WARNING: [sphinxcontrib-matlabdomain] missing attribute "
+        "nothing in object Access.m [mat.not_found]" in warnings
+    )
 
 
 def test_member_order(make_app, tmp_path):
@@ -182,6 +196,25 @@ def test_member_order(make_app, tmp_path):
     # Static methods before ordinary ones.
     assert orders["groupwise"] == ["Access", "pub", "make", "zMeth"]
     assert orders["bysource"] == ["Access", "pub", "zMeth", "make"]
+
+
+@pytest.mark.parametrize(
+    "directive",
+    ["mat:autoclass:: Access", "mat:autofolder:: sub", "mat:autonamespace:: ns"],
+)
+def test_an_unknown_member_order_is_an_error(make_app, tmp_path, directive):
+    # As in Sphinx's autodoc: the directive reports the value and does nothing.
+    files = {**FILES, "+ns/h.m": "function h\n% H HELP\nend\n"}
+    text = f".. {directive}\n   :members:\n   :member-order: sideways\n"
+    app = build(make_app, tmp_path, page(text), files=files)
+    warnings = located_warnings(app)
+    name = directive.partition("::")[0]
+    assert (
+        f"index.rst:4: ERROR: [sphinxcontrib-matlabdomain] An option to {name} is "
+        'either unknown or has an invalid value: (option: "member-order"; '
+        "value: 'sideways')\ninvalid value for member-order option: sideways\n"
+    ) in warnings
+    assert documented(app) == []
 
 
 def signatures(app):
@@ -351,25 +384,32 @@ def test_folder_options(make_app, tmp_path):
             ".. mat:autofolder:: sub\n   :synopsis: the sub folder\n   :platform: any\n"
             "   :deprecated:\n   :no-index:\n",
             ".. mat:autofolder:: sub(x)\n",
-            ".. mat:autofolder:: sub\n   :members: g, nothing\n",
+            ".. mat:autofolder:: sub\n   :members: g, nothing, __all__, __file__, "
+            "__path__, __package__\n",
             ".. mat:autofolder:: Access.pub\n",
         ),
     )
-    warnings = app.warning.getvalue()
+    warnings = located_warnings(app)
+    # each where its directive is written
     assert (
-        "signature arguments or return annotation given for autofolder sub/" in warnings
+        "index.rst:10: WARNING: [sphinxcontrib-matlabdomain] signature arguments "
+        "or return annotation given for autofolder sub/ [mat.directive]" in warnings
     )
-    assert (
-        "missing attribute mentioned in :members: or __all__: folder sub, "
-        "attribute nothing" in warnings
-    )
+    # Python's module attributes are no members of a folder either
+    for name in ("nothing", "__all__", "__file__", "__path__", "__package__"):
+        assert (
+            "index.rst:12: WARNING: [sphinxcontrib-matlabdomain] missing attribute "
+            f"mentioned in :members: or __all__: folder sub, attribute {name} "
+            "[mat.not_found]" in warnings
+        )
     assert "don't know which object to document for 'Access.pub'" in warnings
     assert documented(app, "sub/") == ["", "g.m"]
 
 
 def test_option_lists(make_app, tmp_path):
-    # :no-index: everywhere; folders take the class member options; options of
-    # Python's autodoc that do nothing for MATLAB are errors.
+    # :no-index: everywhere; folders take the class member options (also
+    # :inherited-members:); options of Python's autodoc that do nothing for
+    # MATLAB are errors.
     app = build(
         make_app,
         tmp_path,
@@ -379,7 +419,7 @@ def test_option_lists(make_app, tmp_path):
             ".. mat:folder:: sub\n   :no-index:\n",
             ".. mat:autofolder:: .\n   :members: Access\n   :protected-members:\n"
             "   :no-index:\n",
-            ".. mat:autofolder:: sub\n   :inherited-members:\n",
+            ".. mat:autofolder:: sub\n   :inherited-members:\n   :no-index:\n",
             ".. mat:autodata:: consts\n   :annotation: x\n",
             ".. mat:autofunction:: fnone\n   :no-index-entry:\n",
         ),
@@ -389,9 +429,9 @@ def test_option_lists(make_app, tmp_path):
     assert domain.data["folders"] == {}
     assert "protected property" in html(app)
     errors = app.warning.getvalue()
-    for directive in ("mat:autofolder", "mat:autodata", "mat:autofunction"):
+    for directive in ("mat:autodata", "mat:autofunction"):
         assert f"An option to {directive} is either unknown" in errors
-    assert errors.count("is either unknown") == 3
+    assert errors.count("is either unknown") == 2
 
 
 def test_more_content(make_app, tmp_path):

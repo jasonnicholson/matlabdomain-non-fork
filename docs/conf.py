@@ -1,14 +1,16 @@
-#
-# Configuration file for the Sphinx documentation builder.
-#
-# This file does only contain a selection of the most common options. For a
-# full list see the documentation:
-# http://www.sphinx-doc.org/en/stable/config
+"""Sphinx configuration of the sphinxcontrib-matlabdomain documentation.
+
+The docs use the extension itself: the user guide renders the sample project
+in ``docs/src``. The Sphinx options are listed at
+https://www.sphinx-doc.org/en/master/usage/configuration.html.
+"""
 
 # -- Path setup --------------------------------------------------------------
 
 import importlib
+import re
 import sys
+import tomllib
 from pathlib import Path
 
 # _ext/ holds extensions of these docs only, not part of the package.
@@ -32,6 +34,44 @@ version = ""
 release = ""
 
 
+# -- Tested versions ---------------------------------------------------------
+
+# The pages state the tested range as |python-tested| and |sphinx-tested|.
+# Python: the classifiers, which tests/test_tested_versions.py keeps equal to
+# the CI matrix. Sphinx: the dependency's floor to the newest Sphinx in
+# uv.lock.
+_root = Path(__file__).parent.parent
+_project = tomllib.loads((_root / "pyproject.toml").read_text(encoding="utf-8"))
+_lock = tomllib.loads((_root / "uv.lock").read_text(encoding="utf-8"))
+
+
+def _version(text):
+    return tuple(int(part) for part in text.split("."))
+
+
+_python = sorted(
+    (
+        c.rsplit(" :: ", 1)[1]
+        for c in _project["project"]["classifiers"]
+        if re.fullmatch(r"Programming Language :: Python :: 3\.\d+", c)
+    ),
+    key=_version,
+)
+_sphinx_floor = next(
+    d.removeprefix("Sphinx>=")
+    for d in _project["project"]["dependencies"]
+    if d.startswith("Sphinx>=")
+)
+_sphinx_newest = max(
+    (p["version"] for p in _lock["package"] if p["name"] == "sphinx"), key=_version
+)
+_sphinx = [".".join(v.split(".")[:2]) for v in (_sphinx_floor, _sphinx_newest)]
+rst_epilog = f"""
+.. |python-tested| replace:: {_python[0]} to {_python[-1]}
+.. |sphinx-tested| replace:: {_sphinx[0]} to {_sphinx[1]}
+"""
+
+
 # -- General configuration ---------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -46,6 +86,7 @@ extensions = [
     "sphinxcontrib.matlab",
     "sphinx.ext.napoleon",
     "sphinxcontrib.mermaid",
+    "myst_parser",
     # Hover tips for links to glossary terms.
     "glossary_tips",
 ]
@@ -55,6 +96,9 @@ matlab_src_code_project_root = "src"
 # extension adds them to exclude_patterns.
 matlab_src_sidecar_suffixes = [".rst"]
 matlab_auto_link = "basic"
+# The user guide shows :inherited-members: on a class (user-guide/documenting);
+# the option documents nothing unless this is on.
+matlab_inherited_members = True
 primary_domain = "mat"
 nitpicky = True
 # MathWorks answers link checkers with 403 Forbidden.
@@ -67,7 +111,10 @@ templates_path = ["_templates"]
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-source_suffix = {".rst": "restructuredtext"}
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+}
 
 # The master toctree document.
 master_doc = "index"
@@ -83,7 +130,20 @@ language = "en"
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path .
 # snippets/ holds reST that pages both show and include.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "snippets"]
+# blog/posts/**/demo/ holds runnable examples that are not pages.
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "snippets",
+    "blog/**/demo/**",
+    "blog/README.md",
+]
+
+# -- MyST (Markdown pages, used by blog posts) ------------------------------
+
+myst_enable_extensions = ["colon_fence", "deflist"]
+myst_heading_anchors = 3
 
 
 # -- Options for HTML output -------------------------------------------------

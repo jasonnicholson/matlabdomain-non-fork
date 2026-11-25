@@ -1,8 +1,8 @@
 """Unified command line for sphinxcontrib-matlabdomain."""
 
 import argparse
-import os
 import sys
+from pathlib import Path
 
 from .matlab_apidoc import _cli as apidoc
 from .matlab_quickstart import _cli as quickstart
@@ -16,7 +16,12 @@ COMMANDS = {
 
 
 def main(argv=None):
-    prog = os.path.basename(sys.argv[0]) if argv is None else "scmd"
+    """Run ``scmd <command> ...`` (``apidoc``, ``quickstart`` or ``skills``) with the
+    arguments ``argv`` (default: the command line); return the exit code.
+    """
+    prog = "scmd"
+    if argv is None and Path(sys.argv[0]).stem == "sphinxcontrib-matlabdomain":
+        prog = "sphinxcontrib-matlabdomain"
     parser = argparse.ArgumentParser(prog=prog, allow_abbrev=False)
     parser.add_argument(
         "-V", "--version", action="version", version=f"%(prog)s {apidoc._version()}"

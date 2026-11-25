@@ -1,4 +1,4 @@
-"""The documentation in ``docs/`` (plan.md Phase 10): it builds without
+"""The documentation in ``docs/``: it builds without
 warnings, and its reference pages list every configuration value, directive,
 directive option, role, warning and command-line option, and nothing else.
 """
@@ -6,6 +6,8 @@ directive option, role, warning and command-line option, and nothing else.
 import json
 import re
 import shutil
+import subprocess
+import sys
 import tomllib
 from pathlib import Path
 
@@ -64,16 +66,25 @@ def bare_app(make_app, tmp_path):
 
 
 def test_docs_build_without_warnings(make_app, tmp_path):
-    # The docs include files from examples/apidoc.
+    # The docs include files from examples/apidoc, and read the tested
+    # versions from pyproject.toml and uv.lock.
     for folder in ("docs", "examples/apidoc"):
         shutil.copytree(
             REPO / folder, tmp_path / folder, ignore=shutil.ignore_patterns("_build")
         )
+    for name in ("pyproject.toml", "uv.lock"):
+        shutil.copyfile(REPO / name, tmp_path / name)
     app = make_app(srcdir=tmp_path / "docs", freshenv=True)
     app.build(force_all=True)
     assert app.config.nitpicky
     assert app.warning.getvalue() == ""
     output = Path(app.outdir)
+    installation = (output / "getting-started/installation.html").read_text(
+        encoding="utf-8"
+    )
+    # The sentence as text: "Sphinx" in it is a glossary link.
+    text = re.sub(r"<[^>]+>", "", installation)
+    assert f"Tested: Python {version_range()}." in text
     primer = (output / "getting-started/sphinx-primer.html").read_text(encoding="utf-8")
     assert 'href="../reference/glossary.html#term-builder"' in primer
     for name in (
@@ -89,6 +100,31 @@ def test_docs_build_without_warnings(make_app, tmp_path):
     tips = glossary_tips(output)
     assert "The part of Sphinx" in tips["reference/glossary.html#term-builder"]
     assert not (output / "_static/tippy").exists()
+
+
+def version_range():
+    """``"3.11 to 3.15 and Sphinx 8.0 to 9.2"`` from pyproject.toml and uv.lock."""
+    project = tomllib.loads((REPO / "pyproject.toml").read_text(encoding="utf-8"))
+    lock = tomllib.loads((REPO / "uv.lock").read_text(encoding="utf-8"))
+    python = sorted(
+        int(m[1])
+        for c in project["project"]["classifiers"]
+        if (m := re.fullmatch(r"Programming Language :: Python :: 3\.(\d+)", c))
+    )
+    (floor,) = (
+        d.removeprefix("Sphinx>=")
+        for d in project["project"]["dependencies"]
+        if d.startswith("Sphinx>=")
+    )
+    newest = max(
+        tuple(map(int, p["version"].split(".")))
+        for p in lock["package"]
+        if p["name"] == "sphinx"
+    )
+    return (
+        f"3.{python[0]} to 3.{python[-1]} and Sphinx "
+        f"{'.'.join(floor.split('.')[:2])} to {newest[0]}.{newest[1]}"
+    )
 
 
 def glossary_tips(output):
@@ -177,6 +213,16 @@ def test_warnings():
     assert entries(r"^\s+\* - ``mat\.(\w+)``$", "warnings.rst") == subtypes
 
 
+def test_class_sections():
+    # mat:autoclass names the sections of a class's members, in their order.
+    code = (SOURCE / "mat_documenters.py").read_text(encoding="utf-8")
+    sections = re.findall(r'document_member_section\(\s*"([^"]+)"', code)
+    text = (REFERENCE / "directives.rst").read_text(encoding="utf-8")
+    intro = text.split(".. rst:directive:: .. mat:autoclass::")[1].split(".. rst:")[0]
+    sentence = " ".join(intro.split()).split("follow in the sections ")[1]
+    assert re.findall(r'"([^"]+)"', sentence.split(".")[0]) == sections
+
+
 def program_options(program):
     """Return the ``.. option::`` names after ``.. program:: <program>``."""
     text = (REFERENCE / "cli.rst").read_text(encoding="utf-8")
@@ -253,6 +299,28 @@ def test_repository_configuration():
     documented = re.findall(r"^``([^`]+)``$", section, re.MULTILINE)
     assert len(documented) == len(set(documented)), "duplicate config entries"
     assert set(documented) == repository_configuration(REPO)
+
+
+def test_quiet_run_stays_strict(tmp_path):
+    # testing.rst's quiet run empties addopts; an unknown marker still fails.
+    test = tmp_path / "test_marker.py"
+    test.write_text("import pytest\n\n\n@pytest.mark.nosuch\ndef test_x():\n    pass\n")
+    command = [
+        sys.executable,
+        "-m",
+        "pytest",
+        "-q",
+        "-o",
+        "addopts=",
+        "-p",
+        "no:randomly",
+    ]
+    config = ["-c", str(REPO / "pyproject.toml"), "-p", "no:cacheprovider"]
+    result = subprocess.run(
+        [*command, *config, str(test)], capture_output=True, text=True, check=False
+    )
+    assert result.returncode != 0, result.stdout
+    assert "'nosuch' not found in `markers` configuration option" in result.stdout
 
 
 def test_ruff_hook_matches_dev_pin():

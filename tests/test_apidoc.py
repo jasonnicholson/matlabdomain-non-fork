@@ -1,9 +1,10 @@
 """scmd apidoc: output names, pages, templates, writing, the CLI and
-builds of its output (plan.md Section 2.8, Phase 7).
+builds of its output.
 """
 
 import importlib.metadata
 import os
+import re
 import runpy
 import shutil
 import subprocess
@@ -75,7 +76,6 @@ ENTRY_KEYS = {
     "ref",
     "kind",
     "directive",
-    "argument",
     "options",
     "title",
     "display",
@@ -854,6 +854,21 @@ def _case_insensitive(folder):
         probe.unlink()
 
 
+@pytest.fixture
+def case_insensitive(tmp_path, monkeypatch, condition):
+    """Give ``tmp_path`` a case-insensitive file system: the real one, or, with
+    ``--simulate-platforms`` on a system that keeps case apart, one where two
+    names that differ only by case count as one file.
+    """
+    needs = "a case-insensitive file system"
+    if condition(needs, _case_insensitive(tmp_path)) == "simulated":
+        monkeypatch.setattr(
+            _generate,
+            "_same_file",
+            lambda a, b: os.path.exists(a) and a.casefold() == b.casefold(),
+        )
+
+
 def test_case_only_renames_reach_the_output(tmp_path):
     # Pages of an earlier run, from sources whose names differed only by case.
     out = tmp_path / "out"
@@ -868,9 +883,8 @@ def test_case_only_renames_reach_the_output(tmp_path):
         assert sorted(result.removed) == ["ALPHA/NM_shared.m.rst", "ALPHA/index.rst"]
 
 
+@pytest.mark.usefixtures("case_insensitive")
 def test_dry_run_does_not_rename(tmp_path):
-    if not _case_insensitive(tmp_path):
-        pytest.skip("needs a case-insensitive file system")
     out = tmp_path / "out"
     run(ROOT, out, ("separate", True))
     (out / "alpha").rename(out / "ALPHA")
@@ -881,9 +895,8 @@ def test_dry_run_does_not_rename(tmp_path):
     assert result.changed
 
 
+@pytest.mark.usefixtures("case_insensitive")
 def test_case_variant_without_the_marker_is_kept(tmp_path, caplog_sphinx):
-    if not _case_insensitive(tmp_path):
-        pytest.skip("needs a case-insensitive file system")
     out = tmp_path / "out"
     run(ROOT, out)
     (out / "beta" / "index.rst").unlink()
@@ -1054,6 +1067,49 @@ def test_conf_suppress_warnings_of_another_subtype(tmp_path, capsys):
     assert len(capsys.readouterr().err.splitlines()) == 4
 
 
+@pytest.mark.parametrize(
+    ("conf", "message", "users"),
+    [
+        (
+            'matlab_auto_link = "some"',
+            "matlab_auto_link must be None, 'basic' or 'all', not 'some'.",
+            "sphinx-build",
+        ),
+        (
+            'matlab_show_property_specs = "no"',
+            "matlab_show_property_specs must be bool, not 'no'.",
+            "sphinx-build",
+        ),
+        (
+            "matlab_stable_urls = 0",
+            "matlab_stable_urls must be bool, not 0.",
+            "HTML builds",
+        ),
+        (
+            "matlab_api_check_rules = []",
+            "matlab_api_check_rules must be a dict of rule -> severity.",
+            "the matlab-api-check builder",
+        ),
+    ],
+)
+def test_values_of_other_runs_warn_once(tmp_path, capsys, conf, message, users):
+    """The command runs on a project that is not ready for a build: a bad
+    value only the build uses is one warning (mat.config), and the run goes on.
+    """
+    docs = conf_dir(tmp_path / "docs", tmp_path / "out", f"{FOLDER}{conf}\n")
+    assert main(["-n", "-c", docs]) == 0
+    captured = capsys.readouterr()
+    assert [line for line in captured.err.splitlines() if "mat.config" in line] == [
+        f"WARNING: [scmd apidoc] {message} It is used only by {users}; scmd "
+        "apidoc ignores it. [mat.config]"
+    ]
+    assert "27 files indexed, 5 warnings" in captured.out
+    suppress = f'{FOLDER}{conf}\nsuppress_warnings = ["mat.config"]\n'
+    docs = conf_dir(tmp_path / "docs", tmp_path / "out", suppress)
+    assert main(["-n", "-c", docs]) == 0
+    assert "27 files indexed, 4 warnings" in capsys.readouterr().out
+
+
 @pytest.mark.parametrize("value", ['"mat"', "None"])
 def test_conf_suppress_warnings_must_be_a_list(tmp_path, capsys, value):
     docs = conf_dir(
@@ -1175,9 +1231,8 @@ def test_crlf_pages_are_unchanged(tmp_path):
     assert {p: p.read_bytes() for p in out.rglob("*.rst")} == before
 
 
+@pytest.mark.usefixtures("case_insensitive")
 def test_cli_reports_renames(tmp_path, capsys):
-    if not _case_insensitive(tmp_path):
-        pytest.skip("needs a case-insensitive file system")
     out = tmp_path / "out"
     docs = conf_dir(tmp_path / "docs", out, FOLDER)
     assert main(["-q", "-c", docs]) == 0
@@ -1255,8 +1310,8 @@ def test_conf_settings(tmp_path):
     conf = 'matlab_apidoc_output_dir = "api"\n'
     docs = conf_project(tmp_path, f'{conf}matlab_version = "R2026a"\n')
     args = _cli.get_parser().parse_args(["-c", str(docs)])
-    settings, options, suppress = _cli._settings(args)
-    assert suppress == []
+    settings, options, suppress, problems = _cli._settings(args)
+    assert (suppress, problems) == ([], [])
     assert settings.matlab_version == "R2026a"
     assert (options.maxdepth, options.tocfile, options.suffix) == (4, "index", "rst")
     assert (options.group, options.page_size) == ("namespace", 100)
@@ -1274,6 +1329,10 @@ def test_conf_settings(tmp_path):
         (
             "matlab_apidoc_maxdepth = True",
             "matlab_apidoc_maxdepth must be int, not True",
+        ),
+        (
+            "matlab_apidoc_maxdepth = 0",
+            "matlab_apidoc_maxdepth must be 1 or more, or -1 for no limit, not 0.",
         ),
         (
             "matlab_apidoc_remove_old = 0",
@@ -1359,6 +1418,14 @@ def test_unknown_names_are_named_together(tmp_path, capsys):
     assert "; matlab_zzz is not a configuration value" in err
 
 
+def test_maxdepth_minus_one_has_no_limit(tmp_path):
+    docs = conf_dir(
+        tmp_path / "docs", tmp_path / "out", "matlab_apidoc_maxdepth = -1\n"
+    )
+    assert main(["-q", "-c", docs]) == 0
+    assert ":maxdepth: -1\n" in (tmp_path / "out" / "index.rst").read_text()
+
+
 def test_build_only_values_are_accepted(tmp_path):
     conf = 'matlab_auto_link = "all"\n_matlab_helper = 1\n'
     docs = conf_dir(tmp_path / "docs", tmp_path / "out", conf)
@@ -1434,20 +1501,102 @@ def test_device_names_and_case_collisions(tmp_path, caplog_sphinx):
     assert any("differ only by case" in m for _, m in caplog_sphinx)
 
 
-@pytest.mark.skipif(
-    os.name == "nt" or not hasattr(os, "geteuid") or os.geteuid() == 0,
-    reason="needs POSIX permissions",
-)
-def test_unreadable_file_is_left_out(tmp_path, caplog_sphinx):
-    write(tmp_path, {"ok.m": FUNCTION.format(name="ok"), "locked.m": "x\n"})
-    (tmp_path / "locked.m").chmod(0)
+def test_folder_named_like_the_root_page_is_escaped(tmp_path, caplog_sphinx):
+    # A clash that needs no second name on disk, so every system has it.
+    write(tmp_path / "src", {"INDEX.txt/f.m": FUNCTION.format(name="f")})
+    out = tmp_path / "out"
+    run(tmp_path / "src", out, ("suffix", "txt"))
+    assert sorted(tree(out)) == ["index.txt", "~49~4E~44~45~58.txt/index.txt"]
+    assert [m for _, m in caplog_sphinx if "differ only by case" in m] == [
+        "[scmd apidoc] the output names of INDEX.txt/ in the output folder/ are "
+        "equal or differ only by case; conflicting characters are escaped as ~XX."
+    ]
+
+
+def test_missing_file_is_not_the_same_file(tmp_path):
+    missing = str(tmp_path / "missing")
+    assert not _generate._same_file(missing, missing)
+
+
+def test_unreadable_file_is_left_out(
+    make_app, tmp_path, capsys, condition, monkeypatch
+):
+    """The command gives one line for a file it cannot read, with the cause
+    and what it does with it; a build keeps its own line.
+    """
+    src = tmp_path / "src"
+    write(src, {"ok.m": FUNCTION.format(name="ok"), "locked.m": "x\n"})
+    # chmod 000 does not stop root, and Windows has no such permission.
+    can_lock = os.name != "nt" and hasattr(os, "geteuid") and os.geteuid() != 0
+    if condition("POSIX permissions", can_lock) == "real":
+        (src / "locked.m").chmod(0)
+    else:
+        read = mat_handlers.MFileHandler.read
+
+        def locked(self, path, *args, **kwargs):
+            if path.endswith("locked.m"):
+                raise PermissionError(13, "Permission denied")
+            return read(self, path, *args, **kwargs)
+
+        monkeypatch.setattr(mat_handlers.MFileHandler, "read", locked)
+    docs = tmp_path / "docs"
+    out = tmp_path / "out"
     try:
-        page = {p.docname: p for p in pages_of(tmp_path)}["root"]
+        assert main(["-q", "-c", conf_dir(docs, out, FOLDER, root=src)]) == 0
+        lines = capsys.readouterr().err.splitlines()
+        (docs / "index.rst").write_text("T\n=\n\n.. mat:autofunction:: locked\n")
+        app = make_app(
+            srcdir=docs, confoverrides={"extensions": ["sphinxcontrib.matlab"]}
+        )
+        app.build()
     finally:
-        (tmp_path / "locked.m").chmod(0o644)
+        (src / "locked.m").chmod(0o644)
+    assert [line for line in lines if "locked.m" in line] == [
+        "WARNING: [scmd apidoc] locked.m cannot be read (Permission denied); it is "
+        "left out. [mat.apidoc]"
+    ]
+    assert "locked" not in (out / "index.rst").read_text(encoding="utf-8")
+    built = re.sub(r"\x1b\[[0-9;]*m", "", app.warning.getvalue())
+    assert [line for line in built.splitlines() if "locked" in line] == [
+        "WARNING: [sphinxcontrib-matlabdomain] locked.m cannot be read (Permission "
+        "denied); it is documented without content. [mat.parse_error]"
+    ]
+
+
+def test_a_read_error_without_text_is_still_unreadable(tmp_path, monkeypatch):
+    # An OSError may carry no text (a handler of another package may raise one).
+    write(tmp_path, {"ok.m": FUNCTION.format(name="ok"), "locked.m": "x\n"})
+    read = mat_handlers.MFileHandler.read
+
+    def locked(self, path, *args, **kwargs):
+        if path.endswith("locked.m"):
+            raise OSError
+        return read(self, path, *args, **kwargs)
+
+    monkeypatch.setattr(mat_handlers.MFileHandler, "read", locked)
+    index = build_index(IndexSettings(str(tmp_path))).index
+    record = next(r for r in index.values() if r["reference"] == "locked.m")
+    assert (record["type"], record["unreadable"]) == ("unknown", "OSError")
+
+
+def test_files_not_of_their_type_warn_once_and_are_left_out(
+    tmp_path, caplog_sphinx, odd_files
+):
+    write(
+        tmp_path,
+        {
+            "ok.m": FUNCTION.format(name="ok"),
+            "empty.odd": "",
+            "text.odd": "this is not an odd file\n",
+        },
+    )
+    page = {p.docname: p for p in pages_of(tmp_path)}["root"]
     listed = [e["ref"] for _, entries in page.context["sections"] for e in entries]
     assert listed == ["ok.m"]
-    assert any("locked.m could not be read" in m for _, m in caplog_sphinx)
+    messages = [m for _, m in caplog_sphinx]
+    for name in ("empty.odd", "text.odd"):
+        assert len([m for m in messages if name in m]) == 1, messages
+    assert not any("could not be read" in m for m in messages)
 
 
 class ComponentHandler(mat_handlers.Handler):

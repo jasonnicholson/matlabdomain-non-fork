@@ -5,7 +5,7 @@
 templates, which :confval:`matlab_apidoc_templatedir` can
 replace (:doc:`../user-guide/apidoc`). The
 defaults are in ``sphinxcontrib/matlab_apidoc/templates/``. They are
-rendered with Sphinx's ``ReSTRenderer``, which adds the filters ``e``
+rendered with :term:`Sphinx`'s ``ReSTRenderer``, which adds the filters ``e``
 (escape :term:`reST`) and ``heading`` (underline a title; ``heading(2)`` for the
 second level).
 
@@ -26,11 +26,14 @@ In namespace grouping, one page of a namespace or of the global namespace.
    ``namespace demo`` or ``Global``; with several pages, followed by the
    range of entries (``namespace demo (101-200)``).
 ``namespace``
-   The namespace's MATLAB name, or ``None`` for the global namespace.
+   The namespace's MATLAB name, or ``None`` for the global namespace,
+   which has no ``mat:namespace``.
 ``kind``
    ``"namespace"`` or ``"global"``.
 ``page``, ``pages``
    The number of this page and of the namespace's pages (1 and 1 for most).
+   The default template describes the namespace (``mat:namespace``) on
+   page 1 only, so that page is the namespace's link target.
 ``first``, ``last``
    The numbers of the first and last entries on this page, counting from
    1 across the namespace's pages.
@@ -63,7 +66,7 @@ The root page, in both groupings.
    ignoring case. In folder grouping: the root folder's page first, then
    the folders sorted by path, ignoring case.
 ``maxdepth``
-   The ``:maxdepth:`` of its toctree.
+   The ``:maxdepth:`` of its :term:`toctree`.
 
 ``folder.rst.jinja``
 --------------------
@@ -98,7 +101,8 @@ In folder grouping, one page of a folder with files or sidecar docs.
 ``separate``
    True with :confval:`matlab_apidoc_separate`.
 ``maxdepth``
-   The ``:maxdepth:`` of the toctrees (:confval:`matlab_apidoc_maxdepth`).
+   The ``:maxdepth:`` of the :term:`toctrees <toctree>`
+   (:confval:`matlab_apidoc_maxdepth`).
 ``sidecars``
    The :doc:`sidecar docs <../user-guide/sidecars>` on this page (the
    folder's own, and those in its ``@`` folders), sorted by file name;
@@ -113,32 +117,25 @@ In folder grouping, one page of a folder with files or sidecar docs.
 Entries
 ~~~~~~~
 
-Each entry describes one file, or one block of a Simulink library (both
-groupings):
+Each entry describes one file (both groupings):
 
 ``ref``
-   The path reference of the file or block (``lib.slx/Group/Gain``).
+   The path reference of the file, the argument of the :term:`directive`.
 ``kind``
-   ``"class"``, ``"function"``, ``"script"``, ``"application"``,
-   ``"model"``, ``"library"``, ``"subsystem"`` (a subsystem file) or
-   ``"library_block"``.
+   ``"class"``, ``"function"``, ``"script"`` or ``"application"``.
 ``directive``
-   The auto directive, such as ``"mat:autoclass"``.
-``argument``
-   The directive's argument: ``ref``, with each line break of a block name
-   followed by the indentation that continues it.
+   The auto :term:`directive`, such as ``"mat:autoclass"``.
 ``options``
-   A dictionary of directive options; ``{"members": "", "undoc-members":
+   A dictionary of :term:`directive` options; ``{"members": "", "undoc-members":
    "", "show-inheritance": ""}`` for classes, else empty.
 ``title``
    The heading: the MATLAB name, or the path reference if MATLAB cannot
    call the file (or, on a namespace page, if another file of the page has
    the same MATLAB name).
 ``display``
-   The name signatures show (the same as ``title``).
+   The name :term:`signatures <signature>` show (the same as ``title``).
 ``matlab_name``
-   The MATLAB name, or ``None`` if MATLAB cannot call the file. A library
-   block's is the library's MATLAB name and its block path.
+   The MATLAB name, or ``None`` if MATLAB cannot call the file.
 ``callable``
    ``matlab_name is not None``.
 ``private``

@@ -1,5 +1,5 @@
-"""The index stage without a Sphinx app: ``IndexSettings`` and ``build_index``
-(plan.md Section 2.8, Phase 7).
+"""The index stage without a Sphinx app: ``IndexSettings`` and
+``build_index``.
 """
 
 import dataclasses
@@ -308,7 +308,7 @@ def test_build_index_of_a_missing_root(tmp_path):
     assert source_index.matlab_names == {}
 
 
-# --- Unicode forms and letter case of names (G4-T7) --------------------------
+# --- Unicode forms and letter case of names ----------------------------------
 
 NFC = "café"
 NFD = "café"
@@ -393,6 +393,25 @@ def test_names_differing_only_by_unicode_form_warn(tmp_path, warnings):
     assert [m for s, m in warnings if s == "parse_error"] == [
         TWIN_WARNING.format(ref=f"{NFC}.m", pre="", ext=".m"),
         TWIN_WARNING.format(ref=f"sub/{NFC}.rst", pre="", ext=".rst"),
+    ]
+
+
+@pytest.mark.skipif(
+    os.name == "nt",
+    reason="Windows keeps the two forms apart, so the real test runs there; "
+    "its os.path.isfile does not call the os.stat this test fakes",
+)
+@pytest.mark.simulates("a file system that keeps two Unicode forms apart")
+def test_unicode_twins_on_a_simulated_file_system(tmp_path, warnings, fake_folder):
+    # Only the NFD file exists; the listing adds its NFC twin, which os.stat
+    # finds as macOS would.
+    write(tmp_path, {f"{NFD}.m": FUNCTION.format(name="x", help="NFD")})
+    fake_folder(tmp_path, [f"{NFC}.m"], aliases={f"{NFC}.m": f"{NFD}.m"})
+    source_index = build_index(IndexSettings(str(tmp_path)))
+    assert list(source_index.index) == [str(tmp_path / f"{NFD}.m")]
+    assert refs(source_index) == [f"{NFC}.m"]
+    assert [m for s, m in warnings if s == "parse_error"] == [
+        TWIN_WARNING.format(ref=f"{NFC}.m", pre="", ext=".m")
     ]
 
 
@@ -500,10 +519,10 @@ def test_include_pattern_folder_case_is_exact(tmp_path):
 
 @pytest.mark.skipif(
     sys.platform not in ("win32", "darwin"),
-    reason="G4-T7: case-insensitive file systems (Windows, macOS); not run on Linux",
+    reason="case-insensitive file systems (Windows, macOS); not run on Linux",
 )
 def test_include_pattern_folder_case_is_exact_on_case_insensitive_systems(tmp_path):
-    # Matching is case-sensitive on every OS (plan.md Section 2.4), also where
+    # Matching is case-sensitive on every OS, also where
     # the file system finds Src/ for src/.
     write(tmp_path, CASE_FILES)
     if _case_sensitive(tmp_path):
@@ -517,7 +536,7 @@ def test_include_pattern_folder_case_is_exact_on_case_insensitive_systems(tmp_pa
     ]
 
 
-# --- Sphinx output inside the root (G4-T7) -----------------------------------
+# --- Sphinx output inside the root -------------------------------------------
 
 
 def test_copied_html_output_without_buildinfo_is_skipped(tmp_path):

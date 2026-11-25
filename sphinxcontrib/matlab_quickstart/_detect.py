@@ -1,11 +1,9 @@
-"""sphinxcontrib.matlab_quickstart._detect.
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+"""The project facts that ``scmd quickstart`` reads; nothing here writes.
 
-The project facts ``scmd quickstart`` reads (plan.md Section
-2.13): uv, the MATLAB release, the git submodules, the MATLAB project path,
-sidecar doc candidates, how matlabdomain itself is installed, and, from the
-index, the inventory, the help headings and the copyright blocks that run
-into help. Nothing here writes.
+The facts are uv, the MATLAB release, the git
+submodules, the MATLAB project path, sidecar doc candidates, how
+matlabdomain itself is installed, and, from the index, the inventory, the
+help headings and the copyright blocks that run into help.
 """
 
 from __future__ import annotations
@@ -25,8 +23,7 @@ from urllib.request import url2pathname
 
 from .. import mat_naming
 from ..mat_classify import UNKNOWN, is_hidden
-from ..mat_handlers import extensions, handler_by_extension
-from ..mat_simulink import KINDS
+from ..mat_handlers import extensions
 
 DISTRIBUTION = "sphinxcontrib-matlabdomain"
 #: a heading used in at least this many files becomes a napoleon section
@@ -411,6 +408,8 @@ _PROSE_WORDS = frozenset(
         "is", "are", "be", "this", "that", "these", "those", "which", "it",
     }
 )  # fmt: skip
+#: a heading of more words reads as a sentence
+_HEADING_WORDS = 3
 
 
 def _prose(spelling):
@@ -418,7 +417,7 @@ def _prose(spelling):
     or a lowercase function word.
     """
     words = spelling.split()
-    return len(words) > 3 or any(w in _PROSE_WORDS for w in words)
+    return len(words) > _HEADING_WORDS or any(w in _PROSE_WORDS for w in words)
 
 
 def napoleon_headings(found, threshold=SECTION_FILES):
@@ -451,25 +450,17 @@ def napoleon_headings(found, threshold=SECTION_FILES):
     return out
 
 
-def has_simulink(source_index):
-    """Return True if the index has a Simulink model, library or subsystem file."""
-    return any(r["type"] in KINDS for r in source_index.index.values())
-
-
 def inventory(source_index):
     """Return counts and lists of the index for the report."""
     kinds = collections.Counter()
     namespaces = set()
     not_callable, encoding = [], []
-    for path, record in source_index.index.items():
+    for record in source_index.index.values():
         ref = record["reference"]
         kinds[record["type"]] += 1
         if record["matlab_name"] is None:
             # as the mat.not_callable warnings
-            naming = getattr(handler_by_extension(path), "naming", "code")
-            if (naming == "model" and record["type"] != UNKNOWN) or (
-                naming == "code" and not record["private"] and not is_hidden(ref)
-            ):
+            if not record["private"] and not is_hidden(ref):
                 not_callable.append(ref)
         else:
             parts = ref.split("/")[:-1]

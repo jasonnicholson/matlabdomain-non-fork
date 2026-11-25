@@ -17,9 +17,10 @@ for a quiet run, override them:
 
 The suite takes about a minute. A few tests are skipped on some systems:
 those that need POSIX permissions, non-UTF-8 file names (Linux) or Windows
-device names.
+device names, and, unless ``--simulate-platforms`` is given (see
+`Coverage`_), those that fake a condition of another system.
 
-tox runs the suite against each supported Sphinx line, as CI does:
+tox runs the suite against each supported :term:`Sphinx` line, as CI does:
 
 .. code-block:: console
 
@@ -28,13 +29,14 @@ tox runs the suite against each supported Sphinx line, as CI does:
    $ uv run tox -e py313-sphinxlatest -- -x --lf
    $ uv run tox -e lint                 # Ruff, format check, basic Pyright
 
-Each tox run also builds ``tests/test_docs`` with Sphinx.
+Each tox run also builds ``tests/test_docs`` with :term:`Sphinx`.
 
 The suite fails on a deprecation warning that Python attributes to this
 package's own modules (``filterwarnings`` in ``pyproject.toml``); warnings
 from other packages, such as ``myst_parser``, do not. This is the signal that
-a Sphinx, docutils or Python release now deprecates something the package
-uses, for example the autodoc ``Documenter`` classes. Read the warning, then
+a :term:`Sphinx`, :term:`docutils` or Python release now deprecates
+something the package uses, for example the autodoc ``Documenter``
+classes. Read the warning, then
 move the code off the deprecated interface; only if that cannot happen yet,
 add a temporary ``ignore`` entry for that exact message, with a comment.
 The ``lint`` :term:`environment <virtual environment>` instead checks maintained Python without modifying it.
@@ -58,8 +60,8 @@ Layout
    (``test_quickstart.py``) and this documentation
    (``test_documentation.py``).
 ``tests/roots/test_<name>/``
-   Small Sphinx projects (``conf.py``, pages and MATLAB files) built by the
-   tests with the ``make_app`` fixture.
+   Small :term:`Sphinx` projects (``conf.py``, pages and MATLAB files)
+   built by the tests with the ``make_app`` fixture.
 ``tests/test_data/``
    MATLAB files for parser tests.
 ``tests/apidoc_golden/``
@@ -67,7 +69,7 @@ Layout
    ``test_apidoc_basics`` root: namespace grouping (``default``,
    ``separate``) and folder grouping (``folder``, ``folder-separate``).
 ``tests/quickstart_golden/``
-   The expected output of ``scmd quickstart``: the Sphinx
+   The expected output of ``scmd quickstart``: the :term:`Sphinx`
    :term:`source folder <source directory>` and the printed lines for the
    ``test_quickstart`` root as a uv
    project in git (``uv``), for ``test_apidoc_basics`` outside git
@@ -78,8 +80,8 @@ Layout
    compared with fresh output, and the project is built with ``-W``.
 ``docs/``
    The documentation is built with ``-n``, and every configuration value,
-   directive, option, :term:`role`, warning and command-line option must appear in
-   its reference pages.
+   :term:`directive`, option, :term:`role`, warning and command-line option
+   must appear in its reference pages.
 
 Writing tests
 -------------
@@ -88,7 +90,8 @@ Writing tests
   build a project. Tests that change files write the project into
   ``tmp_path`` or copy a root there first, so roots stay unchanged.
 * Check behavior through what users see: the :term:`doctree`, the HTML, the
-  inventory, warnings (``app.warning.getvalue()``), the :term:`domain` data.
+  :term:`inventory`, warnings (``app.warning.getvalue()``), the
+  :term:`domain` data.
 * When a test documents MATLAB behavior (what ``help`` shows, which file
   MATLAB calls), check it in MATLAB and name the release in the test.
 * After changing the generator or the example, regenerate the golden output
@@ -100,16 +103,43 @@ Writing tests
 Coverage
 --------
 
-Every reachable line and branch of ``sphinxcontrib`` is covered, Windows and
-Linux combined. CI's coverage job combines the data of every test job
-except the Sphinx ``dev`` job and fails below 100%:
+Every reachable line and branch of ``sphinxcontrib`` is covered. CI's
+coverage job combines the data of every test job except the :term:`Sphinx`
+``dev`` job and fails below 100%. Those jobs run without
+``--simulate-platforms``, so each line counts only where a test met the
+real condition: a Windows job
+covers the code for drive letters, a Windows or macOS job the code for a
+case-insensitive file system, a Linux job the code for file names that are
+not valid UTF-8, a Python 3.11 job the import for Python 3.11.
+
+One system alone has only some of those conditions. With
+``--simulate-platforms`` the tests fake the others (a case-insensitive file
+system, paths on two drives, another Python version, a folder that cannot be
+listed, a file name that is not valid UTF-8, two names that differ only by
+Unicode form), so that one machine covers every
+line. Check it before a push, on any system:
 
 .. code-block:: console
 
-   $ uv run pytest --cov --cov-report=term-missing
+   $ uv run pytest -q -o addopts= --simulate-platforms --cov --cov-report=term-missing:skip-covered --cov-fail-under=100
 
-* A line that only one system reaches (POSIX permissions, non-UTF-8 file
-  names) counts when the other system's job covers it.
+Every line it lists as missing is a line your change left untested. CI's
+``Local check`` jobs run this command on Linux, Windows and macOS; their data
+stays out of the combined gate, because a faked condition proves nothing about
+the real one. Without the option, a test that needs a condition the system
+lacks is skipped.
+
+* Where an input that every system has reaches the code (a missing file for
+  an ``except OSError``), write a plain test.
+* Otherwise, code that only one system or Python version reaches gets two
+  tests: a real one, which is skipped where the condition is missing, and a
+  simulated one that runs everywhere with the option. Mark a test that only fakes with
+  ``@pytest.mark.simulates("the condition")``; a test that meets the real
+  condition where it can and fakes it elsewhere asks the ``condition``
+  fixture in ``tests/conftest.py``, which answers ``"real"`` or
+  ``"simulated"`` or skips. Fake at the narrowest boundary the package calls
+  (``os.listdir`` of one folder, for example, with the ``fake_folder``
+  fixture), and never where the system has the real condition.
 * A defensive guard that only a bug can reach stays, marked
   ``# pragma: no cover`` (or ``no branch``) with the reason on the same or
   the previous line. ``exclude_also`` lists only ``if __name__ ==
@@ -120,7 +150,7 @@ The real-project gauntlet
 -------------------------
 
 ``test_slow/gauntlet`` runs ``scmd apidoc``, ``sphinx-build`` and
-``matlab-api-check`` on 14 open-source MATLAB projects (about 24,000 files)
+``matlab-api-check`` on 15 open-source MATLAB projects (about 24,000 files)
 and checks that nothing crashes, reruns are identical, serial and ``-j``
 builds agree, and Windows and Linux give the same output. Run it before
 changing the parser, the index or a tree-sitter pin; ``test_slow/README.md``
@@ -137,6 +167,16 @@ takes about 20 minutes on Linux.
 With ``--quickstart`` it runs ``scmd quickstart -q`` on a
 temporary ``git worktree`` of each project instead, then a ``-n`` build of
 what the command wrote; the checkouts stay unchanged.
+
+The gauntlet builds every project with the default configuration.
+``test_slow/gauntlet/scenarios.py`` runs the commands on the same projects
+with the rest of the interface (options, flags, hand-written pages,
+incremental rebuilds, intersphinx, invalid configuration, broken input,
+quickstart on standard input) and checks the expected behavior. With
+``--coverage`` both measure the code they reach with the test suite's
+coverage settings; ``test_slow/gauntlet/README.md`` explains how to combine
+the runs. The unit tests hold 100%; this number shows how much of the code
+real projects reach through the real interface.
 
 The checkouts need about 5 GB. On Windows, Git must create symbolic links:
 matpower, for one, has 807 of them, and without them Git writes small text
@@ -170,8 +210,9 @@ Testing on Linux and Windows
 ----------------------------
 
 Behavior differs between systems in a few places (file name case, links,
-permissions, the default ANSI code page, parallel builds, which Sphinx runs
-serially on Windows), so changes in these areas are tested on both:
+permissions, the default ANSI code page, parallel builds, which
+:term:`Sphinx` runs serially on Windows), so changes in these areas are
+tested on both:
 
 * CI covers Linux, Windows and macOS.
 * For runs on a machine of the other system, put a script in ``tmp/`` at the

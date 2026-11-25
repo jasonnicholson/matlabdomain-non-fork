@@ -1,9 +1,7 @@
-"""sphinxcontrib.mat_sidecars.
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+"""Sidecar docs: ``.md`` and ``.rst`` pages next to the code.
 
-Sidecar docs (pages next to code; plan.md Section 2.11): ``.md`` and
-``.rst`` files in the project, indexed with the code (``mat_types``) and
-rendered into a document by ``mat:autosidecar``.
+Sidecar docs are indexed with the code (``mat_types``) and rendered into a
+document by ``mat:autosidecar``.
 
 - Relative paths in a sidecar doc are relative to its folder: images and
   downloads are rewritten to source-folder-relative paths (``/`` +
@@ -14,9 +12,6 @@ rendered into a document by ``mat:autosidecar``.
   else is myst-parser's.
 - Broken relative links and missing images are recorded for
   ``matlab-api-check`` (``sidecar_issues``).
-- Simulink documentation files (``matlab_simulink_doc_suffixes``) are
-  parsed the same way into the pages of Simulink files and library blocks
-  (``simulink_documentation``).
 
 :copyright: Copyright by the sphinxcontrib-matlabdomain team, see AUTHORS.
 :license: BSD, see LICENSE for details.
@@ -29,7 +24,7 @@ import re
 import unicodedata
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from docutils import nodes
 from docutils.parsers.rst import directives
@@ -40,9 +35,10 @@ from sphinx.errors import ConfigError
 from sphinx.util.docutils import SphinxDirective
 from sphinx.util.logging import getLogger
 from sphinx.util.nodes import clean_astext, nested_parse_with_titles
+from sphinx.util.typing import OptionSpec
 
 from . import mat_naming, mat_types
-from .mat_handlers import handler_for
+from .mat_typing import override
 
 if TYPE_CHECKING:
     from .matlab import MATLABDomain
@@ -73,15 +69,14 @@ def _escape_glob(path: str):
 
 
 def check_config(app, config):
-    """``config-inited``: check ``matlab_src_sidecar_suffixes`` and
-    ``matlab_simulink_doc_suffixes`` (or ConfigError), and add the sidecar docs
-    and Simulink documentation files in the Sphinx source folder to
-    ``exclude_patterns`` so Sphinx does not also read them as documents. It
-    must happen here: a later change makes Sphinx see a changed config and
-    read every document again on every build.
+    """``config-inited``: check ``matlab_src_sidecar_suffixes`` (or
+    ConfigError), and add the sidecar docs in the Sphinx source folder, and
+    the folders of other Sphinx projects there, to ``exclude_patterns`` so
+    Sphinx does not also read them as documents. It must happen here: a later
+    change makes Sphinx see a changed config and read every document again on
+    every build.
     """
     suffixes = mat_types.sidecar_suffix_list(config.matlab_src_sidecar_suffixes)
-    simulink = mat_types.simulink_doc_suffix_list(config.matlab_simulink_doc_suffixes)
     root = mat_types.project_root(config, app.srcdir)
     if suffixes and root is None:
         raise ConfigError(
@@ -92,62 +87,29 @@ def check_config(app, config):
             "matlab_src_sidecar_suffixes has '.md': add 'myst_parser' to extensions "
             "(pip install sphinxcontrib-matlabdomain[markdown])."
         )
-    if root is None or not (suffixes or simulink):
+    if root is None or not suffixes:
         return
     srcdir = os.path.normpath(os.fspath(app.srcdir))
     if not same_drive(root, srcdir):
-        if suffixes:
-            _warn(
-                "sidecar",
-                f"matlab_src_code_project_root {root} is on another drive than the "
-                "Sphinx source folder: relative paths in sidecar docs (images, "
-                "downloads, includes) cannot be resolved.",
-            )
+        _warn(
+            "sidecar",
+            f"matlab_src_code_project_root {root} is on another drive than the "
+            "Sphinx source folder: relative paths in sidecar docs (images, "
+            "downloads, includes) cannot be resolved.",
+        )
         return
-    if mat_types._within(root, srcdir):
-        settings = mat_types.IndexSettings.from_config(config, srcdir)
-        found = mat_types._documentation_files(settings)
-        paths = [*found.sidecars, *found.simulink_docs]
-    elif mat_types._within(srcdir, root):
-        paths = _simulink_docs_below(srcdir, simulink)
-    else:
-        paths = []
+    if not mat_types._within(root, srcdir):
+        return
+    settings = mat_types.IndexSettings.from_config(config, srcdir)
+    found = mat_types._documentation_files(settings)
     config.exclude_patterns = [
         *config.exclude_patterns,
         *(
             _escape_glob(os.path.relpath(path, srcdir).replace(os.sep, "/"))
-            for path in paths
+            # The pages of another Sphinx project are not this build's documents.
+            for path in (*found.sidecars, *found.sphinx_sources)
         ),
     ]
-
-
-def _simulink_docs_below(folder, suffixes):
-    """Simulink documentation files below ``folder`` (the Sphinx source
-    folder inside the project root), without the index stage.
-    """
-    found = []
-    build_dir = os.path.join(folder, mat_types.BUILD_FOLDER)
-    for dirpath, dirnames, filenames in os.walk(folder):
-        if dirpath != folder and (
-            dirpath == build_dir
-            or mat_types.sphinx_output(dirpath, dirnames + filenames)
-        ):
-            dirnames[:] = []
-            continue
-        dirnames[:] = [d for d in dirnames if not d.startswith(".")]
-        stems = {
-            os.path.splitext(name)[0]
-            for name in filenames
-            if mat_naming.is_block_container(name)
-            and handler_for(os.path.join(dirpath, name)) is not None
-        }
-        found += [
-            os.path.join(dirpath, name)
-            for name in filenames
-            if os.path.splitext(name)[1] in suffixes
-            and os.path.splitext(name)[0] in stems
-        ]
-    return found
 
 
 def read_sidecar(path, ref):
@@ -181,6 +143,11 @@ def _external(target):
     )
 
 
+def _normal(path):
+    """``path`` (absolute, or relative to the current folder) to compare."""
+    return os.path.normcase(os.path.abspath(path))
+
+
 def _exists(path):
     """Return True if ``path`` (an image path may end with ``.*``) exists."""
     if "*" in path:
@@ -197,6 +164,13 @@ class _Relative:
     dom: "MATLABDomain"
     #: ``(kind, target, line)`` of broken relative links and missing images
     issues: list = field(default_factory=list)
+    #: the files included from ``folder`` (``_normal`` paths): their text is
+    #: part of the sidecar doc or help text
+    included: set = field(default_factory=set)
+
+    def wrote(self, source):
+        """Return True if ``source``, a node's source, is a file it included."""
+        return bool(source) and _normal(source) in self.included
 
     def source_path(self, target):
         """``target`` (absolute) as Sphinx's source-folder-relative path
@@ -285,12 +259,14 @@ class _Sidecar(_Relative):
         super().__init__(os.path.dirname(path), srcdir, dom)
         self.ref, self.path = ref, path
 
+    @override
     def rewrite(self, tree):
         """Also resolve this sidecar doc's relative hyperlinks."""
         super().rewrite(tree)
         for ref in list(tree.findall(nodes.reference)):
             # Nested sidecar docs and help text resolve their own links.
-            if get_source_line(ref)[0] == self.path:
+            source = get_source_line(ref)[0]
+            if source == self.path or self.wrote(source):
                 self.rewrite_hyperlink(ref)
 
 
@@ -314,11 +290,16 @@ def relative_includes(env, current):
     original = env.relfn2path
 
     def relfn2path(filename, docname=None):
-        if docname is None and not _external(filename):
-            if (rel := current()) is not None:
-                source = rel.source_path(os.path.join(rel.folder, filename))
-                if source is not None:
-                    filename = source
+        if (
+            docname is None
+            and not _external(filename)
+            and (rel := current()) is not None
+        ):
+            path = os.path.join(rel.folder, filename)
+            source = rel.source_path(path)
+            if source is not None:
+                filename = source
+                rel.included.add(_normal(path))
         return original(filename, docname)
 
     env.relfn2path = relfn2path
@@ -334,6 +315,10 @@ def relative_includes(env, current):
 #: source of the lines of help text (``MatlabDocumenter.add_content``), after
 #: the path of its file (``<file>:docstring of <reference>``, as in Python)
 HELP_SOURCE = "docstring of "
+#: ``env.temp_data`` key: the location (``file:line``) of the outermost auto
+#: directive while its generated content is parsed (none in a sidecar doc,
+#: which a person wrote)
+PAGE_LOCATION = "mat:page_location"
 
 
 def help_source(ref, path=None):
@@ -392,9 +377,14 @@ class HelpPaths:
 
     def _hyperlink(self, ref):
         """Turn a relative hyperlink to a sidecar doc or code file into a
-        reference to it, to another file into a download.
+        reference to it, to another file into a download; also in a file the
+        help text includes.
         """
-        if (rel := self.at(get_source_line(ref)[0])) is not None:
+        source = get_source_line(ref)[0]
+        rel = self.at(source)
+        if rel is None:
+            rel = next((r for r in self._folders.values() if r.wrote(source)), None)
+        if rel is not None:
             rel.rewrite_hyperlink(ref)
 
 
@@ -406,16 +396,14 @@ def _renderer_class():
     from myst_parser.mdit_to_docutils.sphinx_ import SphinxRenderer
 
     class SidecarRenderer(SphinxRenderer):
+        @override
         def setup_render(self, options, env):
             super().setup_render(options, env)
             # Sections go below the directive's node, as in MyST's include.
             self._level_to_section = cast(Any, {0: self.current_node})
             env["temp_root_node"] = self.current_node
 
-        def add_line_and_source_path(self, node, token):
-            super().add_line_and_source_path(node, token)
-            node.source = self.md_options["matlab_sidecar"].path
-
+        @override
         def create_warning(
             self, message, subtype, *, wtype=None, line=None, append_to=None
         ):
@@ -433,6 +421,7 @@ def _renderer_class():
                 append_to=append_to,
             )
 
+        @override
         def _render_finalise(self):
             # The word count is the document's (a MyST document adds its own);
             # heading slugs add to those of sidecar docs rendered before.
@@ -444,6 +433,7 @@ def _renderer_class():
             self._heading_slugs = {**earlier, **self._heading_slugs}
             super()._render_finalise()
 
+        @override
         def render_link_unknown(self, token):
             sidecar = self.md_options["matlab_sidecar"]
             dest = self.md.normalizeLinkText(str(token.attrGet("href") or ""))
@@ -465,17 +455,27 @@ def _renderer_class():
 
 
 @contextmanager
-def _reporting_at(reporter, path):
+def _reporting_at(document, path, markdown):
     """Make the roles and warnings of the sidecar doc ``path`` being parsed
     name its file and line (the reporter looks lines up in the document that
-    includes it).
+    includes it). In Markdown, myst-parser takes the source of its nodes and
+    directives from the document, as its ``include`` does for the file it
+    includes. Its descriptions are where they are written, also in generated
+    content (``PAGE_LOCATION``).
     """
-    original = reporter.get_source_and_line
+    reporter = document.reporter
+    temp_data = document.settings.env.temp_data
+    original = reporter.get_source_and_line, document["source"]
+    outer = temp_data.pop(PAGE_LOCATION, None)
     reporter.get_source_and_line = lambda line=None: (path, line)
+    if markdown:
+        document["source"] = path
     try:
         yield
     finally:
-        reporter.get_source_and_line = original
+        reporter.get_source_and_line, document["source"] = original
+        if outer is not None:
+            temp_data[PAGE_LOCATION] = outer
 
 
 def parse_file(directive, path, ref):
@@ -490,11 +490,12 @@ def parse_file(directive, path, ref):
     sidecar = _Sidecar(ref, path, srcdir, env.get_domain("mat"))
     container = nodes.Element()
     container.document = directive.state.document
+    markdown = path.endswith(MARKDOWN)
     with (
         relative_includes(env, lambda: sidecar),
-        _reporting_at(directive.state.document.reporter, path),
+        _reporting_at(directive.state.document, path, markdown),
     ):
-        if path.endswith(MARKDOWN):
+        if markdown:
             parser = _markdown_parser(env)
             parser.options["document"] = directive.state.document
             parser.options["current_node"] = container
@@ -524,8 +525,9 @@ class AutoSidecar(SphinxDirective):
 
     required_arguments = 1
     final_argument_whitespace = True
-    option_spec = {"no-title": directives.flag}
+    option_spec: ClassVar[OptionSpec] = {"no-title": directives.flag}
 
+    @override
     def run(self):
         ref = unicodedata.normalize("NFC", self.arguments[0].strip())
         dom = cast("MATLABDomain", self.env.get_domain("mat"))
@@ -547,12 +549,14 @@ class AutoSidecar(SphinxDirective):
         except OSError as err:
             _warn("parse_error", f"{ref} cannot be read ({err.strerror or err}).")
             return []
-        result, title = self._titled(result, sidecar)
-        dom.note_sidecar(ref, title, sidecar.issues)
+        result, title, anchor = self._titled(result, sidecar)
+        dom.note_sidecar(ref, title, anchor, sidecar.issues)
         return result
 
     def _titled(self, result, sidecar):
-        """``(nodes, title)``: the sidecar doc's nodes and its title text."""
+        """``(nodes, title, anchor)``: the sidecar doc's nodes, its title text
+        and the id of its section ("" with ``:no-title:``).
+        """
         first = next(
             (i for i, node in enumerate(result) if isinstance(node, nodes.section)),
             None,
@@ -562,7 +566,7 @@ class AutoSidecar(SphinxDirective):
         if "no-title" in self.options:
             if first is not None:
                 result[first : first + 1] = result[first].children[1:]
-            return result, title
+            return result, title, ""
         if first is None:
             _warn(
                 "sidecar",
@@ -572,199 +576,5 @@ class AutoSidecar(SphinxDirective):
             section = nodes.section("", nodes.title(name, name), *result)
             section["names"].append(nodes.fully_normalize_name(name))
             self.state.document.note_implicit_target(section, section)
-            result = [section]
-        return result, title
-
-
-#: ``env.temp_data`` key: Simulink documentation files parsed in the document
-_PARSED = "mat:simulink_docs"
-
-
-def _heading_key(text):
-    return " ".join(text.split())
-
-
-@dataclass
-class _SimulinkDoc:
-    """A parsed Simulink documentation file without its title: the text
-    before its first section, and its sections ``(key, rubric, body)`` with
-    deeper headings as rubrics.
-    """
-
-    text: list
-    sections: list
-
-
-def _doc_paths(env, file_ref):
-    """Return the Simulink documentation files of the file ``file_ref``, the
-    one to use first (``matlab_simulink_doc_suffixes`` order).
-    """
-    dom = env.get_domain("mat")
-    source = dom.source_paths().get(file_ref) if file_ref else None
-    if source is None:
-        return []
-    stem = os.path.splitext(source)[0]
-    docs = dom.data["simulink_docs"]
-    suffixes = mat_types.simulink_doc_suffix_list(
-        env.config.matlab_simulink_doc_suffixes
-    )
-    return [stem + suffix for suffix in suffixes if stem + suffix in docs]
-
-
-#: a Markdown heading, and an underline of a reST one
-_MD_HEADING = re.compile(r"#{1,6}\s+(.*?)(\s+#+)?\s*")
-_RST_UNDERLINE = re.compile(r"([!-/:-@\[-`{-~])\1*\s*")
-
-
-def documented_blocks(env, file_ref):
-    """Heading keys of the Simulink documentation file of ``file_ref``, found
-    without parsing it: ``:members:`` counts these blocks as documented.
-    """
-    paths = _doc_paths(env, file_ref)
-    if not paths:
-        return set()
-    try:
-        with open(paths[0], "rb") as f:
-            lines = f.read().decode("utf-8-sig", errors="replace").splitlines()
-    except OSError:
-        return set()
-    keys = set()
-    for i, line in enumerate(lines):
-        if paths[0].endswith(MARKDOWN):
-            if match := _MD_HEADING.fullmatch(line):
-                keys.add(_heading_key(match[1]))
-        elif (
-            line.strip()
-            and i + 1 < len(lines)
-            and _RST_UNDERLINE.fullmatch(lines[i + 1])
-        ):
-            keys.add(_heading_key(line))
-    return keys
-
-
-def simulink_documentation(directive, ref):
-    """Nodes of the Simulink documentation file of the object ``ref``
-    (``matlab_simulink_doc_suffixes``): all its text for a model or a
-    subsystem file; for a library, its text but the sections of its blocks;
-    for a library block, the text of its section. Headings below the title
-    become rubrics.
-    """
-    env = directive.env
-    dom = env.get_domain("mat")
-    file_ref, members = mat_naming.parse_reference(ref)
-    paths = _doc_paths(env, file_ref)
-    if not paths:
-        return []
-    parsed = env.temp_data.setdefault(_PARSED, {})
-    if paths[0] not in parsed:
-        parsed[paths[0]] = _parse_simulink_doc(directive, file_ref, paths)
-    doc = parsed[paths[0]]
-    if doc is None:
-        return []
-    obj = mat_types.resolve(dom, file_ref)
-    if members:
-        key = _heading_key(members[0])
-        found = [body for k, _rubric, body in doc.sections if k == key]
-        return _copies(found[0] if found else [])
-    if isinstance(obj, mat_types.MatLibrary):
-        keys = _block_keys(obj)
-        unmatched = [(r, b) for k, r, b in doc.sections if k not in keys]
-        return _copies([*doc.text, *(n for r, b in unmatched for n in (r, *b))])
-    return _copies([*doc.text, *(n for _k, r, b in doc.sections for n in (r, *b))])
-
-
-def _copies(found):
-    return [node.deepcopy() for node in found]
-
-
-def _block_keys(library):
-    """Keys of the headings of the documented blocks of a library."""
-    blocks = library.diagram.library_blocks if library.diagram is not None else ()
-    return {_heading_key(b.path): b.path for b in blocks if b.mask is not None}
-
-
-def _parse_simulink_doc(directive, file_ref, paths):
-    """Parse the first of ``paths``, the documentation files of ``file_ref``,
-    and warn about the others, about headings that name no block of a
-    library, and about blocks without a section.
-    """
-    env = directive.env
-    dom = env.get_domain("mat")
-    docs = dom.data["simulink_docs"]
-    path, ref = paths[0], docs[paths[0]]["reference"]
-    for other in paths[1:]:
-        _warn(
-            "simulink",
-            f"{docs[other]['reference']} is not used: {ref} documents {file_ref} "
-            "(see matlab_simulink_doc_suffixes).",
-            f"{other}:1",
-        )
-    env.note_dependency(path)
-    try:
-        result, _sidecar = parse_file(directive, path, ref)
-    except OSError as err:
-        _warn("parse_error", f"{ref} cannot be read ({err.strerror or err}).")
-        return None
-    doc = _split(result)
-    obj = mat_types.resolve(dom, file_ref)
-    if isinstance(obj, mat_types.MatLibrary):
-        keys = _block_keys(obj)
-        for key, rubric, _body in doc.sections:
-            if key not in keys:
-                _warn(
-                    "simulink",
-                    f"{ref}: the heading {rubric.astext()!r} names no masked block "
-                    f"of {file_ref}; its text goes with the library.",
-                    f"{rubric.source}:{rubric.line}",
-                )
-        found = {key for key, _rubric, _body in doc.sections}
-        missing = [repr(p) for k, p in keys.items() if k not in found]
-        if missing:
-            _warn(
-                "simulink",
-                f"{ref} has no section for the blocks {', '.join(missing)}.",
-                f"{path}:1",
-            )
-    return doc
-
-
-def _split(result):
-    """Split the nodes of a documentation file into a ``_SimulinkDoc``: the
-    first heading is the title (dropped); headings below it, and later ones
-    at its level, start the sections.
-    """
-    first = next(
-        (i for i, node in enumerate(result) if isinstance(node, nodes.section)),
-        None,
-    )
-    if first is None:
-        return _SimulinkDoc(result, [])
-    text = list(result[:first])
-    sections = []
-    for child in [*result[first].children[1:], *result[first + 1 :]]:
-        if isinstance(child, nodes.section):
-            rubric = _rubric(child)
-            key = _heading_key(rubric.astext())
-            sections.append((key, rubric, _flat(child.children[1:])))
-        else:
-            text.append(child)
-    return _SimulinkDoc(_flat(text), sections)
-
-
-def _flat(children):
-    """``children`` with each section as a rubric followed by its content."""
-    out = []
-    for node in children:
-        if isinstance(node, nodes.section):
-            out += [_rubric(node), *_flat(node.children[1:])]
-        else:
-            out.append(node)
-    return out
-
-
-def _rubric(section):
-    title = section[0]
-    rubric = nodes.rubric(title.rawsource, "", *title.children)
-    rubric["ids"], rubric["names"] = section["ids"], section["names"]
-    rubric.source, rubric.line = title.source, title.line
-    return rubric
+            return [section], title, section["ids"][0]
+        return result, title, result[first]["ids"][0]

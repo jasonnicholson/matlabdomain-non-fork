@@ -5,13 +5,14 @@ The *auto* :term:`directives <directive>` read a MATLAB file and write its
 documentation: the :term:`signature`, the help text and, for classes, the
 members. This page shows
 them on a small sample project, rendered by this documentation's own build.
-:doc:`../reference/directives` lists every directive and option.
+:doc:`../reference/directives` lists every :term:`directive` and option.
 
 Auto and description directives
 -------------------------------
 
-Every kind of :term:`object` has two directives: an auto directive
-(``mat:autofunction``) and a description directive (``mat:function``).
+Every kind of :term:`object` has two :term:`directives <directive>`: an auto
+:term:`directive`
+(``mat:autofunction``) and a description :term:`directive` (``mat:function``).
 
 .. list-table::
    :header-rows: 1
@@ -23,7 +24,7 @@ Every kind of :term:`object` has two directives: an auto directive
    * - Reads the source file
      - yes
      - never
-   * - Signature
+   * - :term:`Signature`
      - from the file (or the one you give)
      - as you write it
    * - Text
@@ -31,15 +32,18 @@ Every kind of :term:`object` has two directives: an auto directive
      - only your content
    * - Members
      - with ``:members:``
-     - nested directives you write
+     - nested :term:`directives <directive>` you write
    * - No file has the name
      - a ``mat.not_found`` warning ("don't know which object to
        document"); nothing is shown
      - no warning; shown as written
 
-The auto directives write description directives, filled from the file.
-Use the auto directives for code that has files; write description
-directives for objects without a ``.m`` file, such as MEX functions
+The auto :term:`directives <directive>` write description :term:`directives
+<directive>`, filled from the file.
+Use the auto :term:`directives <directive>` for code that has files; write
+description
+:term:`directives <directive>` for :term:`objects <object>` without a ``.m`` file,
+such as MEX functions
 (:ref:`below <hand-written>`).
 
 The sample project
@@ -71,7 +75,7 @@ folder with:
 Naming what to document
 -----------------------
 
-The argument of an auto directive names one file or member, in one of these
+The argument of an auto :term:`directive` names one file or member, in one of these
 ways:
 
 * its MATLAB name, as you would type it in MATLAB: ``shapes.Circle``,
@@ -82,7 +86,7 @@ ways:
 * a path or name relative to the current folder (below).
 
 A MATLAB name must belong to exactly one file. When several files share it
-(two folders with a ``utils.m``, say), the directive warns
+(two folders with a ``utils.m``, say), the :term:`directive` warns
 (``mat.ambiguous``) and lists their path references; use one of those.
 :doc:`referencing` explains names and references in detail.
 
@@ -94,7 +98,7 @@ Functions
 
 .. include:: ../snippets/autofunction.rst
 
-The signature lists the input names. Name-value arguments (``opts.Scale``
+The :term:`signature` lists the input names. Name-value arguments (``opts.Scale``
 in an ``arguments`` block) appear as their structure, ``opts``.
 
 Classes
@@ -113,6 +117,10 @@ constructor, properties, enumeration values and methods, in sections:
   ``matlab.mixin.Copyable``) are not documented in your project; they are
   shown as text, without a "reference target not found" warning (see
   :confval:`matlab_external_names` for the names and how to add others).
+* ``:inherited-members:`` also documents the members a class inherits
+  from its base classes in the project (below), when
+  :confval:`matlab_inherited_members` is on. It is not recommended:
+  ``:show-inheritance:`` links to the base classes instead.
 * Members without help are left out (enumeration values are always
   shown); ``:undoc-members:`` adds them.
 * Members with ``Access = private`` or ``protected``, ``Hidden`` members and
@@ -124,7 +132,8 @@ constructor, properties, enumeration values and methods, in sections:
   private method ``check``.
 * ``:members: area, Radius`` documents only the named members;
   ``:exclude-members: unit`` leaves out the named ones.
-* The signatures show the attributes a reader needs: ``abstract`` and
+* The :term:`signatures <signature>` show the attributes a reader needs:
+  ``abstract`` and
   ``sealed`` classes and methods, ``static`` methods, ``abstract``,
   ``constant``, ``dependent`` and ``read-only`` properties (``read-only``:
   ``SetAccess`` is stricter than the read access, as with ``SetAccess =
@@ -153,7 +162,7 @@ bysource``; the default is alphabetical):
 
 A class folder (``@Polygon/``) is documented through its class. Methods
 defined in their own files in the folder (``perimeter.m``) are members like
-the methods in the class file. A method whose signature the ``classdef``
+the methods in the class file. A method whose :term:`signature` the ``classdef``
 declares in a ``methods`` block (``methods (Static)`` with
 ``out = make(x)``) has that block's attributes, so it is static, private,
 protected or hidden as declared; a method file without a declaration is
@@ -168,6 +177,44 @@ A folder ``@X/`` is a class folder only if ``@X/X.m`` is a ``classdef``.
 Old-style classes (a class folder without a ``classdef``, from before
 MATLAB R2008a) are not supported: their files are functions. Document each
 file with ``mat:autofunction``.
+
+Inherited members
+^^^^^^^^^^^^^^^^^
+
+``:inherited-members:`` adds the members a class inherits from its base
+classes in the project. It works only when ``conf.py`` sets
+:confval:`matlab_inherited_members` to ``True``, as these docs do; while
+the value is off, the option adds nothing and the build warns. Each one is
+listed with the class's own members and
+starts with "Inherited from" and a link to the base class. ``Circle``
+inherits ``Name``, ``Color`` and ``describe`` from ``Shape``:
+
+.. literalinclude:: ../snippets/autoclass_inherited.rst
+   :language: rst
+
+.. include:: ../snippets/autoclass_inherited.rst
+
+* A member the class defines itself wins over the inherited one, as an
+  implemented abstract method does. Constructors, enumeration values and
+  private members are not inherited. The other options (``:undoc-members:``,
+  ``:protected-members:``, ``:exclude-members:`` and so on) apply to inherited
+  members too.
+* A list of class names stops at those bases: ``:inherited-members:
+  pkg.Framework`` leaves out the members of ``pkg.Framework`` and of its
+  own bases.
+* Base classes outside the project, such as ``handle``, are skipped.
+
+.. caution::
+
+   ``:inherited-members:`` is not recommended. It does not scale: the help
+   of one base member is repeated on the page of every class that inherits
+   it, so the pages get larger and the build gets slower with each subclass
+   and each level of inheritance. A warning in that help is repeated too.
+   Measured on an open-source toolbox with deep class hierarchies: the HTML
+   output grew from 11 MB to 25 MB, and the build took twice as long. On
+   toolboxes with little inheritance nothing changed. ``:show-inheritance:``
+   links to the base class instead, where the reader finds its members
+   once. On a small project with little inheritance, the option is fine.
 
 Single members
 --------------
@@ -206,14 +253,18 @@ App Designer apps show the
 summary and description stored in the app.
 
 ``mat:autodata`` documents a script as data (a script that defines
-variables, such as a parameter file): it looks the same, but its object
-type is ``data`` (role ``:mat:data:``) and it gets an index entry.
+variables, such as a parameter file): it looks the same, but its :term:`object`
+type is ``data`` (:term:`role` ``:mat:data:``) and it gets an index entry.
 
 Folders and the current folder
 ------------------------------
 
-``mat:autofolder`` documents a folder. A ``+`` folder is shown as a
-namespace; any other folder as ``folder`` and its path:
+``mat:autofolder`` documents a folder. A ``+`` folder that is the only
+folder of its namespace is shown as ``namespace`` and the namespace's name.
+Any other folder is shown as ``folder`` and its path, also a ``+`` folder
+when the namespace has several folders (``toolbox/+shapes/`` and
+``extras/+shapes/``). The namespace itself is an :term:`object` of its own
+(:ref:`documenting-namespaces`):
 
 .. literalinclude:: ../snippets/autofolder.rst
    :language: rst
@@ -221,7 +272,7 @@ namespace; any other folder as ``folder`` and its path:
 .. include:: ../snippets/autofolder.rst
 
 The folder also becomes the *current folder* of the page: for the rest of
-the page, or until the next folder directive, names are looked up relative
+the page, or until the next folder :term:`directive`, names are looked up relative
 to it, so ``Circle.m``,
 ``shapes.Circle`` and the private ``checkPositive`` all work. To set the
 current folder without documenting the folder, use ``mat:currentfolder``:
@@ -238,13 +289,13 @@ not include class folders (``@X/``), ``private/`` or subfolders, and leaves
 out ``Contents.m`` and the other special files (:doc:`help-text`). The
 options apply to the members too: ``:members:`` on a folder also documents
 every member of its classes. For a whole project,
-``scmd apidoc`` writes one directive per file instead
+``scmd apidoc`` writes one :term:`directive` per file instead
 (:doc:`apidoc`).
 
 Adding text
 -----------
 
-Content below an auto directive is added after the help text:
+Content below an auto :term:`directive` is added after the help text:
 
 .. code-block:: rst
 
@@ -259,7 +310,8 @@ Writing directives by hand
 
 The ``mat:function``, ``mat:class``, ``mat:method``, ``mat:staticmethod``,
 ``mat:attribute``, ``mat:event``, ``mat:script``, ``mat:application``,
-``mat:data`` and ``mat:folder`` directives describe an object without
+``mat:data`` and ``mat:folder`` :term:`directives <directive>` describe an
+:term:`object` without
 reading a file, for
 example a MEX function:
 
@@ -268,11 +320,42 @@ example a MEX function:
 
 .. include:: ../snippets/handwritten.rst
 
-If the name matches a file below the project root, the object gets that
+If the name matches a file below the project root, the :term:`object` gets that
 file's path reference, so links to the file land here; the file itself is
 not read. Otherwise its reference is the name as written, below the current
 folder if one is set (here ``+shapes/fastSolve``). Either way there is no
 warning.
 Nest ``mat:method`` and ``mat:attribute`` in ``mat:class`` to document
-members. The auto directives generate these directives; you rarely need
+members. The auto :term:`directives <directive>` generate these :term:`directives
+<directive>`; you rarely need
 them for code that has files.
+
+.. _documenting-namespaces:
+
+Namespaces
+----------
+
+A namespace is one :term:`object`, however many ``+`` folders have its
+name. ``mat:autonamespace`` documents it by its MATLAB name, and with
+``:members:`` the files directly in it, from all its folders:
+
+.. literalinclude:: ../snippets/autonamespace.rst
+   :language: rst
+
+.. include:: ../snippets/autonamespace.rst
+
+``mat:namespace`` describes a namespace without its members, and
+``:mat:namespace:`shapes``` links to it. After either :term:`directive`, names on
+the page are looked up in the namespace, until the next folder or
+namespace :term:`directive`: ``totalArea`` is ``shapes.totalArea``.
+
+``:members:`` works as on ``mat:autofolder``, and the options apply to the
+members too. The files come from every folder of the namespace, and a
+class folder (``@Polygon/``) counts as its class. Inner namespaces,
+``private/`` and the special files are left out.
+
+``mat:autonamespace`` is not recommended. Use ``scmd apidoc`` with
+namespace grouping instead (:doc:`apidoc`): it writes one page per
+namespace, with ``mat:namespace`` at the top, so links to the namespace
+land there. ``mat:autonamespace`` exists so that a 0.x ``mat:automodule``
+of a package has a counterpart in 1.0 (:doc:`migration`).

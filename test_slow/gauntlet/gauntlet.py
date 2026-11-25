@@ -3,7 +3,8 @@
 Usage, from anywhere (--fetch runs fetch.py first; without it, nothing is
 cloned and a missing checkout is a problem):
   python test_slow/gauntlet/gauntlet.py [NAME ...] [--fetch] [--out DIR]
-      [--trials N] [--jobs] [--variant {all,api,conf}] [--projects FILE]
+      [--trials N] [--jobs] [--variant {all,api,conf,inherited}]
+      [--projects FILE]
 
 For each enabled project in the list (NAME arguments keep the projects whose
 name contains one of them), on its checkout test_slow/repos/<name>:
@@ -15,9 +16,12 @@ name contains one of them), on its checkout test_slow/repos/<name>:
 - builds that output with sphinx-build -E (no -W), once per variant:
   ``conf`` (the defaults), ``all`` (``-D matlab_auto_link=all``) and ``api``
   (``-b matlab-api-check`` with the default rules; its reports are kept as
-  OUT/<name>/api-check.{txt,json}); exit code, wall time, warnings by
-  subtype (OUT/<name>/<variant>.warnings.txt), a traceback or crash log in
-  stderr; for ``api`` also the report's summary;
+  OUT/<name>/api-check.{txt,json}); with --variant also ``inherited``
+  (``-D matlab_inherited_members=1 -D
+  autodoc_default_options.inherited-members=``: every class documents its
+  inherited members); exit code, wall time, the number and bytes of the
+  HTML files, warnings by subtype (OUT/<name>/<variant>.warnings.txt), a
+  traceback or crash log in stderr; for ``api`` also the report's summary;
 - with --jobs, builds each variant again with -j auto and compares exit
   codes, the bytes of every *.html and objects.inv (the api-check reports),
   and the warnings (Windows has no fork, so -j runs serially there).
@@ -51,6 +55,7 @@ import sys
 import sysconfig
 import tempfile
 import time
+import tomllib
 from importlib import metadata
 from pathlib import Path
 
@@ -58,6 +63,8 @@ import projects as P
 
 REPO = P.HERE.parents[1]
 PY = sys.executable
+#: how a child process starts Python: ``[PY, "-m"]``, or under coverage with --coverage
+PY_M = [PY, "-m"]
 SUBTYPE = re.compile(r"\[([\w.-]+)\]\s*$")
 RECORD = re.compile(r"(^|: )(WARNING|ERROR|CRITICAL|SEVERE): ")
 SUMMARY = re.compile(
@@ -73,7 +80,19 @@ VARIANTS = {
     "conf": ("html", []),
     "all": ("html", ["-D", "matlab_auto_link=all"]),
     "api": ("matlab-api-check", []),
+    # every class documents its inherited members; only with --variant
+    "inherited": (
+        "html",
+        [
+            "-D",
+            "matlab_inherited_members=1",
+            "-D",
+            "autodoc_default_options.inherited-members=",
+        ],
+    ),
 }
+#: the variants run without --variant (the saved baselines have these)
+DEFAULT_VARIANTS = ("conf", "all", "api")
 API_REPORTS = ("api-check.json", "api-check.txt")
 CONF = (
     'extensions = ["sphinx.ext.autodoc", "sphinxcontrib.matlab"]\n'
@@ -99,6 +118,9 @@ def records(text):
 
 
 def subtypes(text):
+    """Return the warning records of a log counted by their ``[type.subtype]``
+    (``(none)`` without one), sorted.
+    """
     counts = collections.Counter()
     for record in records(text):
         m = SUBTYPE.search(record)
@@ -107,9 +129,12 @@ def subtypes(text):
 
 
 def run(*args):
+    """Run ``python -m <args>`` in the gauntlet's environment; return the completed
+    process and the wall time in seconds.
+    """
     start = time.perf_counter()
     proc = subprocess.run(
-        [PY, "-m", *args],
+        [*PY_M, *args],
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -120,12 +145,18 @@ def run(*args):
 
 
 def apidoc(docs, *flags):
+    """Run ``scmd apidoc`` with ``conf.py`` in ``docs``; return the process, the wall
+    time and the numbers of its summary line (None without one).
+    """
     proc, wall = run("sphinxcontrib.matlab_cli", "apidoc", *flags, "-c", str(docs))
     m = SUMMARY.search(proc.stdout)
     return proc, wall, m.groups() if m else None
 
 
 def manifest(folder):
+    """Return the path -> SHA-256 of every generated ``.rst`` file below ``folder``
+    (outside ``_build``).
+    """
     return {
         p.relative_to(folder).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
         for p in sorted(folder.rglob("*.rst"))
@@ -134,6 +165,11 @@ def manifest(folder):
 
 
 def build(docs, outdir, root, variant, extra=()):
+    """Build ``docs`` into ``outdir`` with the builder and options of ``variant``;
+    return the row of numbers (exit code, time, warnings by subtype, ...), the bytes of
+    the HTML pages, ``objects.inv`` and api-check reports, and the warning lines with
+    ``root`` replaced, counted.
+    """
     shutil.rmtree(outdir, ignore_errors=True)
     warnfile = outdir.parent / f"{outdir.name}.warnings.txt"
     builder, args = VARIANTS[variant]
@@ -165,6 +201,7 @@ def build(docs, outdir, root, variant, extra=()):
         "duplicate_objects": text.count("duplicate object description"),
         "traceback": "Traceback" in proc.stderr or "Traceback" in text,
         "html_files": sum(f.endswith(".html") for f in files),
+        "html_bytes": sum(len(d) for f, d in files.items() if f.endswith(".html")),
     }
     if "api-check.json" in files:
         summary = json.loads(files["api-check.json"])["summary"]
@@ -189,6 +226,9 @@ def expected_rc(row):
 
 
 def compare_jobs(serial, files, warnings, par, pfiles, pwarnings):
+    """Return how the -j build differs from the serial one (exit code, output files,
+    warnings), or ``identical``.
+    """
     problems = []
     if par["rc"] != serial["rc"]:
         problems.append(f"exit {serial['rc']} vs {par['rc']}")
@@ -206,6 +246,9 @@ def compare_jobs(serial, files, warnings, par, pfiles, pwarnings):
 
 
 def environment():
+    """Return the facts of this run: date, platform, the versions of Python, Sphinx and
+    tree-sitter, and the matlabdomain commit.
+    """
     status = P.git(REPO, "status", "--porcelain", "--untracked-files=no")
     return {
         "date": time.strftime("%Y-%m-%d"),
@@ -221,6 +264,10 @@ def environment():
 
 
 def problems(project, row):
+    """Return the problems in the results ``row`` of ``project``: failed generations, a
+    rerun that changed pages, unexpected exit codes, tracebacks, duplicate objects and
+    -j differences.
+    """
     out = [
         f"apidoc: exit {t['rc']}, traceback {t['traceback']}, summary {t['summary']}"
         for t in row["trials"]
@@ -276,7 +323,7 @@ def run_project(project, lock, args, out):
     docs = out / project.name / "trial0"
     proc, wall, summary = apidoc(docs, "-f")
     row["rerun"] = {"rc": proc.returncode, "summary": summary}
-    for variant in args.variant or list(VARIANTS):
+    for variant in args.variant or DEFAULT_VARIANTS:
         base = out / project.name / variant
         serial, files, warnings = build(docs, base, root, variant)
         row[variant] = serial
@@ -314,8 +361,7 @@ def quickstart(root, name, folder):
     start = time.perf_counter()
     proc = subprocess.run(
         [
-            PY,
-            "-m",
+            *PY_M,
             "sphinxcontrib.matlab_cli",
             "quickstart",
             str(root),
@@ -386,6 +432,68 @@ def run_quickstart(project, lock, out):
     return row, None, found
 
 
+def start_coverage(folder):
+    """Measure every child process from now on with the test suite's coverage
+    settings (``[tool.coverage]`` of pyproject.toml), its data in ``folder``;
+    return the rcfile.
+
+    Added: ``parallel`` (a data file per process), ``patch = ["fork", "_exit"]``
+    (the workers of ``-j`` are forked and leave through ``os._exit``) and an
+    absolute ``data_file``, because the children run in other folders.
+    """
+    global PY_M
+    folder.mkdir(parents=True, exist_ok=True)
+    for old in folder.glob(".coverage*"):
+        old.unlink()
+    with open(REPO / "pyproject.toml", "rb") as f:
+        settings = tomllib.load(f)["tool"]["coverage"]
+    settings["run"] |= {
+        "parallel": True,
+        "patch": ["fork", "_exit"],
+        "data_file": str(folder / ".coverage"),
+        # a child that imports none of the packages (apidoc's usage errors)
+        # would print these into the output the gauntlet reads
+        "disable_warnings": ["module-not-imported", "no-data-collected"],
+    }
+    lines = []
+    for table, values in settings.items():
+        lines.append(f"[tool.coverage.{table}]")
+        lines += [f"{key} = {json.dumps(value)}" for key, value in values.items()]
+    rcfile = folder / "coverage.toml"
+    rcfile.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    PY_M = [PY, "-m", "coverage", "run", f"--rcfile={rcfile}", "-m"]
+    return rcfile
+
+
+def report_coverage(rcfile):
+    """Combine the data files and write report.txt, coverage.json and htmlcov/
+    next to ``rcfile``; print the total.
+    """
+    folder = rcfile.parent
+    cov = [PY, "-m", "coverage"]
+    if any(folder.glob(".coverage.*")):
+        subprocess.run([*cov, "combine", "-q", f"--rcfile={rcfile}"], cwd=REPO)
+    with open(folder / "report.txt", "w", encoding="utf-8") as f:
+        subprocess.run(
+            [*cov, "report", f"--rcfile={rcfile}", "--skip-covered"],
+            cwd=REPO,
+            stdout=f,
+        )
+    for kind, flag in (("json", "-o"), ("html", "-d")):
+        out = folder / ("coverage.json" if kind == "json" else "htmlcov")
+        subprocess.run(
+            [*cov, kind, "-q", f"--rcfile={rcfile}", flag, str(out)], cwd=REPO
+        )
+    totals = json.loads((folder / "coverage.json").read_text(encoding="utf-8"))[
+        "totals"
+    ]
+    print(
+        f"coverage: lines {totals['percent_statements_covered']:.1f}%, branches "
+        f"{totals['percent_branches_covered']:.1f}%, total "
+        f"{totals['percent_covered']:.1f}% (report: {folder / 'report.txt'})"
+    )
+
+
 def print_quickstart_table(rows):
     """Per project: API pages, files indexed, warnings and times."""
     print(
@@ -403,6 +511,9 @@ def print_quickstart_table(rows):
 
 
 def main():
+    """Run the gauntlet on the selected projects, write ``results.json`` and
+    ``manifest.json``, print the problems, and exit 1 if there is one.
+    """
     parser = argparse.ArgumentParser(description=(__doc__ or "").split("\n")[0])
     parser.add_argument(
         "names", nargs="*", help="keep projects whose name contains one"
@@ -431,6 +542,12 @@ def main():
     parser.add_argument(
         "--projects", default=P.LIST, help="the project list (default: %(default)s)"
     )
+    parser.add_argument(
+        "--coverage",
+        action="store_true",
+        help="measure the children with the test suite's coverage settings; data "
+        "and reports in OUT/coverage",
+    )
     args = parser.parse_args()
     if args.fetch:
         fetch = [sys.executable, str(P.HERE / "fetch.py"), *args.names]
@@ -438,6 +555,7 @@ def main():
             sys.exit("fetch.py failed; nothing was run")
     out = args.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
+    rcfile = start_coverage(out / "coverage") if args.coverage else None
 
     lock = P.load_lock(args.projects)
     results = {"environment": environment(), "projects": {}}
@@ -465,6 +583,8 @@ def main():
     count = sum(map(len, bad.values()))
     if args.quickstart:
         print_quickstart_table(results["projects"])
+    if rcfile:
+        report_coverage(rcfile)
     print(f"\n{len(found)} projects; {count} problems; results in {out}")
     for name, items in bad.items():
         for item in items:

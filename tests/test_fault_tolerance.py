@@ -1,4 +1,4 @@
-"""Fault tolerance: one bad file never breaks a build (plan.md Phase 5, 2.10).
+"""Fault tolerance: one bad file never breaks a build.
 
 Malformed fixtures are written to temporary projects, so the ``test_docs``
 build that walks ``tests/`` never sees them.
@@ -67,7 +67,7 @@ def zip_bytes(members):
     return buf.getvalue()
 
 
-# --- decoding (MATLAB R2026a on Linux, plan.md Section 2.10) ---------------
+# --- decoding (MATLAB R2026a on Linux) -------------------------------------
 
 
 def test_decode_utf8_and_latin1_fallback():
@@ -577,6 +577,37 @@ def test_unknown_encoding_is_a_config_error(make_app, tmp_path):
             make_app(srcdir=tmp_path, confoverrides={"matlab_src_encoding": codec})
 
 
+@pytest.mark.parametrize("directive", ["autofolder:: +pkg/", "autonamespace:: pkg"])
+@pytest.mark.parametrize(
+    "options",
+    ["   :members:\n", "   :members:\n   :undoc-members:\n"],
+    ids=["members", "undoc-members"],
+)
+def test_files_not_of_their_type_in_a_folder_warn_once(
+    make_app, tmp_path, directive, options, odd_files
+):
+    write(
+        tmp_path,
+        {
+            "conf.py": CONF,
+            "index.rst": f"Index\n=====\n\n.. mat:{directive}\n{options}",
+            "+pkg/good.m": FUNCTION.format(name="good", help="GOOD HELP"),
+            "+pkg/empty.odd": b"",
+            "+pkg/text.odd": "not an odd file\n",
+        },
+    )
+    for _ in range(2):
+        app = make_app(srcdir=tmp_path, freshenv=True)
+        app.build()
+        assert warnings_of(app) == [
+            ("parse_error", "+pkg/empty.odd"),
+            ("parse_error", "+pkg/text.odd"),
+        ]
+        assert app.warning.getvalue().count("[mat.") == 2
+        html = (app.outdir / "index.html").read_text(encoding="utf-8")
+        assert "GOOD HELP" in html
+
+
 @pytest.mark.skipif(not CAN_MAKE_UNREADABLE, reason="needs POSIX permissions")
 def test_unreadable_folder_warns(make_app, tmp_path):
     write(
@@ -599,6 +630,23 @@ def test_unreadable_folder_warns(make_app, tmp_path):
         os.chmod(tmp_path / "locked", 0o755)
     # Listed once: autofolder :members: does not list (and warn) again.
     assert warnings_of(app) == [("parse_error", "locked/")]
+    assert "OK FUNCTION HELP" in (app.outdir / "index.html").read_text(encoding="utf-8")
+
+
+@pytest.mark.simulates("a folder that cannot be listed")
+def test_unlistable_folder_warns_on_a_simulated_file_system(
+    make_app, tmp_path, fake_folder
+):
+    write(tmp_path, LOCKED)
+    denied = PermissionError(13, "Permission denied", str(tmp_path / "locked"))
+    fake_folder(tmp_path / "locked", error=denied)
+    app = make_app(srcdir=tmp_path)
+    app.build()
+    assert warnings_of(app) == [("parse_error", "locked/")]
+    assert (
+        "locked/ cannot be read (Permission denied); its contents are not "
+        "documented. [mat.parse_error]"
+    ) in COLOR_RE.sub("", app.warning.getvalue())
     assert "OK FUNCTION HELP" in (app.outdir / "index.html").read_text(encoding="utf-8")
 
 
@@ -787,4 +835,23 @@ def test_undecodable_file_name_warns(make_app, tmp_path):
     assert app.statuscode == 0
     assert warnings_of(app) == [("parse_error", "./")]
     assert "./: the name b'ft_caf\\xe9.m' is not valid UTF-8" in app.warning.getvalue()
+    assert "OK FUNCTION HELP" in (app.outdir / "index.html").read_text(encoding="utf-8")
+
+
+@pytest.mark.simulates("a file name that is not valid UTF-8")
+def test_undecodable_file_name_warns_on_a_simulated_file_system(
+    make_app, tmp_path, fake_folder
+):
+    write(tmp_path, ONE_FUNCTION)
+    # What os.listdir returns on Linux for the bytes b"ft_caf\xe9.m".
+    name = "ft_caf\udce9.m"
+    fake_folder(tmp_path, [name])
+    app = make_app(srcdir=tmp_path)
+    app.build()
+    assert app.statuscode == 0
+    assert warnings_of(app) == [("parse_error", "./")]
+    # The bytes of os.fsencode differ: Windows encodes the surrogate itself.
+    assert f"./: the name {os.fsencode(name)!r} is not valid UTF-8" in (
+        app.warning.getvalue()
+    )
     assert "OK FUNCTION HELP" in (app.outdir / "index.html").read_text(encoding="utf-8")

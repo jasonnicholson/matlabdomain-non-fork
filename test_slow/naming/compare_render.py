@@ -5,7 +5,7 @@ Usage (run from the matlabdomain repo root):
   # snapshot with whatever ``sphinxcontrib.matlab`` the interpreter imports
   <python> test_slow/naming/compare_render.py snapshot OUT.json
   <python> test_slow/naming/compare_render.py compare A.json B.json
-  # A = legacy dotted names, B = path references (Phase 3b): pairs old and
+  # A = legacy dotted names, B = path references: pairs old and
   # new anchors per page, then reports link, inventory, signature, text and
   # warning changes
   <python> test_slow/naming/compare_render.py report A.json B.json
@@ -55,6 +55,9 @@ def _text(fragment):
 
 
 def projects(tmp):
+    """Copy the test roots, ``tests/test_docs`` and ``docs`` into ``tmp``; return name
+    -> the copy's Sphinx source folder.
+    """
     out = {}
     for root in sorted((REPO / "tests" / "roots").iterdir()):
         dst = tmp / "roots" / root.name
@@ -69,11 +72,19 @@ def projects(tmp):
     out["test_docs"] = tests / "test_docs"
     docs = tmp / "docs"
     shutil.copytree(REPO / "docs", docs, ignore=shutil.ignore_patterns("_build"))
+    # docs/conf.py reads the tested versions from these, one folder up
+    for name in ("pyproject.toml", "uv.lock"):
+        shutil.copyfile(REPO / name, tmp / name)
+    # the pages include files of the worked example
+    shutil.copytree(REPO / "examples", tmp / "examples")
     out["docs"] = docs
     return out
 
 
 def inventory(path):
+    """Return the ``mat:`` entries of the ``objects.inv`` at ``path`` as sorted
+    ``"<type> <name> <uri> [<display name>]"`` lines.
+    """
     from sphinx.util.inventory import InventoryFile
 
     with open(path, "rb") as f:
@@ -90,6 +101,10 @@ def inventory(path):
 
 
 def snapshot(out_path):
+    """Build every project in every variant and write, per build, the exit code, the
+    warnings, the inventory and per HTML page its ids, links, signatures and text to
+    ``out_path`` (JSON).
+    """
     result = {}
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
@@ -131,6 +146,9 @@ def snapshot(out_path):
 
 
 def compare(a_path, b_path):
+    """Print what differs between snapshots ``a_path`` and ``b_path``, build by build
+    and page by page.
+    """
     a = json.loads(Path(a_path).read_text())
     b = json.loads(Path(b_path).read_text())
     same = 0

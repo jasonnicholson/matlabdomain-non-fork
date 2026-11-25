@@ -1,4 +1,4 @@
-"""The ``matlab-api-check`` builder: audit MATLAB help text (plan.md Section 2.9).
+"""The ``matlab-api-check`` builder: audit MATLAB help text.
 
 Every indexed object is checked, whether a page documents it or not, unless
 ``matlab_api_check_files`` selects files.
@@ -18,8 +18,9 @@ from sphinx.errors import ConfigError
 from sphinx.util.logging import getLogger
 from sphinx.util.matching import Matcher
 
-from . import mat_simulink, mat_types
-from .mat_classify import is_hidden
+from . import mat_types
+from .mat_classify import UNKNOWN, is_hidden
+from .mat_typing import override
 
 logger = getLogger("matlab-domain")
 
@@ -145,30 +146,27 @@ _MESSAGES = {
 }
 
 
-def section_labels(config):
-    """Return the ``matlab_api_check_section_labels`` as sorted
+def section_labels(value, option=_LABELS_OPTION):
+    """Return the ``matlab_api_check_section_labels`` ``value`` as sorted
     ``((section, labels), ...)``, the labels a sorted tuple, lowercased
     (or ConfigError).
     """
-    value = getattr(config, _LABELS_OPTION)
     if not isinstance(value, dict):
-        raise ConfigError(f"{_LABELS_OPTION} must be a dict of section -> labels.")
+        raise ConfigError(f"{option} must be a dict of section -> labels.")
     sections = []
     for section, given in value.items():
         if section not in SECTIONS:
             raise ConfigError(
-                f"{_LABELS_OPTION}: unknown section {section!r}; the sections are "
+                f"{option}: unknown section {section!r}; the sections are "
                 f"{', '.join(SECTIONS)}."
             )
         if isinstance(given, str) or not isinstance(given, (list, tuple)):
-            raise ConfigError(
-                f"{_LABELS_OPTION}[{section!r}] must be a list of labels."
-            )
+            raise ConfigError(f"{option}[{section!r}] must be a list of labels.")
         labels = set()
         for label in given:
             if not isinstance(label, str) or not label.split() or ":" in label:
                 raise ConfigError(
-                    f"{_LABELS_OPTION}[{section!r}]: {label!r} is not a label "
+                    f"{option}[{section!r}]: {label!r} is not a label "
                     "(text without ':')."
                 )
             labels.add(" ".join(label.lower().split()))
@@ -196,61 +194,63 @@ def sections_for(labels):
     return sections
 
 
-def check_config(app, config):  # noqa: ARG001
-    """``config-inited``: ConfigError for unknown rules or severities and for
-    ignore patterns that are not relative globs.
-    """
-    rules = config.matlab_api_check_rules
+def check_rules(rules, option):
+    """ConfigError for unknown rules or severities."""
     if not isinstance(rules, dict):
-        raise ConfigError("matlab_api_check_rules must be a dict of rule -> severity.")
+        raise ConfigError(f"{option} must be a dict of rule -> severity.")
     for rule, severity in rules.items():
         if rule not in RULES:
             raise ConfigError(
-                f"matlab_api_check_rules: unknown rule {rule!r}; the rules are "
-                f"{', '.join(RULES)}."
+                f"{option}: unknown rule {rule!r}; the rules are {', '.join(RULES)}."
             )
         if severity not in SEVERITIES:
             raise ConfigError(
-                f"matlab_api_check_rules: the severity of {rule!r} must be "
+                f"{option}: the severity of {rule!r} must be "
                 f"{', '.join(SEVERITIES)}, not {severity!r}."
             )
-    ignore_patterns(config)
-    selected_files(config)
-    section_labels(config)
 
 
 def ignore_patterns(config):
-    """Return the normalized ``matlab_api_check_ignore_patterns`` (or ConfigError)."""
-    patterns = getattr(config, _IGNORE_OPTION)
-    if isinstance(patterns, str) or not isinstance(patterns, (list, tuple)):
-        raise ConfigError(f"{_IGNORE_OPTION} must be a list of glob patterns.")
-    return [mat_types._normalize_pattern(p, _IGNORE_OPTION) for p in patterns]
+    """Return the normalized ``matlab_api_check_ignore_patterns``."""
+    return mat_types.pattern_list(getattr(config, _IGNORE_OPTION), _IGNORE_OPTION)
+
+
+def check_files(entries, option):
+    """Return the normalized entries of ``matlab_api_check_files``, None for
+    every file (or ConfigError). A string, as ``-D`` gives it, is a list
+    separated by commas or line breaks.
+    """
+    if entries is None:
+        return None
+    if isinstance(entries, str):
+        entries = [e.strip() for e in re.split(r"[,\n]", entries)]
+        entries = [e for e in entries if e]
+    elif not isinstance(entries, (list, tuple)):
+        raise ConfigError(
+            f"{option} must be None, a list of paths or glob patterns, "
+            "or a string of them separated by commas."
+        )
+    return [mat_types._normalize_pattern(e, option) for e in entries]
+
+
+def check_files_from(listing, option):
+    """ConfigError unless ``matlab_api_check_files_from`` is None or a path."""
+    if listing is not None and (not isinstance(listing, str) or not listing):
+        raise ConfigError(f"{option} must be None or the path of a file.")
 
 
 def selected_files(config):
     """Return the normalized ``matlab_api_check_files`` and the lines of the
     ``matlab_api_check_files_from`` file, without duplicates: None selects
-    every file, ``[]`` none (or ConfigError). A string, as ``-D`` gives it,
-    is a list separated by commas or line breaks.
+    every file, ``[]`` none (or ConfigError for the file). Only the
+    api-check builder reads the file.
     """
-    entries = getattr(config, _FILES_OPTION)
+    normalized = check_files(getattr(config, _FILES_OPTION), _FILES_OPTION)
     listing = getattr(config, _FROM_OPTION)
-    if entries is None and listing is None:
+    if normalized is None and listing is None:
         return None
-    if entries is None:
-        entries = []
-    elif isinstance(entries, str):
-        entries = [e.strip() for e in re.split(r"[,\n]", entries)]
-        entries = [e for e in entries if e]
-    elif not isinstance(entries, (list, tuple)):
-        raise ConfigError(
-            f"{_FILES_OPTION} must be None, a list of paths or glob patterns, "
-            "or a string of them separated by commas."
-        )
-    normalized = [mat_types._normalize_pattern(e, _FILES_OPTION) for e in entries]
+    normalized = normalized or []
     if listing is not None:
-        if not isinstance(listing, str) or not listing:
-            raise ConfigError(f"{_FROM_OPTION} must be None or the path of a file.")
         try:
             with open(listing, encoding="utf-8-sig") as f:
                 lines = f.read().splitlines()
@@ -285,6 +285,11 @@ def _why_unmatched(root, entry):
 
 @dataclass
 class Finding:
+    """One problem ``matlab-api-check`` found in the help of a documented object: the
+    object (path reference, MATLAB name, kind), the rule and its severity, the message,
+    and where (file path and line, or a docname).
+    """
+
     reference: str
     name: str | None
     kind: str
@@ -304,6 +309,7 @@ class Finding:
         return None if self.line is None else f"{self.path}:{self.line}"
 
     def to_json(self):
+        """Return the finding as a dict, one entry of the JSON report."""
         return {
             "reference": self.reference,
             "name": self.name,
@@ -388,7 +394,7 @@ class _Checker:
         self.parsed = []
         self.checked = dict.fromkeys(KINDS, 0)
         self.not_checked: dict[str, int] = dict.fromkeys(
-            ("ignored", "hidden", "unreadable", "not_parsed", "simulink_files"), 0
+            ("ignored", "hidden", "unreadable", "not_parsed"), 0
         )
         #: the ``selected_files`` entries; None selects every file
         self.selection = selection
@@ -573,8 +579,8 @@ class _Checker:
         if self.ignore(ref):
             self.not_checked["ignored"] += 1
             return
-        if record["type"] in mat_simulink.KINDS:  # no rules for them yet
-            self.not_checked["simulink_files"] += 1
+        if record["type"] == UNKNOWN:  # the index stage warned: not a source file
+            self.not_checked["not_parsed"] += 1
             return
         obj = mat_types.resolve(self.dom, ref)
         self.parsed.append(path)
@@ -610,7 +616,7 @@ class _Checker:
             self.describe("description", where, "application", obj.docstring)
 
     def sidecars(self, env):
-        """Check the sidecar docs (plan.md Section 2.11): each is
+        """Check the sidecar docs: each is
         rendered by ``mat:autosidecar`` in a document that a toctree includes
         (or an orphan), and its relative links and images exist.
         """
@@ -743,38 +749,47 @@ class MatlabApiCheckBuilder(Builder):
     name = "matlab-api-check"
     epilog = f"The MATLAB API check passed; see %(outdir)s{os.sep}{REPORT_TXT}."
 
+    @override
     def init(self):
         #: number of findings with the severity ``error``
         self.errors = 0
         #: number of selection entries that selected no file and fail the build
         self.unmatched = 0
+        #: ``selected_files``, read at ``builder-inited``
+        self.selection = None
 
+    @override
     def get_outdated_docs(self):
         return "the MATLAB sources"
 
-    def get_target_uri(self, docname, typ=None):  # noqa: ARG002
+    @override
+    def get_target_uri(self, docname, typ=None):
         return ""
 
+    @override
     def write_documents(self, docnames):
         """No pages (Sphinx >= 8.1)."""
 
+    @override
     def prepare_writing(self, docnames):
         """Nothing to prepare (abstract before Sphinx 8.1)."""
 
+    @override
     def write_doc(self, docname, doctree):
         """No pages (Sphinx 8.0 calls this for every page)."""
 
+    @override
     def finish(self):
         config = self.config
         dom = self.env.get_domain("mat")
         rules = {**DEFAULT_RULES, **config.matlab_api_check_rules}
-        ignore_unmatched = bool(config.matlab_api_check_ignore_unmatched)
+        ignore_unmatched = config.matlab_api_check_ignore_unmatched
         checker = _Checker(
             dom,
             rules,
             ignore_patterns(config),
-            selected_files(config),
-            sections_for(section_labels(config)),
+            self.selection,
+            sections_for(section_labels(config.matlab_api_check_section_labels)),
         )
         records = sorted(dom.data["index"].items(), key=lambda i: i[1]["reference"])
         for path, record in records:

@@ -1,9 +1,7 @@
-"""sphinxcontrib.matlab_apidoc._cli.
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+"""Command line of ``scmd apidoc``.
 
-Command line of ``scmd apidoc`` (plan.md Section 2.8). The
-settings come from ``conf.py`` in ``-c DIR`` (default: the working folder)
-only; the flags are run-time options.
+The settings come from ``conf.py`` in ``-c DIR`` (default: the working
+folder) only; the flags are run-time options.
 """
 
 from __future__ import annotations
@@ -18,17 +16,26 @@ from typing import cast
 
 from sphinx.config import Config
 from sphinx.errors import ConfigError
-from sphinx.util.logging import is_suppressed_warning
+from sphinx.util.logging import getLogger, is_suppressed_warning
 from sphinx.util.tags import Tags
 
-from ..mat_config import CONFIG, add_config_values, check_sources, typed_value
+from ..mat_config import (
+    APIDOC,
+    CONFIG,
+    add_config_values,
+    check_sources,
+    check_values,
+)
 from ..mat_types import (
     IndexSettings,
     build_index,
     check_config_names,
     project_root,
 )
-from ._generate import GROUPS, ApidocOptions, generate
+from ..mat_typing import override
+from ._generate import ApidocOptions, generate
+
+logger = getLogger("matlab-apidoc")
 
 #: exit status when --check finds pages to change
 CHECK_FAILED = 1
@@ -116,30 +123,22 @@ def read_conf(confdir):
 
 def _folder(conf, name, srcdir):
     """Return a path value of conf.py (relative to the source folder) or None."""
-    value = typed_value(conf, name)
+    value = getattr(conf, name)
     return None if value is None else os.path.join(srcdir, value)
 
 
-def _file_name(conf, name):
-    """Return a file-name value of conf.py, or ConfigError."""
-    value = typed_value(conf, name)
-    if not value or any(sep in value for sep in "/\\"):
-        raise ConfigError(f"{name} {value!r} must be a file name.")
-    return value
-
-
 def _settings(args):
-    """``(IndexSettings, ApidocOptions, suppress_warnings)`` of conf.py and
-    the flags, or ConfigError.
+    """``(IndexSettings, ApidocOptions, suppress_warnings, problems)`` of
+    conf.py and the flags, or ConfigError; ``problems`` are the bad values
+    that only the build uses, to be warned once.
     """
     conf = read_conf(args.conf_dir)
     srcdir = os.path.abspath(args.conf_dir)
+    problems = check_values(conf, frozenset({APIDOC}))
 
     root = project_root(conf, srcdir)
     if root is None:
         raise ConfigError("matlab_src_code_project_root is required in conf.py.")
-    if not os.path.isdir(root):
-        raise ConfigError(f"matlab_src_code_project_root {root!r} is not a folder.")
 
     check_sources(conf, srcdir)
     settings = cast(IndexSettings, IndexSettings.from_config(conf, srcdir))
@@ -152,34 +151,23 @@ def _settings(args):
     templatedir = _folder(conf, "matlab_apidoc_templatedir", srcdir)
     if templatedir is not None and not os.path.isdir(templatedir):
         raise ConfigError(f"matlab_apidoc_templatedir {templatedir!r} is not a folder.")
-    group = typed_value(conf, "matlab_apidoc_group")
-    if group not in GROUPS:
-        raise ConfigError(
-            f"matlab_apidoc_group must be {' or '.join(map(repr, GROUPS))}, "
-            f"not {group!r}."
-        )
-    page_size = typed_value(conf, "matlab_apidoc_page_size")
-    if page_size < 1:
-        raise ConfigError(
-            f"matlab_apidoc_page_size must be 1 or more, not {page_size}."
-        )
     options = ApidocOptions(
         output_dir=output_dir,
         force=args.force,
         dry_run=args.dry_run or args.check,
-        separate=typed_value(conf, "matlab_apidoc_separate"),
-        maxdepth=typed_value(conf, "matlab_apidoc_maxdepth"),
-        tocfile=_file_name(conf, "matlab_apidoc_tocfile"),
+        separate=conf.matlab_apidoc_separate,
+        maxdepth=conf.matlab_apidoc_maxdepth,
+        tocfile=conf.matlab_apidoc_tocfile,
         templatedir=templatedir,
-        remove_old=typed_value(conf, "matlab_apidoc_remove_old"),
-        group=group,
-        page_size=page_size,
-        private=typed_value(conf, "matlab_apidoc_private"),
+        remove_old=conf.matlab_apidoc_remove_old,
+        group=conf.matlab_apidoc_group,
+        page_size=conf.matlab_apidoc_page_size,
+        private=conf.matlab_apidoc_private,
     )
     suppress = conf.suppress_warnings
     if isinstance(suppress, str) or not isinstance(suppress, (list, tuple, set)):
         raise ConfigError(f"suppress_warnings must be a list, not {suppress!r}.")
-    return settings, options, list(suppress)
+    return settings, options, list(suppress), problems
 
 
 class _WarningHandler(logging.Handler):
@@ -193,6 +181,7 @@ class _WarningHandler(logging.Handler):
         self.suppress = suppress
         self.count = 0
 
+    @override
     def emit(self, record):
         warning_type = getattr(record, "type", None) or ""
         subtype = getattr(record, "subtype", None) or ""
@@ -247,14 +236,17 @@ def main(argv=None, *, prog="scmd apidoc"):
     parser = get_parser(prog)
     args = parser.parse_args(argv)
     try:
-        settings, options, suppress = _settings(args)
+        settings, options, suppress, problems = _settings(args)
     except ConfigError as err:
         print(f"{parser.prog}: error: {err}", file=sys.stderr)
         return USAGE_ERROR
 
     start = time.perf_counter()
     with _sphinx_warnings(sys.stderr, suppress) as warnings:
-        source_index = build_index(settings)
+        for problem in problems:
+            logger.warning("[scmd apidoc] %s", problem, type="mat", subtype="config")
+        # The generator says that a file it cannot read is left out.
+        source_index = build_index(settings, warn_unreadable=False)
         result = generate(source_index, options)
     elapsed = time.perf_counter() - start
 

@@ -197,13 +197,13 @@ def test_ClassWithEndOfLineComment(dir_test_data):
     assert obj.docstring == ""
     method_test1 = obj.methods["test1"]
     assert method_test1.name == "test1"
-    # TODO: Trailing comment get passed as docstring
-    # assert method_test.docstring == '' # noqa : ERA001
+    # the comment at the end of the function line is not help text
+    assert method_test1.docstring is None
 
     method_test2 = obj.methods["test2"]
     assert method_test2.name == "test2"
-    # TODO: Trailing comment get passed as docstring
-    # assert method_test.docstring == '' # noqa : ERA001
+    # the comment at the end of the function line is not help text
+    assert method_test2.docstring is None
 
 
 def test_ClassWithEvent(dir_test_data):
@@ -514,7 +514,7 @@ def test_file_parsing_with_no_encoding_specified(dir_test_data):
 
     obj = MatObject.parse_mfile(mfile, "f_with_latin_1", "test_data")
 
-    # Not valid UTF-8: decoded as ISO-8859-1, like MATLAB R2026a (Phase 5).
+    # Not valid UTF-8: decoded as ISO-8859-1, like MATLAB R2026a.
     assert obj.name == "f_with_latin_1"
     assert obj.docstring == "Analyse de la réponse à un créneau"
     assert [w[0] for w in obj.source_warnings] == ["encoding"]
@@ -1082,13 +1082,10 @@ def test_script(mod):
 
 def test_module(dir_test_data, mod, app):
     assert mod.getter("__name__") == "test_data"
-    assert Path(mod.getter("__path__")[0]) == dir_test_data
-    assert Path(mod.getter("__file__")) == dir_test_data
-    assert mod.getter("__package__") == "test_data/"
+    assert Path(mod.path) == dir_test_data
     assert not mod.getter("__module__")
     assert not mod.getter("__doc__")
-    all_entities = mod.getter("__all__")
-    all_items = {name for name, entity in all_entities}
+    all_items = {name for name, _ in mod.member_refs()}
     expected_items = {
         "+package",
         "@ClassFolder",
@@ -1176,7 +1173,7 @@ def test_classes(mod):
     # test superclass
     cls = mod.getter("ClassInheritHandle")
     assert isinstance(cls, MatClass)
-    assert cls.getter("__name__") == "ClassInheritHandle"
+    assert cls.name == "ClassInheritHandle"
     assert cls.getter("__module__") == "test_data/"
     assert cls.bases == ["handle", "my.super.Class"]
     assert cls.attrs == {}
@@ -1199,10 +1196,10 @@ def test_abstract_class(mod):
     # test abstract class with attributes
     abc = mod.getter("ClassAbstract")
     assert isinstance(abc, MatClass)
-    assert abc.getter("__name__") == "ClassAbstract"
+    assert abc.name == "ClassAbstract"
     assert abc.getter("__module__") == "test_data/"
-    assert "ClassInheritHandle" in abc.getter("__bases__")
-    assert "ClassExample" in abc.getter("__bases__")
+    assert "ClassInheritHandle" in abc.__bases__
+    assert "ClassExample" in abc.__bases__
     assert abc.bases == ["ClassInheritHandle", "ClassExample"]
     assert abc.attrs == {"Abstract": True, "Sealed": True}
     assert abc.properties == {
@@ -1249,17 +1246,17 @@ def test_abstract_class(mod):
 def test_class_method(mod):
     cls_meth = mod.getter("ClassExample")
     assert isinstance(cls_meth, MatClass)
-    assert cls_meth.getter("__name__") == "ClassExample"
+    assert cls_meth.name == "ClassExample"
     assert (
         cls_meth.docstring
         == "test class methods\n\n:param a: the input to :class:`ClassExample`"
     )
     constructor = cls_meth.getter("ClassExample")
     assert isinstance(constructor, MatMethod)
-    assert constructor.getter("__name__") == "ClassExample"
+    assert constructor.name == "ClassExample"
     mymethod = cls_meth.getter("mymethod")
     assert isinstance(mymethod, MatMethod)
-    assert mymethod.getter("__name__") == "mymethod"
+    assert mymethod.name == "mymethod"
     # TODO: mymethod.args will contain ['obj', 'b'] if run standalone
     #       but if test_autodoc.py is run, the 'obj' is removed
     assert mymethod.args
@@ -1333,7 +1330,7 @@ def test_folder_class(mod):
 def test_function(mod):
     func = mod.getter("f_example")
     assert isinstance(func, MatFunction)
-    assert func.getter("__name__") == "f_example"
+    assert func.name == "f_example"
     assert list(func.retv.keys()) == ["o1", "o2", "o3"]
     assert list(func.args.keys()) == ["a1", "a2"]
     assert (
@@ -1342,21 +1339,17 @@ def test_function(mod):
     )
 
 
-def test_function_getter(mod):
+def test_function_attributes_autodoc_reads(mod):
     func = mod.getter("f_example")
     assert isinstance(func, MatFunction)
-    assert func.getter("__name__") == "f_example"
-    assert (
-        func.getter("__doc__")
-        == "a fun function\n\n:param a1: the first input\n:param a2: another input\n:returns: ``[o1, o2, o3]`` some outputs"
-    )
-    assert func.getter("__module__") == "test_data/"
+    assert func.__doc__ == func.docstring
+    assert func.__module__ == "test_data/"
 
 
 def test_package_function(mod):
     func = mod.getter("f_example")
     assert isinstance(func, MatFunction)
-    assert func.getter("__name__") == "f_example"
+    assert func.name == "f_example"
     assert list(func.retv.keys()) == ["o1", "o2", "o3"]
     assert list(func.args.keys()) == ["a1", "a2"]
     assert (
@@ -1368,11 +1361,11 @@ def test_package_function(mod):
 def test_class_with_get_method(mod):
     the_class = mod.getter("ClassWithGetMethod")
     assert isinstance(the_class, MatClass)
-    assert the_class.getter("__name__") == "ClassWithGetMethod"
+    assert the_class.name == "ClassWithGetMethod"
     assert the_class.docstring == "Class with a method named get"
     the_method = the_class.getter("get")
     assert isinstance(the_method, MatMethod)
-    assert the_method.getter("__name__") == "get"
+    assert the_method.name == "get"
     assert list(the_method.retv.keys()) == ["varargout"]
     assert the_method.docstring.startswith(
         "Gets the numbers 1-n and fills in the outputs with them"

@@ -1,6 +1,5 @@
 """scmd quickstart: detection, the files it writes, the edits
-outside the Sphinx source folder, the command line and the report
-(plan.md Section 2.13, Phase 16).
+outside the Sphinx source folder, the command line and the report.
 """
 
 import json
@@ -249,57 +248,6 @@ def test_golden_dry_run(tmp_path, capsys, fixed, no_git):
     assert tree(root) == before
 
 
-def test_simulink_project_gets_the_help_linker(tmp_path, capsys, fixed, no_git):
-    root = copy_root(APIDOC, tmp_path)
-    slx = TESTS / "simulink" / "fixtures" / "R2026b" / "slx"
-    (root / "models" / "private").mkdir(parents=True)
-    shutil.copyfile(slx / "probeModel.slx", root / "models" / "probeModel.slx")
-    shutil.copyfile(slx / "probeLib.slx", root / "models" / "probeLib.slx")
-    shutil.copyfile(slx / "probeRef.slx", root / "models" / "private" / "probeRef.slx")
-    text = f'{ANSWERS}markdown = false\nmake = "plain"\nhtml_baseurl = "https://x.org/d/"\n'
-    args = [str(root), "-q", "--answers", answers_file(tmp_path, text)]
-    assert matlab_quickstart.main(args) == 0
-    out = " ".join(normalize(capsys.readouterr().out, root).split())
-    folder = root / "+sphinxcontrib" / "+matlabdomain"
-    linker = folder / "simulinkDocumentationLinker.m"
-    assert (
-        linker.read_bytes()
-        == (
-            _write.MATLAB_TOOLS / "+sphinxcontrib" / "+matlabdomain" / linker.name
-        ).read_bytes()
-    )
-    settings = json.loads((folder / "simulinkDocumentationLinker.json").read_text())
-    assert settings == {
-        "mode": "local",
-        "local": "docs/_build/html/",
-        "server": "http://127.0.0.1:8000/",
-        "published": "https://x.org/d/",
-    }
-    assert (
-        "Creating file +sphinxcontrib/+matlabdomain/simulinkDocumentationLinker.m "
-        "(Help links of the Simulink files)." in out
-    )
-    assert "2 models, 1 library" in out
-    assert "models/private/probeRef.slx" in out  # not callable
-    conf = (root / "docs" / "conf.py").read_text(encoding="utf-8")
-    assert (
-        "    # The MATLAB function behind the Help links of the Simulink files.\n"
-        '    "+sphinxcontrib/",\n'
-    ) in conf
-
-    # A second run keeps the settings and does not document the function.
-    (folder / "simulinkDocumentationLinker.json").write_text('{"mode": "published"}')
-    assert matlab_quickstart.main([*args, "--force"]) == 0
-    out = capsys.readouterr().out
-    assert (folder / "simulinkDocumentationLinker.json").read_text() == (
-        '{"mode": "published"}'
-    )
-    assert "simulinkDocumentationLinker" not in out
-    api = tree(root / "docs" / "API")
-    assert not [name for name in api if "sphinxcontrib" in name]
-    assert not [text for text in api.values() if "simulinkDocumentationLinker" in text]
-
-
 def test_help_and_version(capsys):
     with pytest.raises(SystemExit):
         matlab_quickstart.main(["--version"])
@@ -531,6 +479,25 @@ def test_guide_install_drops_a_local_folder():
     assert _cli._guide_install(facts) is VERSION_INSTALL
 
 
+def test_guide_names_no_folder_of_a_local_install(
+    tmp_path, capsys, monkeypatch, no_git
+):
+    monkeypatch.setattr(_detect, "is_importable", lambda _name: True)
+    monkeypatch.setattr(_cli, "_git_author", lambda _root: "")
+    url = (tmp_path / "checkout").as_uri()
+    dist = FakeDist({"direct_url.json": json.dumps({"url": url, "dir_info": {}})})
+    monkeypatch.setattr(_detect, "_distribution", lambda: dist)
+    root = copy_root(QUICKSTART, tmp_path / "src")
+    text = f'{ANSWERS}make = "plain"\nguide = true\n'
+    args = [str(root), "-q", "--answers", answers_file(tmp_path, text)]
+    assert matlab_quickstart.main(args) == 0
+    # the user's own install line names the folder; the guide does not
+    assert url in capsys.readouterr().out
+    guide = (root / "docs" / "BUILDING_DOCS.md").read_text(encoding="utf-8")
+    assert "file:" not in guide
+    assert "sphinxcontrib-matlabdomain" in guide
+
+
 @pytest.mark.skipif(not HAS_GIT, reason="needs git")
 def test_git_dirty(tmp_path, monkeypatch):
     root = tmp_path / "repo"
@@ -543,6 +510,16 @@ def test_git_dirty(tmp_path, monkeypatch):
     assert _write.git_dirty(root) == [".gitignore", "pyproject.toml"]
     monkeypatch.setattr(shutil, "which", lambda _name: None)
     assert _write.git_dirty(root) is None
+
+
+@pytest.mark.skipif(not HAS_GIT, reason="needs git")
+def test_git_dirty_names_a_modified_file_whole(tmp_path):
+    root = tmp_path / "repo"
+    root.mkdir()
+    (root / ".gitignore").write_text("x\n")
+    git_init(root)
+    (root / ".gitignore").write_text("x\ny\n")
+    assert _write.git_dirty(root) == [".gitignore"]
 
 
 def test_git_dirty_outside_a_work_tree(monkeypatch, tmp_path):
@@ -972,7 +949,7 @@ def test_inventory(tmp_path):
 def _all_answers():
     return (
         'matlab_version = "R2024b"\ngroup = "namespace"\ntheme = "furo"\n'
-        'html_baseurl = ""\nexclude = []\nmarkdown = true\nsidecars = true\n'
+        "exclude = []\nmarkdown = true\nsidecars = true\n"
         'make = "plain"\nguide = true\napi_pages = "commit"\n'
         "napoleon_custom_sections = []\n"
     )
@@ -989,7 +966,6 @@ def _all_answers():
         ("napoleon_custom_sections = 1\n", "must be a list"),
         ("napoleon_custom_sections = [[1, 2]]\n", "[heading, style] pairs"),
         ('project = " "\n', "project must be a text"),
-        ("html_baseurl = 1\n", "html_baseurl must be a text"),
         ('matlab_version = "R2019b"\n', "older than the oldest supported"),
     ],
 )
@@ -1041,8 +1017,6 @@ def test_prompts(tmp_path, capsys, replies, fixed, no_git):
         "flat",  # a bad grouping
         "folder",
         "",  # theme
-        "ftp://x",  # not a web address: asked again
-        "https://example.org/docs/",  # published site
         "data, ext",  # exclusions
         "maybe",  # not y or n
         "y",  # markdown
@@ -1065,8 +1039,6 @@ def test_prompts(tmp_path, capsys, replies, fixed, no_git):
     assert saved["exclude"] == ["data", "ext"]
     assert saved["napoleon_custom_sections"] == []
     assert saved["matlab_version"] == "R2025b"
-    assert saved["html_baseurl"] == "https://example.org/docs/"
-    assert "* html_baseurl must start with https:// or http://" in out
     assert "Saved the answers" in out
     assert not (root / "docs").exists()
 
@@ -1085,6 +1057,70 @@ def test_save_answers_default_file(tmp_path, capsys, replies, fixed, no_git):
     replies.queue += [""]
     _cli.save_answers(namespace, str(root), {})
     assert replies.asked[-1] == "> Save the answers to a file [y/N]: "
+
+
+def test_save_path_typed_is_relative_to_root(tmp_path, replies, monkeypatch):
+    root = tmp_path / "root"
+    elsewhere = tmp_path / "elsewhere"
+    root.mkdir()
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+    answers = _cli.read_answers(answers_file(tmp_path, ANSWERS + _all_answers()))
+    namespace = SimpleNamespace(dry_run=False, answers=None)
+    replies.queue += ["y", "mine.toml"]
+    _cli.save_answers(namespace, str(root), answers)
+    assert (root / "mine.toml").is_file()
+    assert not (elsewhere / "mine.toml").exists()
+    # the option value stays relative to the working folder, also as the default
+    namespace = SimpleNamespace(dry_run=False, answers="given.toml")
+    replies.queue += ["y", ""]
+    _cli.save_answers(namespace, str(root), answers)
+    assert (elsewhere / "given.toml").is_file()
+    assert not (root / "given.toml").exists()
+
+
+def test_output_dir_is_relative_to_the_working_folder(
+    tmp_path, monkeypatch, fixed, no_git
+):
+    root = copy_root(QUICKSTART, tmp_path)
+    (root / "sub").mkdir()
+    monkeypatch.chdir(root / "sub")
+    assert matlab_quickstart.main([str(root), "-q", "-o", "d2"]) == 0
+    assert (root / "sub" / "d2" / "conf.py").is_file()
+    assert not (root / "d2").exists()
+
+
+def test_end_of_input_at_the_save_prompt_is_no(
+    tmp_path, capsys, replies, fixed, no_git
+):
+    root = copy_root(QUICKSTART, tmp_path)
+    full = answers_file(tmp_path, ANSWERS + _all_answers())
+    # CI: not a terminal, nothing to read
+    assert matlab_quickstart.main([str(root), "-a", full]) == 0
+    out = capsys.readouterr().out
+    assert replies.asked == ["> Save the answers to a file [y/N]: "]
+    assert (root / "docs" / "conf.py").is_file()
+    assert "[Interrupted.]" not in out
+    assert "Saved the answers" not in out
+    assert not (root / _cli.ANSWERS_FILE).exists()
+    # also after a yes, at the prompt for the file
+    replies.queue += ["y"]
+    _cli.save_answers(SimpleNamespace(dry_run=False, answers=None), str(root), {})
+    assert replies.asked[-1] == f"> File [{root / _cli.ANSWERS_FILE}]: "
+    assert not (root / _cli.ANSWERS_FILE).exists()
+
+
+def test_interrupt_at_the_save_prompt_stays_an_interrupt(
+    tmp_path, capsys, monkeypatch, fixed, no_git
+):
+    def interrupt(_text):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr("builtins.input", interrupt)
+    root = copy_root(QUICKSTART, tmp_path)
+    full = answers_file(tmp_path, ANSWERS + _all_answers())
+    assert matlab_quickstart.main([str(root), "-a", full]) == 1
+    assert "[Interrupted.]" in capsys.readouterr().out
 
 
 def test_interrupted(tmp_path, capsys, replies, fixed, no_git):

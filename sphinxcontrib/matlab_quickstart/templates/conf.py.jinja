@@ -64,10 +64,6 @@ matlab_src_exclude_patterns = [
     {{ pattern | py }},
 {% endfor %}
 {% endif %}
-{% if linker_exclude %}
-    # The MATLAB function behind the Help links of the Simulink files.
-    {{ linker_exclude | py }},
-{% endif %}
 {% if suggestions %}
     # Not on the MATLAB project path ({{ path_source }}); start-up files may
     # add more. Uncomment what is not the project's API:
@@ -139,6 +135,3 @@ myst_heading_anchors = 6
 
 html_theme = {{ theme | py }}
 html_static_path = ["_static"]
-# Put published URL here. Blank, it means local mode is used.
-# This assists Simulink documentation linking.
-html_baseurl = {{ html_baseurl | py }}

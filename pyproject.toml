@@ -14,7 +14,9 @@ dev = [
 ]
 docs = [
     "furo",
-    "sphinxcontrib-mermaid"
+    "sphinxcontrib-mermaid",
+    # myst-parser is also in the test group; docs needs it for blog posts.
+    "myst-parser>=4,<6"
 ]
 test = [
     "pytest>=9",
@@ -38,6 +40,12 @@ classifiers = [
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Topic :: Documentation",
     "Topic :: Utilities",
     "Framework :: Sphinx :: Extension",
@@ -51,7 +59,9 @@ dependencies = [
     # Pin each dependency. Never trust the version number alone because it will break
     # our consumers.
     "tree-sitter-matlab==1.3.3",
-    "tree-sitter==0.26.1"
+    "tree-sitter==0.26.1",
+    # typing.override before Python 3.12 (sphinxcontrib.mat_typing); 4.4 added it.
+    "typing-extensions>=4.4; python_version < '3.12'"
 ]
 description = 'Sphinx "matlabdomain" extension'
 dynamic = ["version"]
@@ -67,7 +77,7 @@ requires-python = ">=3.11"
 
 [project.optional-dependencies]
 markdown = [
-    # Sidecar docs in Markdown (plan.md Section 2.11). The renderer
+    # Sidecar docs in Markdown. The renderer
     # subclasses myst-parser's SphinxRenderer: test each release before
     # moving the cap.
     "myst-parser>=4,<6"
@@ -111,14 +121,15 @@ source_pkgs = [
     "sphinxcontrib.mat_api_check",
     "sphinxcontrib.mat_classify",
     "sphinxcontrib.mat_config",
+    "sphinxcontrib.mat_container",
     "sphinxcontrib.mat_directives",
     "sphinxcontrib.mat_documenters",
     "sphinxcontrib.mat_handlers",
     "sphinxcontrib.mat_naming",
     "sphinxcontrib.mat_sidecars",
-    "sphinxcontrib.mat_simulink",
     "sphinxcontrib.mat_tree_sitter_parser",
     "sphinxcontrib.mat_types",
+    "sphinxcontrib.mat_typing",
     "sphinxcontrib.mat_urls",
     "sphinxcontrib.matlab",
     "sphinxcontrib.matlab_apidoc",
@@ -145,9 +156,9 @@ pythonVersion = "3.11"
 typeCheckingMode = "basic"
 
 [tool.pytest]
-addopts = ["-ra", "--strict-config", "--strict-markers", "--show-capture=all", "--showlocals", "-s", "-vv"]
+addopts = ["-ra", "--show-capture=all", "--showlocals", "-s", "-vv"]
 doctest_optionflags = ["NORMALIZE_WHITESPACE", "ELLIPSIS"]
-# Deprecation tripwire (G4-F10): the extension builds on autodoc's Documenter
+# Deprecation tripwire: the extension builds on autodoc's Documenter
 # classes, which Sphinx keeps only for backwards compatibility. A deprecation
 # warning attributed to this package's own modules fails the suite. The module
 # field is a regular expression matched from the start of the module name, so
@@ -166,6 +177,9 @@ filterwarnings = [
 junit_family = "xunit2"
 log_cli_level = "INFO"
 minversion = "9.0"
+# The strict settings are not in addopts, so a run with -o addopts= keeps them.
+strict_config = true
+strict_markers = true
 testpaths = ["tests"]
 xfail_strict = true
 
@@ -181,6 +195,9 @@ extend-exclude = [
 force-exclude = true
 indent-width = 4
 line-length = 88
+# sphinxcontrib is a namespace package (no __init__.py); declaring it lets Ruff
+# resolve the relative imports of mat_typing (lint.typing-modules).
+namespace-packages = ["sphinxcontrib"]
 
 [tool.ruff.format]
 docstring-code-format = true
@@ -192,21 +209,19 @@ skip-magic-trailing-comma = false
 
 [tool.ruff.lint]
 ignore = [
-    "D100",
-    "D101",
-    "D102",
-    "D103",
-    "D105",
+    # Constructor arguments are documented in the class docstring (the numpydoc
+    # and Google convention), so __init__ needs no docstring of its own.
     "D107",
+    # D203 and D211 exclude each other; the code follows D211 (no blank line
+    # before a class docstring).
     "D203",
+    # The house style wraps the first sentence of a docstring over several
+    # lines, so no blank line follows the first line. Sphinx autosummary and
+    # napoleon take the first sentence, not the first line.
     "D205",
-    "D213",
-    "D400",
-    "D415",
-    "PLR2004",
-    "RUF001",
-    "RUF012",
-    "SIM102"
+    # D212 and D213 exclude each other; the code follows D212 (the summary
+    # starts on the first line).
+    "D213"
 ]
 # List of all the ruff rules (includes why the rule matters)
 # https://docs.astral.sh/ruff/rules/
@@ -230,27 +245,54 @@ select = [
     "UP",
     "W"
 ]
+# ``override`` is imported from here; Ruff then knows the methods it decorates
+# override a base class method (no ARG002 for parameters the base needs).
+typing-modules = ["sphinxcontrib.mat_typing"]
 
 [tool.ruff.lint.mccabe]
-max-complexity = 51
+max-complexity = 15
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*" = ["ARG001", "ARG002", "D104", "E203"]
+# Tests and test tools compare with literal expected values (counts, exit
+# codes, the fuzzer's odds); a named constant for each would read worse. The
+# complexity limits (C901, PLR0911-PLR0915) hold for the package, the docs and
+# the tests; the tools here (gauntlet, probes, render comparison) are scripts
+# run by hand, exempt by the maintainer's decision (#361).
+"test_slow/**/*" = ["C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR2004"]
+# D1 exempts only helper modules in test_slow, which no one runs or reads on
+# their own; the scripts the docs tell people to run have docstrings. This one
+# is the gauntlet's project list, imported by fetch.py and gauntlet.py.
+"test_slow/gauntlet/projects.py" = ["D1"]
+# These conf.py files share their settings with "from shared_conf import *"
+# after putting its folder on sys.path, as a multi-project Sphinx setup does.
+"test_slow/integrations/multiproject/**/conf.py" = ["E402", "F403"]
+# Helper module of the multiproject fixture: the settings its conf.py files
+# share (see projects.py above for D1).
+"test_slow/integrations/multiproject/docs/shared_conf.py" = ["D1"]
+# The Sphinx configuration of the multiversion fixture, a test input (see
+# projects.py above for D1).
+"test_slow/integrations/multiversion/rev1/docs/conf.py" = ["D1"]
+# Pytest passes fixtures by parameter name, used in the body or not (ARG001),
+# and test doubles keep the signature of the method they replace (ARG002).
+# Test names say what they test (D1). Literal expected values: see test_slow
+# above (PLR2004).
+"tests/**/*" = ["ARG001", "ARG002", "D1", "PLR2004"]
+# Expected output is compared as whole lines, longer than the line length.
 "tests/test_autodoc.py" = ["E501"]
 "tests/test_mat_types.py" = ["E501"]
+"tests/test_upstream_issues.py" = ["E501"]
 
 [tool.ruff.lint.pylint]
 # https://docs.astral.sh/ruff/settings/#lint_pylint_max-args
 max-args = 7
 # https://docs.astral.sh/ruff/settings/#lint_pylint_max-branches
-max-branches = 30
+max-branches = 15
 # https://docs.astral.sh/ruff/settings/#lint_pylint_max-returns
-max-returns = 20
+max-returns = 8
 # https://docs.astral.sh/ruff/settings/#lint_pylint_max-statements
-max-statements = 100
+max-statements = 60
 
 [tool.setuptools.package-data]
-"sphinxcontrib.mat_simulink" = ["matlab/+sphinxcontrib/+matlabdomain/*.m"]
 "sphinxcontrib.matlab_apidoc" = ["templates/*.jinja"]
 "sphinxcontrib.matlab_quickstart" = ["templates/*.jinja"]
 "sphinxcontrib.matlab_skills" = ["*/SKILL.md", "*/scripts/*.py"]
@@ -272,8 +314,11 @@ env_list = [
     "py313-sphinxlatest",
     "py314-sphinxmin",
     "py314-sphinxlatest",
+    "py315-sphinxmin",
+    "py315-sphinxlatest",
+    "py316-sphinxlatest",
     "py312-sphinx82",
-    "py314-sphinxdev"
+    "py315-sphinxdev"
 ]
 requires = ["tox>=4.60"]
 

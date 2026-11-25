@@ -10,7 +10,13 @@ from types import SimpleNamespace
 import pytest
 from docutils import nodes
 from test_apidoc import FUNCTION, write
-from test_intersphinx import BASE, build_consumer, build_library, write_inventory
+from test_intersphinx import (
+    BASE,
+    build_consumer,
+    build_library,
+    inventory,
+    write_inventory,
+)
 
 from sphinxcontrib import mat_urls
 
@@ -57,8 +63,8 @@ def build(make_app, tmp_path, shadowed, builder="html", conf=""):
 def test_ambiguous_names_stay_text(make_app, tmp_path):
     page, warnings, _ = build(make_app, tmp_path, False)
     assert 'href="mat/name/helper.html"' not in page
-    # role, :any:, "See also" and the auto-link in the summary line
-    assert warnings.count("matches several objects: a/helper.m, b/helper.m") == 4
+    # role, :any:, and once for the help ("See also" and the summary line)
+    assert warnings.count("matches several objects: a/helper.m, b/helper.m") == 3
 
 
 def test_shadowed_names_link_to_their_list(make_app, tmp_path):
@@ -93,6 +99,55 @@ def test_inventory_lists_the_pages_of_shadowed_names(make_app, tmp_path):
     lines = zlib.decompress(body).decode("utf-8").splitlines()
     assert [line for line in lines if " -1 mat/name/" in line] == [
         "helper mat:function -1 mat/name/x.html -"
+    ]
+
+
+def test_inventory_keeps_a_file_named_like_a_shadowed_name(make_app, tmp_path):
+    # The path reference of the root file a.m is the MATLAB name of the two
+    # +a/m.m. The file keeps its entry, as a local reference to a.m finds the
+    # file; the list page of a.m gets none of that type.
+    write(
+        tmp_path / "src",
+        {
+            "a.m": FUNCTION.format(name="a"),
+            "x/+a/m.m": FUNCTION.format(name="m"),
+            "y/+a/m.m": FUNCTION.format(name="m"),
+        },
+    )
+    (tmp_path / "conf.py").write_text(
+        'extensions = ["sphinxcontrib.matlab"]\n'
+        'matlab_src_code_project_root = "src"\n'
+        "matlab_link_shadowed_files_to_chooser_pages = True\n"
+    )
+    (tmp_path / "index.rst").write_text(
+        "Index\n=====\n\n.. mat:autofunction:: a.m\n\n"
+        ".. mat:autofunction:: x/+a/m.m\n\n.. mat:autofunction:: y/+a/m.m\n\n"
+        "* :mat:func:`a.m`\n"
+    )
+    app = make_app("html", srcdir=tmp_path, freshenv=True)
+    app.build(force_all=True)
+    app.cleanup()
+    outdir = Path(app.outdir)
+    assert app.warning.getvalue() == ""
+    assert 'href="#mat-a.m"' in (outdir / "index.html").read_text(encoding="utf-8")
+    assert (outdir / "mat" / "name" / "a.m.html").is_file()
+    with open(outdir / "objects.inv", "rb") as f:
+        body = f.read().split(b"\n", 4)[4]
+    lines = zlib.decompress(body).decode("utf-8").splitlines()
+    assert [line for line in lines if line.startswith("a.m mat:")] == [
+        "a.m mat:function 1 mat/ref/a.m.html a"
+    ]
+    assert inventory(outdir)["a.m"] == ("mat/ref/a.m.html", "a")
+    # Of another type, the name has no entry: the list page gets one.
+    mat_urls.rewrite_inventory(
+        str(outdir / "objects.inv"), {}, [("a.m", "class", "mat/name/a.m.html")]
+    )
+    with open(outdir / "objects.inv", "rb") as f:
+        body = f.read().split(b"\n", 4)[4]
+    lines = zlib.decompress(body).decode("utf-8").splitlines()
+    assert [line for line in lines if line.startswith("a.m mat:")] == [
+        "a.m mat:function 1 mat/ref/a.m.html a",
+        "a.m mat:class -1 mat/name/a.m.html -",
     ]
 
 
@@ -181,7 +236,9 @@ def test_no_chooser_page_lists_the_matches():
     names = {"f": ["a/f.m", "b/f.m"], "g": ["a/g.m"]}
     by_name = {"f": "mat/name/f.html", "g": "mat/name/g.html"}
     dom = SimpleNamespace(
-        data={"objects": objects}, _stable_urls=({}, by_name, names, {})
+        data={"objects": objects},
+        _stable_urls=({}, by_name, names, {}),
+        object_name=lambda ref: objects[ref][2],
     )
     builder = SimpleNamespace(
         config=SimpleNamespace(matlab_stable_urls=True),
