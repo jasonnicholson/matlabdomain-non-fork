@@ -723,15 +723,22 @@ def test_worker_leaves_pages_of_other_processes_to_check_consistency(make_app, s
 
 def _duplicate_warnings(app, root):
     """Return the ``mat.duplicate`` warnings of ``app``, sorted, with ``/`` in
-    every path and ``<SRC>`` for the source folder ``root``. Windows writes
-    a backslash in most paths and ``/`` in the path of an included file.
+    every path and ``<SRC>`` for the source folder ``root``. An included
+    file's path may be relative to the current directory.
     """
     text = strip_escape_sequences(app.warning.getvalue())
     source = str(root).replace("\\", "/")
+
+    def normalize(line):
+        before, sep, after = line.replace("\\", "/").partition("other instance in ")
+        if sep:
+            path, ending, rest = after.partition(", use :no-index:")
+            if ending:
+                after = os.path.abspath(path).replace("\\", "/") + ending + rest
+        return (before + sep + after).replace(source, "<SRC>")
+
     return sorted(
-        line.replace("\\", "/").replace(source, "<SRC>")
-        for line in text.splitlines()
-        if "[mat.duplicate]" in line
+        normalize(line) for line in text.splitlines() if "[mat.duplicate]" in line
     )
 
 
@@ -1219,8 +1226,9 @@ WRITTEN_WARNINGS = [
 ]
 
 
+@pytest.mark.parametrize("run_from", ["cwd", "parent", "source"])
 def test_other_instance_is_where_it_is_written_in_parallel_and_serial(
-    make_app, tmp_path, monkeypatch
+    make_app, tmp_path, monkeypatch, run_from
 ):
     merged = []
     original = MATLABDomain.merge_domaindata
@@ -1234,6 +1242,8 @@ def test_other_instance_is_where_it_is_written_in_parallel_and_serial(
     for parallel in (0, 2):
         root = tmp_path / str(parallel)
         _write_pages(root, WRITTEN)
+        if run_from != "cwd":
+            monkeypatch.chdir(tmp_path if run_from == "parent" else root)
         app = make_app(srcdir=root, parallel=parallel)
         app.build()
         found[parallel] = _duplicate_warnings(app, root)
