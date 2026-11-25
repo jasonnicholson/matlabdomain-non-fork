@@ -42,6 +42,7 @@ import html
 import json
 import os
 import re
+import unicodedata
 import zlib
 from pathlib import Path
 from urllib.parse import quote, urlsplit
@@ -503,7 +504,7 @@ def write_redirects(app, exception):
     not_found = os.path.join(outdir, "404.html")
     if not os.path.exists(not_found) or _is_ours(not_found):
         files["404.html"] = _not_found(builder.get_target_uri(app.config.root_doc))
-    failed = _write_files(outdir, files)
+    failed = _write_files(outdir, files, themed)
     _remove_stale_files(outdir, [*files, *themed])
     rewrite_inventory(
         os.path.join(outdir, "objects.inv"),
@@ -543,40 +544,96 @@ def _refs_script(by_ref):
     )
 
 
-def _write_files(outdir, files):
+def _write_files(outdir, files, themed=()):
     """Write ``files`` (output path: text) below ``outdir``, once none of them
-    would overwrite a file this extension did not write; return the output
-    paths that could not be written, each with a warning.
+    would overwrite a file this extension did not write, and give the chooser
+    pages the theme wrote (``themed``) the spelling of their output path;
+    return the output paths that could not be written or respelled, each with
+    a warning.
     """
     for stub in files:
         _check_owned(os.path.join(outdir, *stub.split("/")))
-    failed = set()
-    for stub, text in files.items():
-        path = os.path.join(outdir, *stub.split("/"))
+    failed = {}
+    listings = {}
+    for stub in [*files, *themed]:
         try:
-            _write(path, text.encode("utf-8"))
+            _respell(outdir, stub, listings)
         except OSError as err:
-            failed.add(stub)
-            logger.warning(
-                "[sphinxcontrib-matlabdomain] cannot write %s: %s",
-                path,
-                err,
-                type="mat",
-                subtype="stable_url",
-            )
-    return failed
+            failed[stub] = err
+    for stub, text in files.items():
+        if stub not in failed:
+            try:
+                _write(os.path.join(outdir, *stub.split("/")), text.encode("utf-8"))
+            except OSError as err:
+                failed[stub] = err
+    for stub, err in failed.items():
+        logger.warning(
+            "[sphinxcontrib-matlabdomain] cannot write %s: %s",
+            os.path.join(outdir, *stub.split("/")),
+            err,
+            type="mat",
+            subtype="stable_url",
+        )
+    return set(failed)
+
+
+def _respell(outdir, stub, listings):
+    """Rename the file at ``stub`` below ``outdir``, and its folders, that a
+    case-insensitive file system finds under another spelling (left by a
+    build before a case-only rename; writing to it keeps that spelling) to
+    the spelling of ``stub``. ``listings`` caches the names in each folder.
+    """
+    folder = outdir
+    for part in stub.split("/"):
+        path = os.path.join(folder, part)
+        if not os.path.lexists(path):
+            return
+        if folder not in listings:
+            listings[folder] = os.listdir(folder)
+        names = listings[folder]
+        old = _spelling(folder, part, names)
+        if old != part:
+            os.rename(os.path.join(folder, old), path)
+            names[names.index(old)] = part
+            listings.pop(os.path.join(folder, old), None)
+        folder = path
+
+
+def _spelling(folder, part, names):
+    """Return the name in ``names`` (the listing of ``folder``) of the file
+    the file system finds at ``part``: ``part``, or the other spelling of
+    the same file; ``part`` if no name matches.
+    """
+    if part in names:
+        return part
+    key, path = _fold(part), os.path.join(folder, part)
+    return next(
+        (
+            old
+            for old in names
+            if _fold(old) == key and os.path.samefile(os.path.join(folder, old), path)
+        ),
+        part,
+    )
+
+
+def _fold(name):
+    """Return ``name`` as a case-insensitive file system compares it."""
+    return unicodedata.normalize("NFC", name).casefold()
 
 
 def _remove_stale_files(outdir, kept):
     """Remove the files this extension wrote below ``ROOT`` that are not in
-    ``kept`` (output paths), and the folders left empty.
+    ``kept`` (output paths), and the folders left empty. The files kept have
+    the spelling of their output path (``_respell``): another spelling is a
+    stale file, also where ``os.path.normcase`` keeps the case (macOS).
     """
     root = os.path.join(outdir, ROOT)
-    wanted = {os.path.normcase(os.path.join(outdir, *s.split("/"))) for s in kept}
+    wanted = {os.path.join(outdir, *s.split("/")) for s in kept}
     for folder, _, names_in in os.walk(root, topdown=False):
         for file in names_in:
             path = os.path.join(folder, file)
-            if os.path.normcase(path) not in wanted and _is_ours(path):
+            if path not in wanted and _is_ours(path):
                 os.remove(path)
         if folder != root and not os.listdir(folder):
             os.rmdir(folder)

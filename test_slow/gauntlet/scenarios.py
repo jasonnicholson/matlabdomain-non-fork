@@ -44,7 +44,6 @@ from sphinxcontrib.mat_api_check import RULES as API_CHECK_RULES
 REPO = G.REPO
 REPOS = P.REPOS
 DOCS = REPO / "docs"
-SCMD = Path(sys.executable).with_name("scmd" + (".exe" if os.name == "nt" else ""))
 SCENARIOS = {}
 #: the base conf.py of a scenario; values are added with ``conf(..., **values)``
 BASE_CONF = {
@@ -153,8 +152,11 @@ class Ctx:
         return proc
 
     def scmd(self, label, *args, **kw):
-        """Run the installed ``scmd`` console script with ``args``."""
-        return self.run(label, [*python(), str(SCMD), *map(str, args)], **kw)
+        """Run ``scmd`` with ``args``: the module of its console script, so that
+        coverage measures it (it cannot run the Windows launcher ``scmd.exe``).
+        """
+        argv = [*python(), "-m", "sphinxcontrib.matlab_cli", *map(str, args)]
+        return self.run(label, argv, **kw)
 
     def sphinx(
         self,
@@ -189,6 +191,8 @@ class Ctx:
             str(doctrees),
             "-w",
             str(warnfile),
+            # plain stdout to match (Sphinx colours it on Windows and in CI)
+            "--no-color",
             *(["-E"] if fresh else []),
             *map(str, args),
             str(src),
@@ -262,6 +266,22 @@ def ref_warnings(build):
 def python():
     """Return the Python prefix of a child process (with coverage under --coverage)."""
     return G.PY_M[:-1]
+
+
+def can_symlink(folder):
+    """Whether this process can create symbolic links: on Windows only with
+    Developer Mode or the privilege (else error 1314).
+    """
+    folder.mkdir(parents=True, exist_ok=True)
+    link = folder / "link"
+    try:
+        link.symlink_to("target")
+    except OSError as err:
+        if getattr(err, "winerror", None) == 1314:
+            return False
+        raise
+    link.unlink()
+    return True
 
 
 def _dedent(text):
@@ -662,13 +682,16 @@ def incremental(ctx):
     # a page of the user's in the output folder (no marker) stays; a dangling
     # symlink there is no problem
     ctx.write("docs/api/mine.rst", "Mine\n====\n\nHand-written.\n")
-    (docs / "api" / "dangling.rst").symlink_to(ctx.path("nowhere.rst"))
+    dangling = can_symlink(ctx.path("probe"))
+    if dangling:
+        (docs / "api" / "dangling.rst").symlink_to(ctx.path("nowhere.rst"))
     g = ctx.scmd("apidoc with a user page", "apidoc", "-c", docs)
     ctx.expect(
         g.returncode == 0 and (docs / "api" / "mine.rst").is_file(),
         "apidoc keeps a page without its marker",
     )
-    (docs / "api" / "dangling.rst").unlink()
+    if dangling:
+        (docs / "api" / "dangling.rst").unlink()
     (docs / "api" / "mine.rst").unlink()
     # rename a file by case only, and delete a whole folder
     (proj / "nwbExport.m").rename(proj / "NwbExport.m")
@@ -2025,6 +2048,11 @@ def broken_input(ctx):
     }
     for name, data in files.items():
         (bad / name).write_bytes(data)
+    # chmod(0) denies reading on POSIX, unless to root; Windows ignores it
+    denies = sys.platform != "win32" and os.geteuid() != 0
+    # names that are not valid UTF-8: Windows names are UTF-16, APFS refuses them
+    bytes_names = sys.platform not in ("win32", "darwin")
+    links = can_symlink(ctx.path("probe"))
     (bad / "unreadable.m").chmod(0)
     (bad / "private").mkdir()
     (bad / "private" / "2bad.m").write_text("function x = 2bad\nend\n")
@@ -2032,14 +2060,16 @@ def broken_input(ctx):
     (bad / "folder.m" / "inside.m").write_text("function inside\nend\n")
     (bad / "café.m").write_text("function cafe1\n% NFC\nend\n")
     (bad / "café.m").write_text("function cafe2\n% NFD\nend\n")
-    os.makedirs(os.fsencode(str(bad)) + b"/badname", exist_ok=True)
-    with open(os.fsencode(str(bad)) + b"/badname/caf\xe9.m", "wb") as fh:
-        fh.write(b"function x\nend\n")
+    if bytes_names:
+        os.makedirs(os.fsencode(str(bad)) + b"/badname", exist_ok=True)
+        with open(os.fsencode(str(bad)) + b"/badname/caf\xe9.m", "wb") as fh:
+            fh.write(b"function x\nend\n")
     outside = ctx.path("outside")
     outside.mkdir()
     (outside / "outsideFun.m").write_text("function outsideFun\nend\n")
-    (bad / "linkOut").symlink_to(outside, target_is_directory=True)
-    (bad / "linkCycle").symlink_to("..", target_is_directory=True)
+    if links:
+        (bad / "linkOut").symlink_to(outside, target_is_directory=True)
+        (bad / "linkCycle").symlink_to("..", target_is_directory=True)
     old = bad / "oldsite"
     (old / "_downloads").mkdir(parents=True)
     (old / "objects.inv").write_bytes(b"# Sphinx inventory version 2\n")
@@ -2068,31 +2098,44 @@ def broken_input(ctx):
         unreadable_dir.chmod(0o755)
         (bad / "unreadable.m").chmod(0o644)
     expected = [
-        ("unreadable.m", "mat.parse_error"),
+        *([("unreadable.m", "mat.parse_error")] if denies else []),
         ("latin1Help.m", "mat.encoding"),
         ("nulBytes.m", "mat.invalid_matlab"),
         ("emptyFile.m", "mat.empty_code_file"),
         ("folder.m", "mat.folder_name"),
         ("differ only by Unicode form", "mat.parse_error"),
-        ("is not valid UTF-8; it is not documented", "mat.parse_error"),
-        ("linkOut", "mat.outside_root"),
-        ("linkCycle", "mat.link_cycle"),
-        ("noAccess", "mat.parse_error"),
+        *(
+            [("is not valid UTF-8; it is not documented", "mat.parse_error")]
+            if bytes_names
+            else []
+        ),
+        *(
+            [("linkOut", "mat.outside_root"), ("linkCycle", "mat.link_cycle")]
+            if links
+            else []
+        ),
+        *([("noAccess", "mat.parse_error")] if denies else []),
     ]
     for needle, subtype in expected:
         hits = [r for r in b.records if needle in r and f"[{subtype}]" in r]
         ctx.expect(len(hits) == 1, f"html: {needle}: one {subtype} ({len(hits)})")
     # a file apidoc cannot read: one line with the cause, and it is left out
     hits = [ln for ln in gen.stderr.splitlines() if "unreadable.m" in ln]
-    ctx.expect(
-        len(hits) == 1
-        and re.search(
-            r"unreadable\.m cannot be read \(.+\); it is left out\. \[mat\.apidoc\]$",
-            hits[0],
+    if denies:
+        ctx.expect(
+            len(hits) == 1
+            and re.search(
+                r"unreadable\.m cannot be read \(.+\); it is left out\. "
+                r"\[mat\.apidoc\]$",
+                hits[0],
+            )
+            is not None,
+            f"apidoc: unreadable.m: one mat.apidoc warning with the cause ({hits})",
         )
-        is not None,
-        f"apidoc: unreadable.m: one mat.apidoc warning with the cause ({hits})",
-    )
+    else:
+        ctx.expect(
+            not hits, f"apidoc: unreadable.m is readable here: no warning ({hits})"
+        )
     ctx.expect(not b.warned(r"bomHelp"), "a file with a BOM: no warning")
     ctx.expect(
         "Help after a BOM"
@@ -3046,13 +3089,14 @@ def main():
         (out / "results.json").write_text(
             json.dumps(results, indent=1) + "\n", encoding="utf-8"
         )
+    bad = summary(results["scenarios"], out)
     if rcfile:
         G.report_coverage(rcfile)
-    summary(results["scenarios"], out)
+    sys.exit(1 if bad else 0)
 
 
 def summary(rows, out):
-    """Print the counts and the problems; exit 1 on one."""
+    """Print the counts and the problems; return whether there is one."""
     problems, known, fixed = [], [], []
     for name, row in rows.items():
         if row["error"]:
@@ -3079,7 +3123,7 @@ def summary(rows, out):
             print(f"{title}:")
             for item in items:
                 print(f"  {item}")
-    sys.exit(1 if problems else 0)
+    return bool(problems)
 
 
 if __name__ == "__main__":

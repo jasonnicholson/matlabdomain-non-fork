@@ -79,7 +79,12 @@ configuration value, quickstart answered on stdin and from answers files,
 `scmd skills`, broken input, the other configuration
 values and builders, api-check settings, and classes with events. Each
 scenario checks what correct behavior is (exit codes, warnings, pages,
-links); a project that is changed is copied first.
+links); a project that is changed is copied first. `scmd` runs as
+`python -m sphinxcontrib.matlab_cli`, the module of the console script (so
+that coverage can measure it), and `sphinx-build` with `--no-color`. Input
+a platform cannot have is left out there: file names that are not valid
+UTF-8 (Windows, macOS), unreadable files (`chmod 0` on Windows, or as root)
+and symlinks (Windows without Developer Mode).
 
 ```bash
 python test_slow/gauntlet/scenarios.py --list
@@ -98,7 +103,12 @@ ids are described in `matlabdomain-ai-files/gauntlet-coverage.md`.
 process with the test suite's coverage settings (`[tool.coverage]` of
 `pyproject.toml`, plus what it takes to follow child and `-j` worker
 processes) and writes `OUT/coverage/report.txt`, `coverage.json` and
-`htmlcov/`. To see what all the end-to-end runs reach together:
+`htmlcov/`, after the problems. Without `os.fork` (Windows) `fork` is not
+patched. When no child left data, the run says so and exits 1; a failed
+build keeps its stdout and stderr next to its output
+(`OUT/<name>/<variant>.stdout.txt`, `.stderr.txt`; each build first
+removes those of the run before). To see what all the
+end-to-end runs reach together:
 
 ```bash
 python test_slow/gauntlet/gauntlet.py --jobs --coverage --out runs/g

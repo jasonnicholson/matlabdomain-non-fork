@@ -172,6 +172,10 @@ def build(docs, outdir, root, variant, extra=()):
     """
     shutil.rmtree(outdir, ignore_errors=True)
     warnfile = outdir.parent / f"{outdir.name}.warnings.txt"
+    logs = {s: outdir.parent / f"{outdir.name}.{s}.txt" for s in ("stdout", "stderr")}
+    # a build that stops early writes no warnings; one that passes, no logs
+    for old in (warnfile, *logs.values()):
+        old.unlink(missing_ok=True)
     builder, args = VARIANTS[variant]
     proc, wall = run(
         "sphinx",
@@ -213,9 +217,8 @@ def build(docs, outdir, root, variant, extra=()):
             rule: n["error"] + n["warning"] for rule, n in summary["findings"].items()
         }
     if proc.returncode or row["traceback"]:
-        (outdir.parent / f"{outdir.name}.stderr.txt").write_text(
-            proc.stderr, encoding="utf-8"
-        )
+        for stream, log in logs.items():
+            log.write_text(getattr(proc, stream), encoding="utf-8")
     norm = collections.Counter(text.replace(str(root), "<ROOT>").splitlines())
     return row, files, norm
 
@@ -404,11 +407,17 @@ def run_quickstart(project, lock, out):
     tree = Path(tempfile.mkdtemp(prefix="qs-"))
     tree.rmdir()
     P.git(project.checkout, "worktree", "add", "--detach", "--quiet", str(tree), "HEAD")
+    qs = None
     try:
         root = tree / project.root
-        name = next(n for n in ("docs", "sphinx-docs") if not (root / n).exists())
-        row["quickstart"] = qs = quickstart(root, name, folder)
-        if qs["rc"] == 0:
+        name = next(
+            (n for n in ("docs", "sphinx-docs") if not (root / n).exists()), None
+        )
+        if name is None:
+            found.append(f"quickstart: {root} has docs and sphinx-docs")
+        else:
+            row["quickstart"] = qs = quickstart(root, name, folder)
+        if qs and qs["rc"] == 0:
             base = folder / "quickstart"
             row["quickstart_build"], _, _ = build(
                 root / name, base, root, "conf", ["-n"]
@@ -416,7 +425,7 @@ def run_quickstart(project, lock, out):
             shutil.rmtree(base, ignore_errors=True)
     finally:
         P.git(project.checkout, "worktree", "remove", "--force", str(tree))
-    if qs["rc"] or qs["traceback"] or qs["summary"] is None:
+    if qs and (qs["rc"] or qs["traceback"] or qs["summary"] is None):
         found.append(
             f"quickstart: exit {qs['rc']}, traceback {qs['traceback']}, "
             f"summary {qs['summary']}"
@@ -438,8 +447,10 @@ def start_coverage(folder):
     return the rcfile.
 
     Added: ``parallel`` (a data file per process), ``patch = ["fork", "_exit"]``
-    (the workers of ``-j`` are forked and leave through ``os._exit``) and an
-    absolute ``data_file``, because the children run in other folders.
+    (the workers of ``-j`` are forked and leave through ``os._exit``; without
+    ``os.fork``, as on Windows, only ``_exit``: coverage refuses ``fork``
+    there) and an absolute ``data_file``, because the children run in other
+    folders.
     """
     global PY_M
     folder.mkdir(parents=True, exist_ok=True)
@@ -449,7 +460,7 @@ def start_coverage(folder):
         settings = tomllib.load(f)["tool"]["coverage"]
     settings["run"] |= {
         "parallel": True,
-        "patch": ["fork", "_exit"],
+        "patch": ["fork", "_exit"] if hasattr(os, "fork") else ["_exit"],
         "data_file": str(folder / ".coverage"),
         # a child that imports none of the packages (apidoc's usage errors)
         # would print these into the output the gauntlet reads
@@ -467,22 +478,33 @@ def start_coverage(folder):
 
 def report_coverage(rcfile):
     """Combine the data files and write report.txt, coverage.json and htmlcov/
-    next to ``rcfile``; print the total.
+    next to ``rcfile``; print the total. Exit with a message when no child
+    process left data (each failed: see their logs).
     """
     folder = rcfile.parent
     cov = [PY, "-m", "coverage"]
     if any(folder.glob(".coverage.*")):
-        subprocess.run([*cov, "combine", "-q", f"--rcfile={rcfile}"], cwd=REPO)
+        subprocess.run(
+            [*cov, "combine", "-q", f"--rcfile={rcfile}"], cwd=REPO, check=True
+        )
+    if not (folder / ".coverage").is_file():
+        sys.exit(
+            f"coverage: no data in {folder}: no measured child process finished "
+            "(see the *.stdout.txt and *.stderr.txt logs of the failed commands)"
+        )
     with open(folder / "report.txt", "w", encoding="utf-8") as f:
         subprocess.run(
             [*cov, "report", f"--rcfile={rcfile}", "--skip-covered"],
             cwd=REPO,
             stdout=f,
+            check=True,
         )
     for kind, flag in (("json", "-o"), ("html", "-d")):
         out = folder / ("coverage.json" if kind == "json" else "htmlcov")
         subprocess.run(
-            [*cov, kind, "-q", f"--rcfile={rcfile}", flag, str(out)], cwd=REPO
+            [*cov, kind, "-q", f"--rcfile={rcfile}", flag, str(out)],
+            cwd=REPO,
+            check=True,
         )
     totals = json.loads((folder / "coverage.json").read_text(encoding="utf-8"))[
         "totals"
@@ -583,12 +605,12 @@ def main():
     count = sum(map(len, bad.values()))
     if args.quickstart:
         print_quickstart_table(results["projects"])
-    if rcfile:
-        report_coverage(rcfile)
     print(f"\n{len(found)} projects; {count} problems; results in {out}")
     for name, items in bad.items():
         for item in items:
             print(f"  {name}: {item}")
+    if rcfile:
+        report_coverage(rcfile)
     platform = {"win32": "windows", "darwin": "macos"}.get(sys.platform, sys.platform)
     baseline = P.HERE / "summaries" / f"{platform}.json"
     if baseline.is_file() and not args.quickstart:

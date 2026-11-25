@@ -4,6 +4,7 @@ inventory entries that point to them.
 """
 
 import json
+import os
 import re
 from pathlib import Path
 from types import SimpleNamespace
@@ -392,6 +393,128 @@ def test_a_case_only_sibling_moves_the_address_of_the_existing_file(make_app, tm
         "mat/ref/foo.m.html",
         "mat/ref/~46oo.m.html",
     ]
+
+
+def on_disk(outdir):
+    """Return the files below ``mat``, spelled as the file system lists them."""
+    out = []
+    for folder, _, files in os.walk(outdir / "mat"):
+        rel = Path(folder).relative_to(outdir).as_posix()
+        out += [f"{rel}/{f}" for f in files if f.endswith(".html")]
+    return sorted(out)
+
+
+@pytest.mark.parametrize("normcase", ["native", "identity"])
+def test_a_case_only_rename_respells_the_stable_files(
+    make_app, tmp_path, monkeypatch, normcase
+):
+    # On a case-insensitive file system, writing over foo.m.html keeps that
+    # spelling; "identity" is macOS, whose os.path.normcase keeps the case.
+    # bar is in two folders: mat/name/bar.html is a chooser the theme writes.
+    def sources(names):
+        for path in names:
+            name = Path(path).stem
+            (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
+            (tmp_path / path).write_text(f"function {name}\n% {name} Help.\nend\n")
+        directives = "".join(f".. mat:autofunction:: {p}\n\n" for p in names)
+        (tmp_path / "index.rst").write_text(f"Index\n=====\n\n{directives}")
+
+    def build():
+        app = make_app(srcdir=tmp_path)
+        app.build()
+        app.cleanup()
+        return Path(app.outdir)
+
+    (tmp_path / "conf.py").write_text(
+        'extensions = ["sphinxcontrib.matlab"]\nmatlab_src_code_project_root = "."\n'
+    )
+    sources(["pkg/foo.m", "pkg/bar.m", "other/bar.m"])
+    outdir = build()
+    assert on_disk(outdir) == [
+        "mat/name/bar.html",
+        "mat/name/foo.html",
+        "mat/ref/other/bar.m.html",
+        "mat/ref/pkg/bar.m.html",
+        "mat/ref/pkg/foo.m.html",
+    ]
+    for old in ("pkg/foo.m", "pkg/bar.m", "other/bar.m"):
+        (tmp_path / old).unlink()
+    (tmp_path / "pkg").rename(tmp_path / "Pkg")
+    sources(["Pkg/Foo.m", "Pkg/Bar.m", "other/Bar.m"])
+    if normcase == "identity":
+        monkeypatch.setattr(os.path, "normcase", os.fspath)
+    outdir = build()
+    assert on_disk(outdir) == [
+        "mat/name/Bar.html",
+        "mat/name/Foo.html",
+        "mat/ref/Pkg/Bar.m.html",
+        "mat/ref/Pkg/Foo.m.html",
+        "mat/ref/other/Bar.m.html",
+    ]
+    inv = inventory(outdir)
+    assert inv["Pkg/Foo.m"][0] == "mat/ref/Pkg/Foo.m.html"
+    assert inv["Bar"][0] == "mat/name/Bar.html"
+    for stub in ("mat/name/Foo.html", "mat/ref/Pkg/Foo.m.html"):
+        assert follow(outdir, stub) == "index.html#mat-Pkg/Foo.m"
+    chooser = (outdir / "mat/name/Bar.html").read_text(encoding="utf-8")
+    assert mat_mark_and_theme(chooser)
+    assert [c[1] for c in CHOICE.findall(chooser)] == ["Pkg/Bar.m", "other/Bar.m"]
+
+
+@pytest.mark.parametrize("rename", ["works", "fails"])
+def test_a_folder_that_cannot_be_respelled_falls_back_to_the_page(
+    make_app, tmp_path, monkeypatch, condition, fake_folder, rename
+):
+    # pkg/ becomes Pkg/: a case-insensitive file system finds mat/ref/pkg at
+    # mat/ref/Pkg, and the build renames it. If the rename fails, the build
+    # goes on and the inventory points to the page until a later build.
+    def build():
+        app = make_app(srcdir=tmp_path)
+        app.build()
+        app.cleanup()
+        return Path(app.outdir), app.warning.getvalue()
+
+    (tmp_path / "conf.py").write_text(
+        'extensions = ["sphinxcontrib.matlab"]\nmatlab_src_code_project_root = "."\n'
+    )
+    (tmp_path / "pkg").mkdir()
+    (tmp_path / "pkg/foo.m").write_text("function foo\n% foo Help.\nend\n")
+    index = tmp_path / "index.rst"
+    index.write_text("Index\n=====\n\n.. mat:autofunction:: pkg/foo.m\n")
+    outdir, _ = build()
+    ref = outdir / "mat" / "ref"
+    assert os.listdir(ref) == ["pkg"]
+    (tmp_path / "pkg").rename(tmp_path / "Pkg")
+    index.write_text("Index\n=====\n\n.. mat:autofunction:: Pkg/foo.m\n")
+    needs = "a case-insensitive file system"
+    if condition(needs, (ref / "PKG").exists()) == "simulated":
+        fake_folder(ref, aliases={"Pkg": "pkg"})
+    if rename == "fails":
+        real_rename = os.rename
+
+        def no_rename(src, dst, *args, **kwargs):
+            if Path(dst).is_relative_to(ref):
+                raise PermissionError(13, "Permission denied", str(dst))
+            return real_rename(src, dst, *args, **kwargs)
+
+        monkeypatch.setattr(os, "rename", no_rename)
+    outdir, warnings = build()
+    stub = "mat/ref/Pkg/foo.m.html"
+    assert follow(outdir, "mat/name/foo.html") == "index.html#mat-Pkg/foo.m"
+    if rename == "works":
+        assert "cannot write" not in warnings
+        assert on_disk(outdir) == ["mat/name/foo.html", stub]
+        assert inventory(outdir)["Pkg/foo.m"][0] == stub
+        return
+    assert f"cannot write {ref / 'Pkg' / 'foo.m.html'}" in warnings
+    assert on_disk(outdir) == ["mat/name/foo.html"]
+    assert inventory(outdir)["Pkg/foo.m"][0] == "index.html#mat-Pkg/foo.m"
+    monkeypatch.undo()
+    outdir, warnings = build()
+    assert "cannot write" not in warnings
+    assert on_disk(outdir) == ["mat/name/foo.html", stub]
+    assert inventory(outdir)["Pkg/foo.m"][0] == stub
+    assert follow(outdir, stub) == "index.html#mat-Pkg/foo.m"
 
 
 def test_incremental_builds_remove_stale_pages_and_relink(make_app, tmp_path):
