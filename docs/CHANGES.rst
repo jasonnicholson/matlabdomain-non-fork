@@ -475,6 +475,9 @@ Project
   A test keeps the tested Python versions in the CI matrix, the
   classifiers and tox in step; the docs read the tested range from
   ``pyproject.toml`` and ``uv.lock``.
+* ``AGENTS.md`` (with a ``CLAUDE.md`` that imports it) gives AI coding
+  agents the rules of the repository. A test keeps the imports between the
+  modules going one way and lists the ones that do not yet.
 
 0.22.1 (2024-08-17)
 -------------------

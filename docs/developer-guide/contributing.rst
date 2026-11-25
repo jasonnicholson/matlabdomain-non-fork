@@ -304,6 +304,13 @@ when adding, removing or moving a maintained configuration file.
   Root discoverability pointer and quick-start commands; GitHub links it from
   new issues and pull requests. It points to the maintained guide at
   ``docs/developer-guide/``.
+``AGENTS.md``
+  Instructions for AI coding agents: the gate, the rules a change follows and
+  the standing decisions, each with a link to this guide; it does not repeat
+  the guide. Agents read it by this name from the repository root.
+``CLAUDE.md``
+  Only imports ``AGENTS.md`` (``@AGENTS.md``), for agents that read this name
+  instead. Keep the rules in ``AGENTS.md``.
 
 Ruff and basic Pyright analyze ``sphinxcontrib``, tests, documentation config,
 examples, skill scripts and slow-test tools. They exclude ``tests/roots``,
