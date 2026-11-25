@@ -27,9 +27,10 @@ users' projects; they are not instructions for this repository.
 Big files are fine. Do not split modules or add size limits; work on how
 modules connect instead.
 
-- Imports go down the layers in `tests/test_import_directions.py`. Do not
-  add an exception: an upward import ties together modules that should
-  change apart. Remove an entry when its import is gone
+- Imports go down the layers in `tests/test_import_directions.py`, and a
+  command reaches no build module (`ROLES`); a new module gets a layer and
+  a role. Do not add an exception: an upward import ties together modules
+  that should change apart. Remove an entry when its import is gone
   ([architecture.rst](docs/developer-guide/architecture.rst)).
 - A file type is an add: a handler in the registry (`mat_handlers`) and
   its own code. No other module names it, so a new type changes no core
