@@ -93,8 +93,9 @@ def fake_folder(monkeypatch):
     """Return ``fake(folder, names=(), error=None, aliases=None)``, which
     makes ``os.listdir`` of the folder ``folder`` raise ``error``, or list
     ``names`` besides its files; ``os.stat`` and ``os.lstat`` of
-    ``folder/name`` answer for ``folder/aliases[name]``. Other paths are
-    untouched. For the tests that simulate a file system.
+    ``folder/name`` answer for ``folder/aliases[name]`` when ``name`` does
+    not exist. Other paths are untouched. For the tests that simulate a
+    file system.
     """
     listdir, stat, lstat = os.listdir, os.stat, os.lstat
 
@@ -120,6 +121,10 @@ def fake_folder(monkeypatch):
                 if here(os.path.dirname(path) if isinstance(path, str) else None):
                     name = os.path.basename(path)
                     if name in aliases:
+                        try:
+                            return original(path, *args, **kwargs)
+                        except FileNotFoundError:
+                            pass
                         path = os.path.join(os.path.dirname(path), aliases[name])
                 return original(path, *args, **kwargs)
 

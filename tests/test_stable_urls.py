@@ -6,6 +6,7 @@ inventory entries that point to them.
 import json
 import os
 import re
+import stat
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -489,6 +490,23 @@ def test_a_folder_that_cannot_be_respelled_falls_back_to_the_page(
     needs = "a case-insensitive file system"
     if condition(needs, (ref / "PKG").exists()) == "simulated":
         fake_folder(ref, aliases={"Pkg": "pkg"})
+        if os.name == "nt":
+            # Windows path helpers bypass the faked stat and lstat.
+            def lexists(path):
+                try:
+                    os.lstat(path)
+                except OSError:
+                    return False
+                return True
+
+            def isdir(path):
+                try:
+                    return stat.S_ISDIR(os.stat(path).st_mode)
+                except (OSError, ValueError):
+                    return False
+
+            monkeypatch.setattr(os.path, "lexists", lexists)
+            monkeypatch.setattr(os.path, "isdir", isdir)
     if rename == "fails":
         real_rename = os.rename
 
@@ -697,7 +715,10 @@ def build_removed_pages(make_app, tmp_path, output_dir, remove=(), notes="notes"
 
 
 @pytest.mark.parametrize(("output_dir", "api"), [("api", "api/"), (".", "")])
-def test_pages_of_sources_apidoc_removed_go(make_app, tmp_path, output_dir, api):
+@pytest.mark.parametrize("copied_source", ["present", "missing"])
+def test_pages_of_sources_apidoc_removed_go(
+    make_app, tmp_path, output_dir, api, copied_source
+):
     outdir = build_removed_pages(make_app, tmp_path, output_dir)
     gone = [
         f"{api}util/index-3.html",
@@ -716,6 +737,8 @@ def test_pages_of_sources_apidoc_removed_go(make_app, tmp_path, output_dir, api)
         "mat/name/scale.html",
     ]
     assert all((outdir / p).is_file() for p in gone + stay)
+    if copied_source == "missing":
+        (outdir / f"_sources/{api}util/index-3.rst.txt").unlink()
     notes = (outdir / "notes.html").read_bytes()
     outdir = build_removed_pages(
         make_app, tmp_path, output_dir, remove=["src/util/zeta.m"]
