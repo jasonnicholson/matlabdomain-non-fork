@@ -57,8 +57,9 @@ Layout
    (``test_intersphinx.py``), stable addresses (``test_stable_urls.py``, ``test_chooser_cache.py``),
    ``matlab-api-check``
    (``test_api_check.py``), ``scmd quickstart``
-   (``test_quickstart.py``) and this documentation
-   (``test_documentation.py``).
+   (``test_quickstart.py``), this documentation
+   (``test_documentation.py``) and which module may import which
+   (``test_import_directions.py``).
 ``tests/roots/test_<name>/``
    Small :term:`Sphinx` projects (``conf.py``, pages and MATLAB files)
    built by the tests with the ``make_app`` fixture.

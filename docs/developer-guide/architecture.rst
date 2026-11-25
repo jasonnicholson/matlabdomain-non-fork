@@ -108,6 +108,12 @@ is imported). Most modules also use ``mat_naming.py`` and
 ``mat_handlers.py`` imports ``mat_types`` inside its functions (dotted
 arrow), which breaks the import cycle.
 
+``tests/test_import_directions.py`` holds the rule: the modules in layers,
+each importing only from the layers below it, and a role for each module
+(used by a build only, by the ``scmd`` commands only, or shared), so that no
+command reaches a module of the build; and the imports that break it today,
+listed to be worked down.
+
 Two stages: index, then parse on demand
 ---------------------------------------
 

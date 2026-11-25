@@ -272,6 +272,8 @@ def repository_configuration(root):
         "make.bat",
         "conf.py",
         "CONTRIBUTING.rst",
+        "AGENTS.md",
+        "CLAUDE.md",
         "codespell_ignore_words.txt",
         "CODEOWNERS",
     }
