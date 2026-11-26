@@ -28,15 +28,13 @@ that read the help text from the ``.m`` and ``.mlapp`` files themselves, much li
    ``scmd skills install`` copies them into the project, where the agent
    finds them (:program:`scmd skills install`).
 
-   .. important::
-
-      Learn :term:`Sphinx` and matlabdomain before you hand the work to an agent.
-      The :doc:`getting-started/quickstart`, the
-      :doc:`getting-started/sphinx-primer` and the user guide take about
-      one to two hours. Skip them, and every later change to the site
-      needs an agent too, because nobody on the project knows how it
-      works. Skipping the learning is a trade-off you can choose, but
-      choose it on purpose.
+   Learn :term:`Sphinx` and matlabdomain before you hand the work to an agent.
+   The :doc:`getting-started/quickstart`, the
+   :doc:`getting-started/sphinx-primer` and the user guide take about
+   one to two hours. Skip them, and every later change to the site
+   needs an agent too, because nobody on the project knows how it
+   works. Skipping the learning is a trade-off you can choose, but
+   choose it on purpose.
 
 It names :term:`objects <object>` the way MATLAB does: ``+pkg`` folders are
 namespaces, ``@Cls`` folders hold a class and its methods, and help text is
