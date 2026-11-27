@@ -15,7 +15,8 @@ file types. Planned:
 * live scripts (``.mlx``): first a check of what they would add next to
   ``.m`` files and apps (``.mlapp``).
 
-One handler owns one extension, as for ``.m`` and ``.mlapp`` files.
+Each is an add: a module of its own that registers with the registry, as
+``.mlapp`` files do (:doc:`architecture`, "The file-type registry").
 
 ``scmd apidoc``
 ---------------

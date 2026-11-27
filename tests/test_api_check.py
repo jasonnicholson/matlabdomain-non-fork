@@ -797,7 +797,7 @@ def test_selected_files_exclusions(make_app, root):
     assert app.statuscode == 0
     assert findings(app) == set()
     summary = report(app)["summary"]
-    assert summary["checked"] == dict.fromkeys(mat_api_check.KINDS, 0)
+    assert summary["checked"] == dict.fromkeys(mat_api_check.kinds(), 0)
     assert summary["not_checked"] == {
         "ignored": 1,
         "hidden": 1,

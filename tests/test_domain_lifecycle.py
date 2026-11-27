@@ -43,15 +43,13 @@ def srcdir(rootdir, tmp_path):
 def parsed(monkeypatch):
     """Record every .m file actually parsed with tree-sitter."""
     calls = []
-    original = mat_types.MatObject.parse_mfile
+    original = mat_types._PARSERS[".m"]
 
     def counting_parse_mfile(mfile, *args, **kwargs):
         calls.append(mfile)
         return original(mfile, *args, **kwargs)
 
-    monkeypatch.setattr(
-        mat_types.MatObject, "parse_mfile", staticmethod(counting_parse_mfile)
-    )
+    monkeypatch.setitem(mat_types._PARSERS, ".m", counting_parse_mfile)
     return calls
 
 

@@ -48,7 +48,7 @@ class OddHandler(mat_handlers.Handler):
     """
 
     extension = ".odd"
-    kinds = ("odd",)
+    kinds = (mat_handlers.Kind("odd", "odd", "odd", "Odds", "odd", "odds", ""),)
 
     def classify(self, path, text=None):
         return "unknown"

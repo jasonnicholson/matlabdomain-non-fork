@@ -38,13 +38,18 @@ Modules
        line of code), ``decode_source()`` (encodings as MATLAB reads them),
        the special files.
    * - ``mat_handlers.py``
-     - The file-type registry: one handler per extension (``.m``,
-       ``.mlapp``).
+     - The file-type registry: one handler per extension, with the
+       ``Kind`` records of its index types. The handler of ``.m``, the core
+       type, is here.
+   * - ``mat_filetypes/``
+     - The file types beyond ``.m``, one module each (``mlapp.py``: App
+       Designer apps). Importing the package registers them; ``matlab.py``
+       and ``matlab_apidoc/`` import it.
    * - ``mat_container.py``
      - Reads members of a zip container file within limits (file size,
        number of entries, member size) and parses their XML with guards (no
-       DTD or entity declaration, a nesting limit); used for ``.mlapp``
-       files.
+       DTD or entity declaration, a nesting limit); used by the file types
+       that are zip containers.
    * - ``mat_tree_sitter_parser.py``
      - tree-sitter queries: :term:`signatures <signature>`, members,
        arguments and help text.
@@ -97,16 +102,16 @@ is imported). Most modules also use ``mat_naming.py`` and
      apicheck --> types
      sidecars --> types
      apidoc["matlab_apidoc/"] --> types
+     matlab --> filetypes
+     apidoc --> filetypes
+     filetypes["mat_filetypes/<br/>file types beyond .m"] --> types
+     filetypes --> handlers
+     filetypes --> container["mat_container.py<br/>zip containers, XML"]
      types["mat_types.py<br/>index, parse, objects"] --> naming["mat_naming.py<br/>references, MATLAB names"]
      types --> parser["mat_tree_sitter_parser.py"]
-     types --> container["mat_container.py<br/>zip containers, XML"]
-     naming --> handlers["mat_handlers.py<br/>file types"]
+     naming --> handlers["mat_handlers.py<br/>file-type registry"]
      handlers --> classify["mat_classify.py<br/>file kind, decoding"]
-     handlers -. "when parsing" .-> types
      parser --> treesitter[("tree-sitter-matlab")]
-
-``mat_handlers.py`` imports ``mat_types`` inside its functions (dotted
-arrow), which breaks the import cycle.
 
 ``tests/test_import_directions.py`` holds the rule: the modules in layers,
 each importing only from the layers below it, and a role for each module
@@ -214,13 +219,72 @@ folder, then a unique MATLAB name, then a folder path.
 The file-type registry
 ----------------------
 
-A handler (``mat_handlers.Handler``) owns one extension and provides:
-``discover`` (is the file of this type), ``classify`` (its index type),
-``read`` (index stage: type, decoded text, warnings), ``parse`` (the parsed
-object) and ``document`` (the auto :term:`directive` for a type).
-``register`` adds a handler; registration order is lookup order. A new file
-type is a new handler, not a change to the index or the :term:`domain`
-(:doc:`roadmap`).
+``.m`` is the core type: ``mat_types.py``, ``mat_classify.py`` and the
+parser are its model. Every other file type is an add: one module in
+``mat_filetypes/`` that registers downward, into the layers below it, and
+a line in ``mat_filetypes/__init__.py``. No other module names it, so a
+new type changes no core module; ``tests/test_mat_handlers.py`` checks
+that for every registered type.
+
+What a file type registers:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 35 35
+
+   * - Part
+     - Registered with
+     - What it is
+   * - The handler
+     - ``mat_handlers.register``
+     - The extension; ``discover`` (is the file of this type),
+       ``classify`` (its index type), ``read`` (index stage: type, decoded
+       text, warnings) and ``document`` (the auto :term:`directive` of a
+       type). One handler owns one extension; a type with two formats has
+       two handlers.
+   * - Its ``Kind`` records
+     - the handler's ``kinds``
+     - For each index type: the object type's label, the :term:`role`,
+       the ``scmd apidoc`` section title, the ``scmd quickstart`` noun, the
+       ``matlab-api-check`` plural and the general index entry. A type may
+       reuse the ``Kind`` of another type.
+   * - The model
+     - ``mat_types.register_model``
+     - ``parse`` (the object of a file), the placeholder of each kind (the
+       empty object of a file that failed to parse) and the object classes,
+       subclasses of ``MatObject`` with names of their own (cached objects
+       are restored by class name).
+   * - Its place in the lookup order
+     - ``mat_filetypes/__init__.py``
+     - Registration order is lookup order: a name without extension tries
+       the extensions in this order, ``.m`` first.
+
+Every kind's words come from its ``Kind``, the kinds of ``.m`` included:
+the object type's label and role in the :term:`domain`, the general index
+entry, the ``scmd apidoc`` section title, the ``scmd quickstart`` noun and
+the ``matlab-api-check`` plural. A kind beyond ``.m`` also gets, from the
+``Kind`` alone, an object directive, a documenter and its
+``mat:auto<kind>`` directive (the object's help, no members), and the
+description check of ``matlab-api-check``. The core keeps what only
+``.m`` does: its directives (a class has members, a function an argument
+list), its documenters and checks, and the order of sections and counts
+(folder pages list classes first, namespace pages functions first); the
+kinds of the other types follow in lookup order.
+
+What a type may need beyond that, and where it would go (none is built
+yet; the first type that needs one builds it): ``matlab_*`` configuration
+values, as rows the type declares and ``mat_config`` turns into values;
+code only a build uses (directives and documenters of its own, build
+hooks, domain data), as a module with the build role next to the type's,
+loaded by ``setup()``; a naming rule, when the MATLAB name is not the file
+name; documentation files next to its files; and more than the
+description check in ``matlab-api-check``.
+
+Adding a file type: the module with the handler, the ``Kind`` records, the
+model and its object classes; the line in ``mat_filetypes/__init__.py``;
+a fixture project and tests of the type's own; the user-guide page, and its
+directive and role in the reference pages (``tests/test_documentation.py``
+checks them); the type in :doc:`roadmap` removed from the plans.
 
 Fault tolerance
 ---------------

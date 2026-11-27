@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import textwrap
 
+from .. import mat_handlers
 from ..matlab_apidoc._cli import _count as _apidoc_count
 from ._detect import SECTION_FILES, inventory
 from ._write import py
@@ -15,12 +16,17 @@ from ._write import py
 #: the most items a list of the report shows
 LIMIT = 10
 WIDTH = 79
-_KINDS = {
-    "function": "function",
-    "class": "class",
-    "script": "script",
-    "application": "app",
-}
+#: the kinds of .m files in report order; the kinds of the other file types
+#: follow in lookup order
+_ORDER = ("function", "class", "script")
+
+
+def _nouns():
+    """Return the noun of each kind (its ``mat_handlers.Kind.noun``) in report
+    order.
+    """
+    names = [*_ORDER, *(k.name for k in mat_handlers.kinds() if k.name not in _ORDER)]
+    return {name: mat_handlers.kind(name).noun for name in names}
 
 
 def _count(number, noun):
@@ -101,7 +107,7 @@ def _inventory(source_index):
     found = inventory(source_index)
     kinds = ", ".join(
         _count(found["kinds"][kind], name)
-        for kind, name in _KINDS.items()
+        for kind, name in _nouns().items()
         if found["kinds"][kind]
     )
     total = _count(len(source_index.index), "file")

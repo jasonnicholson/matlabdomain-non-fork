@@ -23,7 +23,7 @@ from sphinx.util import console
 from sphinx.util.inventory import InventoryFile
 from test_incremental_equals_clean import differences, snapshot
 
-from sphinxcontrib import mat_handlers, mat_naming
+from sphinxcontrib import mat_naming, mat_types
 
 #: matlab_inherited_members off, its default
 CONF_OFF = (
@@ -531,14 +531,14 @@ def test_bases_outside_the_project_are_skipped_quietly(make_app, tmp_path, monke
             "% EXT\nproperties\nown % own property\nend\nend\n"
         ),
     }
-    parse = mat_handlers.MFileHandler.parse
+    parse = mat_types._PARSERS[".m"]
 
-    def broken(self, path, *args, **kwargs):
+    def broken(path, *args, **kwargs):
         if path.endswith("Broken.m"):
             raise ValueError("cannot parse this")
-        return parse(self, path, *args, **kwargs)
+        return parse(path, *args, **kwargs)
 
-    monkeypatch.setattr(mat_handlers.MFileHandler, "parse", broken)
+    monkeypatch.setitem(mat_types._PARSERS, ".m", broken)
     app = build(
         make_app, tmp_path, page(autoclass("Ext", ":inherited-members:")), files
     )

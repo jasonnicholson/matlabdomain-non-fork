@@ -4,7 +4,8 @@ The pages come from a ``SourceIndex`` alone: no file is parsed.
 
 - Namespace grouping (the default): one page per namespace, merging all
   its ``+`` folders, and ``Global`` for the files outside any namespace;
-  sections Functions, Classes, Scripts, Apps, Sidecar docs; at most
+  sections Functions, Classes, Scripts, then one per kind of the other
+  file types (its ``mat_handlers.Kind`` names it), Sidecar docs; at most
   ``page_size`` entries per page (more pages: ``<name>-2``, ...); the root
   page lists them flat, Global first. ``private/`` files are left out
   (``private=True`` lists them with the folder above);
@@ -43,6 +44,7 @@ from pathlib import Path
 from sphinx.util.logging import getLogger
 from sphinx.util.template import ReSTRenderer
 
+from .. import mat_handlers
 from ..mat_classify import UNKNOWN, is_hidden
 from ..mat_handlers import handler_by_extension
 from ..mat_naming import ROOT_REFERENCE, folder_of, join_folder, split_folder
@@ -70,19 +72,19 @@ GLOBAL_TITLE = "Global"
 ROOT_TITLE = "API reference"
 #: docname of the root folder's page in folder grouping
 ROOT_FOLDER_DOCNAME = "root"
-#: section titles in page order, by index type
-SECTIONS = {
-    "class": "Classes",
-    "function": "Functions",
-    "script": "Scripts",
-    "application": "Apps",
-}
+#: section order of folder pages, by index type: the kinds of .m files, then
+#: those of the other file types in lookup order (``_sections``); the titles
+#: are the ``mat_handlers.Kind.section``
+FOLDER_ORDER = (
+    "class",
+    "function",
+    "script",
+)
 #: section order of namespace pages
 NAMESPACE_ORDER = (
     "function",
     "class",
     "script",
-    "application",
 )
 #: directive options by index type
 OPTIONS = {"class": {"members": "", "undoc-members": "", "show-inheritance": ""}}
@@ -210,13 +212,20 @@ def _order(entry):
     return entry["title"].casefold(), entry["ref"]
 
 
-def _sections(entries, order=tuple(SECTIONS)):
-    """``(title, entries)`` pairs in page order; entries sorted."""
+def _title(kind):
+    """Return the section title of the index type ``kind``."""
+    return mat_handlers.kind(kind).section
+
+
+def _sections(entries, order=FOLDER_ORDER):
+    """``(title, entries)`` pairs in page order: ``order``, then the kinds of
+    the other file types in lookup order; entries sorted.
+    """
     entries = sorted(entries, key=_order)
     kinds = {e["kind"] for e in entries}
-    order = [*order, *sorted(kinds - set(order))]
+    order = [*order, *(k.name for k in mat_handlers.kinds() if k.name not in order)]
     return [
-        (SECTIONS.get(kind, kind.title()), [e for e in entries if e["kind"] == kind])
+        (_title(kind), [e for e in entries if e["kind"] == kind])
         for kind in order
         if kind in kinds
     ]

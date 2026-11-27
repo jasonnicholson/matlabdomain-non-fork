@@ -1,7 +1,9 @@
 """The ``matlab-api-check`` builder: audit MATLAB help text.
 
 Every indexed object is checked, whether a page documents it or not, unless
-``matlab_api_check_files`` selects files.
+``matlab_api_check_files`` selects files. An object of a kind of a file type
+beyond ``.m`` has the description rule. The summary names each file kind by
+the plural of its ``mat_handlers.Kind``.
 
 :copyright: Copyright 2014-2024 by the sphinxcontrib-matlabdomain team, see AUTHORS.
 :license: BSD, see LICENSE for details.
@@ -18,7 +20,7 @@ from sphinx.errors import ConfigError
 from sphinx.util.logging import getLogger
 from sphinx.util.matching import Matcher
 
-from . import mat_types
+from . import mat_handlers, mat_types
 from .mat_classify import UNKNOWN, is_hidden
 from .mat_typing import override
 
@@ -47,33 +49,34 @@ DEFAULT_RULES = {
         "warning",
     ),
 }
-#: object kinds, in report order
-KINDS = (
-    "function",
-    "class",
-    "method",
-    "property",
-    "event",
-    "script",
-    "application",
-    "sidecar",
-)
-_PLURALS = dict(
-    zip(
-        KINDS,
-        (
-            "functions",
-            "classes",
-            "methods",
-            "properties",
-            "events",
-            "scripts",
-            "apps",
-            "sidecars",
-        ),
-        strict=True,
-    )
-)
+#: the object kinds of the core in report order (the kinds of the other file
+#: types go before ``sidecar``: ``kinds``)
+_ORDER = ("function", "class", "method", "property", "event", "script")
+#: the plurals of the kinds that are not file kinds; a file kind's is its
+#: ``mat_handlers.Kind.plural``
+_PLURALS = {
+    "method": "methods",
+    "property": "properties",
+    "event": "events",
+    "sidecar": "sidecars",
+}
+
+
+def kinds():
+    """Return the object kinds in report order: those of the core, then the
+    kinds of the file types beyond ``.m``, then ``sidecar``.
+    """
+    others = [k.name for k in mat_handlers.kinds() if k.name not in _ORDER]
+    return (*_ORDER, *others, "sidecar")
+
+
+def plural(kind):
+    """Return the plural of the object kind ``kind`` in the summary."""
+    if kind in _PLURALS:
+        return _PLURALS[kind]
+    return mat_handlers.kind(kind).plural
+
+
 REPORT_TXT = "api-check.txt"
 REPORT_JSON = "api-check.json"
 _IGNORE_OPTION = "matlab_api_check_ignore_patterns"
@@ -392,7 +395,7 @@ class _Checker:
         self.findings = []
         #: source paths of the files resolved (parsed or from the cache)
         self.parsed = []
-        self.checked = dict.fromkeys(KINDS, 0)
+        self.checked = dict.fromkeys(kinds(), 0)
         self.not_checked: dict[str, int] = dict.fromkeys(
             ("ignored", "hidden", "unreadable", "not_parsed"), 0
         )
@@ -612,8 +615,8 @@ class _Checker:
             script = {**where, "line": 1}
             self.describe("description", script, "script", obj.docstring)
             self.example("example", script, "script", obj.docstring)
-        else:
-            self.describe("description", where, "application", obj.docstring)
+        else:  # a kind of a file type beyond .m
+            self.describe("description", where, obj.source_type, obj.docstring)
 
     def sidecars(self, env):
         """Check the sidecar docs: each is
@@ -718,9 +721,7 @@ def _text_report(summary, findings):
             f"{len(selection['unmatched'])} matching no file"
             + (" (ignored)" if severity == "ignored" else "")
         )
-    checked = ", ".join(
-        f"{n} {_PLURALS[kind]}" for kind, n in summary["checked"].items()
-    )
+    checked = ", ".join(f"{n} {plural(kind)}" for kind, n in summary["checked"].items())
     lines.append(f"Checked: {checked}")
     skipped = ", ".join(
         f"{n} {why.replace('_', ' ')}" for why, n in summary["not_checked"].items()

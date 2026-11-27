@@ -11,8 +11,8 @@ import os
 import stat
 import sys
 import unicodedata
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any, ClassVar, cast
 
 from sphinx.environment import CONFIG_OK
@@ -43,8 +43,7 @@ from .mat_classify import (
     is_help_only,
     is_hidden,
 )
-from .mat_container import parse_xml, read_members
-from .mat_handlers import handler_by_extension, handler_for, handlers
+from .mat_handlers import handler_for, handlers
 from .mat_naming import (
     ROOT_REFERENCE,
     folder_of,
@@ -59,7 +58,6 @@ from .mat_typing import override
 logger = getLogger("matlab-domain")
 
 __all__ = [
-    "MatApplication",
     "MatClass",
     "MatEnumeration",
     "MatEvent",
@@ -117,7 +115,7 @@ class _DetachedEntityStore:
         if handler is None:
             return None
         stem = os.path.splitext(parts[-1])[0]
-        obj = _parse(handler, path, stem, folder_of(ref), handler.classify(path))
+        obj = _parse(path, stem, folder_of(ref), handler.classify(path))
         obj.ref = ref
         return obj
 
@@ -214,7 +212,7 @@ def resolve(dom, ref) -> Any:
 
 def _resolve_path(dom, rel):
     """Object for a path below the root, given without its extension or the
-    trailing ``/`` of a folder (``.m`` before ``.mlapp``), or None.
+    trailing ``/`` of a folder (the extensions in lookup order), or None.
     """
     for ref in (f"{rel}/", rel, *(rel + h.extension for h in handlers())):
         obj = resolve(dom, ref)
@@ -223,13 +221,38 @@ def _resolve_path(dom, rel):
     return None
 
 
-def _parse(handler, path, stem, folder, kind, text=None) -> Any:
+#: extension -> how its files are parsed (``register_model``)
+_PARSERS: dict[str, Callable[..., Any]] = {}
+#: index type -> the empty object of a file of that type that failed to
+#: parse, for the kinds of the file types beyond ``.m`` (``register_model``)
+_PLACEHOLDERS: dict[str, Callable[[str, str], Any]] = {}
+
+
+def register_model(extension, parse, placeholders=None):
+    """Register how the files with ``extension`` are parsed.
+
+    ``parse(path, stem, folder, encoding)`` returns the object of the file
+    (a :class:`MatObject`, or None for an empty placeholder); it also takes
+    ``text=`` when the handler's ``read`` returns the text. ``placeholders``
+    maps each kind of a file type beyond ``.m`` to ``placeholder(name,
+    folder)``, the empty object of a file of that kind that failed to parse.
+    A file type calls this from its module in ``mat_filetypes/``; ``.m``
+    registers below.
+    """
+    if extension in _PARSERS:
+        raise ValueError(f"{extension} already has a model")
+    _PARSERS[extension] = parse
+    _PLACEHOLDERS.update(placeholders or {})
+
+
+def _parse(path, stem, folder, kind, text=None) -> Any:
     """Parse one file; a failure gives an empty placeholder of the type ``kind``."""
+    parse = _PARSERS[os.path.splitext(path)[1]]
     try:
         if text is None:
-            obj = handler.parse(path, stem, folder, MatObject.encoding)
+            obj = parse(path, stem, folder, MatObject.encoding)
         else:
-            obj = handler.parse(path, stem, folder, MatObject.encoding, text=text)
+            obj = parse(path, stem, folder, MatObject.encoding, text=text)
     except Exception as err:  # one bad file must not stop the build
         obj = placeholder(kind, stem, folder)
         obj.source_warnings = [("parse_error", failure_message(err), None)]
@@ -259,9 +282,8 @@ def _load(dom, ref):
             obj = placeholder(record["type"], stem, folder_of(ref))
             obj.source_type, obj.unreadable = record["type"], record["unreadable"]
         else:
-            handler = handler_by_extension(path)
             text = dom.text_cache.pop(key, None)
-            obj = _parse(handler, path, stem, folder_of(ref), record["type"], text)
+            obj = _parse(path, stem, folder_of(ref), record["type"], text)
             if warnings := parse_warnings(path, ref, obj):
                 data["parse_warnings"][key] = warnings
             # A read failure may go away without changing the key (permissions).
@@ -1443,8 +1465,8 @@ def _undecodable(name):
 
 def placeholder(kind, name, folder) -> Any:
     """Empty object of the index type ``kind`` for a file that failed to parse."""
-    if kind == "application":
-        return MatApplication(name, folder, "")
+    if kind in _PLACEHOLDERS:
+        return _PLACEHOLDERS[kind](name, folder)
     cls = {"class": MatClass, "function": MatFunction}.get(kind, MatScript)
     obj = cls.__new__(cls)
     MatObject.__init__(obj, name)
@@ -1475,8 +1497,13 @@ def failure_message(err):
     )
 
 
+#: class name -> class of every :class:`MatObject`, here and in
+#: ``mat_filetypes/``: the cached objects are restored by class name
+_CLASSES: dict[str, Any] = {}
+
+
 def _restore_matobject(class_name):
-    cls = globals()[class_name]
+    cls = _CLASSES[class_name]
     return cls.__new__(cls)
 
 
@@ -1487,13 +1514,10 @@ class MatObject:
     :type name: str
 
     MATLAB objects can be :class:`MatModule`, :class:`MatFunction`,
-    :class:`MatApplication` or :class:`MatClass`.
-    :class:`MatModule` are just folders that define a pseudo
-    namespace for :class:`MatFunction`, :class:`MatApplication`
-    and :class:`MatClass` in that folder.
+    :class:`MatClass`, :class:`MatScript` or an object of a file type in
+    ``mat_filetypes/``. :class:`MatModule` are folders that hold the others.
     :class:`MatFunction` and :class:`MatClass` must begin with either
     ``function`` or ``classdef`` keywords.
-    :class:`MatApplication` must be a ``.mlapp`` file.
     """
 
     basedir: str | None = None
@@ -1523,6 +1547,14 @@ class MatObject:
     def __init__(self, name):
         #: name of MATLAB object
         self.name = name
+
+    def __init_subclass__(cls, **kwargs):
+        """Add the class to the classes a cached object is restored by."""
+        super().__init_subclass__(**kwargs)
+        # type's __name__, not the property of the instances
+        name = cast(str, cls.__name__)
+        if _CLASSES.setdefault(name, cls) is not cls:
+            raise TypeError(f"two MatObject classes are called {name}")
 
     def ref_role(self):
         """Return the role used for references and automatic links."""
@@ -1572,8 +1604,8 @@ class MatObject:
         :param objname: Path of the object below the project root
             (:attr:`MatObject.basedir`) with ``/`` separators: a folder
             (``"target/+package"``), a file (``"target/+package/ClassBar.m"``)
-            or a file without its extension (``.m`` is tried before
-            ``.mlapp``). ``""`` is the project root.
+            or a file without its extension (the extensions are tried in
+            lookup order, ``.m`` first). ``""`` is the project root.
         :type objname: str
 
         Every object gets its path reference as ``ref``. In a build, only
@@ -1698,46 +1730,6 @@ class MatObject:
         obj.parsed_type = parsed
         obj.source_warnings = warnings
         return obj
-
-    @staticmethod
-    def parse_mlappfile(mlappfile, name, path):
-        """Read the metadata/appMetadata.xml file and
-        the metadata/coreProperties.xml file description tags.
-        Reads them with the guards of ``mat_container``.
-
-        :param mlappfile: Full path of ``.mlapp`` file.
-        :type mlappfile: str
-        :param name: Name of :class:`MatApplication`.
-        :type name: str
-        :param path: Folder reference of the folder containing :class:`MatApplication`.
-        :type path: str
-        :returns: :class:`MatApplication` representing the application.
-        :raises ContainerFileError: for a file or member over a size limit, or
-            XML with a DTD or nested too deep.
-        """
-        # Read contents of meta-data file
-        # This might change in different Matlab versions
-        # Note: `code` is a verbatim copy of the MATLAB source inside the App
-        #       Variable `codeText` will contain the source.
-        # The size limits, the DTD refusal and the nesting limit of
-        # mat_container; a violation is a ContainerFileError.
-        meta_part, core_part = "metadata/appMetadata.xml", "metadata/coreProperties.xml"
-        meta_data, core_data = read_members(Path(mlappfile), (meta_part, core_part))
-        meta = parse_xml(meta_data, meta_part)
-        core = parse_xml(core_data, core_part)
-
-        # Names without namespaces: appMetadata's ``description`` and the
-        # Dublin Core ``dc:description`` of coreProperties.
-        doc = [
-            text
-            for text in (core.child_text("description"), meta.child_text("description"))
-            if text
-        ]
-        docstring = "\n\n".join(doc)
-
-        modname = path  # folder reference
-
-        return MatApplication(name, modname, docstring)
 
 
 # TODO: get the docstring from Contents.m if it exists
@@ -2320,39 +2312,6 @@ class MatScript(MatObject):
         return self.module
 
 
-class MatApplication(MatObject):
-    """Representation of the documentation in a Matlab Application.
-
-    :param name: Name of :class:`MatObject`.
-    :type name: str
-    :param modname: Name of folder containing :class:`MatObject`.
-    :type modname: str
-    :param desc: Summary and description string.
-    :type desc: str
-    """
-
-    def __init__(self, name, modname, desc):
-        super().__init__(name)
-        #: Path of folder containing :class:`MatApplication`.
-        self.module = modname
-        #: docstring
-        self.docstring = desc
-
-    @property
-    def __doc__(self):
-        """The help text of the app (its summary and description): autodoc reads it as
-        ``__doc__``, as it would the docstring of a Python object.
-        """
-        return self.docstring
-
-    @property
-    def __module__(self):
-        """The folder reference of the folder that holds the app: autodoc reads it as
-        ``__module__``, the module of a Python object.
-        """
-        return self.module
-
-
 class MatcodeError(Exception):
     """A folder reference that names no discovered folder."""
 
@@ -2434,3 +2393,8 @@ class _TagOrder:
     def __len__(self):
         # The default position for members without one: after all others.
         return sys.maxsize
+
+
+_CLASSES["MatObject"] = MatObject
+# .m is the core type: its model is this module.
+register_model(".m", MatObject.parse_mfile)

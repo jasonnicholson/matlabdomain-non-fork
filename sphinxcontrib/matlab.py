@@ -28,6 +28,8 @@ from . import (
     mat_api_check,
     mat_config,
     mat_directives,
+    mat_filetypes,  # noqa: F401 (it registers the file types beyond .m)
+    mat_handlers,
     mat_naming,
     mat_sidecars,
     mat_types,
@@ -526,8 +528,18 @@ class MatObjectDirective(ObjectDescription):
         self.env.temp_data["mat:objfolder"] = self.previous_objfolder
 
 
+def _kind_index_text(objtype, folder, name):
+    """Return the general index entry of an object of the file kind ``objtype``
+    in ``folder``: the ``index_text`` of its ``mat_handlers.Kind``, or "".
+    """
+    text = mat_handlers.kind(objtype).index_text
+    return translation(text) % (name, folder) if text else ""
+
+
 class MatModulelevel(MatObjectDirective):
-    """Description of an object on folder level (functions, data, application)."""
+    """Description of an object on folder level: a function, a script, data, or an
+    object of a kind of a file type beyond ``.m``.
+    """
 
     @override
     def needs_arglist(self):
@@ -535,14 +547,9 @@ class MatModulelevel(MatObjectDirective):
 
     @override
     def get_index_text(self, folder, name_cls):
-        if self.objtype == "function":
-            return translation("%s() (function in %s)") % (name_cls[1], folder)
-        elif self.objtype == "data":
+        if self.objtype == "data":
             return translation("%s (data in %s)") % (name_cls[1], folder)
-        elif self.objtype == "application":
-            return translation("%s (application in %s)") % (name_cls[1], folder)
-        else:
-            return ""
+        return _kind_index_text(self.objtype, folder, name_cls[1])
 
 
 class MatClasslike(MatObjectDirective):
@@ -578,7 +585,7 @@ class MatClasslike(MatObjectDirective):
 
     @override
     def get_index_text(self, folder, name_cls):
-        return translation("%s (class in %s)") % (name_cls[1], folder)
+        return _kind_index_text(self.objtype, folder, name_cls[1])
 
     @override
     def before_content(self):
@@ -884,23 +891,36 @@ class MATLABFolderIndex(Index):
         return sorted(content.items()), False
 
 
+def _object_type(kind):
+    """Return the domain object type of the file kind ``kind`` (a
+    ``mat_handlers.Kind``).
+    """
+    return ObjType(translation(kind.label), kind.role, "obj")
+
+
+#: the kinds of .m files; their words come from their mat_handlers.Kind like
+#: those of every file type
+_FUNCTION, _CLASS, _SCRIPT = (
+    mat_handlers.kind(name) for name in ("function", "class", "script")
+)
+
+
 class MATLABDomain(Domain):
     """MATLAB language domain."""
 
     name = "mat"
     label = "MATLAB"
     object_types: ClassVar[dict[str, ObjType]] = {
-        "function": ObjType(translation("function"), "func", "obj"),
+        _FUNCTION.name: _object_type(_FUNCTION),
         "data": ObjType(translation("data"), "data", "obj"),
-        "class": ObjType(translation("class"), "class", "obj"),
+        _CLASS.name: _object_type(_CLASS),
         "method": ObjType(translation("method"), "meth", "obj"),
         "staticmethod": ObjType(translation("static method"), "meth", "obj"),
         "attribute": ObjType(translation("attribute"), "attr", "obj"),
         "event": ObjType(translation("event"), "event", "obj"),
         "folder": ObjType(translation("folder"), "folder", "obj"),
         "namespace": ObjType(translation("namespace"), "namespace", "obj"),
-        "script": ObjType(translation("script"), "scpt", "obj"),
-        "application": ObjType(translation("application"), "app", "obj"),
+        _SCRIPT.name: _object_type(_SCRIPT),
     }
 
     directives: ClassVar[dict[str, type[Directive]]] = {
@@ -915,12 +935,11 @@ class MATLABDomain(Domain):
         "namespace": MatNamespace,
         "currentfolder": MatCurrentFolder,
         "script": MatModulelevel,
-        "application": MatModulelevel,
     }
     roles: ClassVar[dict[str, RoleFunction | XRefRole]] = {
         "data": MatXRefRole(),
-        "func": MatXRefRole(fix_parens=True),
-        "class": MatXRefRole(),
+        _FUNCTION.role: MatXRefRole(fix_parens=True),
+        _CLASS.role: MatXRefRole(),
         "const": MatXRefRole(),
         "attr": MatXRefRole(),
         "enum": MatXRefRole(),
@@ -929,8 +948,7 @@ class MATLABDomain(Domain):
         "folder": MatXRefRole(),
         "namespace": MatXRefRole(),
         "obj": MatXRefRole(),
-        "scpt": MatXRefRole(),
-        "app": MatXRefRole(),
+        _SCRIPT.role: MatXRefRole(),
         # A sidecar doc, by path reference; the text is its title.
         "sidecar": XRefRole(),
     }
@@ -986,6 +1004,11 @@ class MATLABDomain(Domain):
 
     def __init__(self, env):
         super().__init__(env)
+        # The kinds of the file types beyond .m (setup adds their directives
+        # and roles).
+        for kind in mat_handlers.kinds():
+            if kind.name not in self.object_types:
+                self.add_object_type(kind.name, _object_type(kind))
         # display name -> references of documented objects (built lazily)
         self._displays = None
         # namespace name -> references of the documented folders that have
@@ -1712,10 +1735,18 @@ def setup(app):
         "mat", "autodata", mat_directives.MatlabAutodocDirective
     )
 
-    app.registry.add_documenter("mat:application", doc.MatApplicationDocumenter)
-    app.add_directive_to_domain(
-        "mat", "autoapplication", mat_directives.MatlabAutodocDirective
-    )
+    # The kinds of the file types beyond .m: a directive, a role and a
+    # documenter each, from their mat_handlers.Kind (the domain adds the
+    # object type).
+    for kind in mat_handlers.kinds():
+        if kind.name in MATLABDomain.directives:
+            continue
+        app.add_directive_to_domain("mat", kind.name, MatModulelevel)
+        app.add_role_to_domain("mat", kind.role, MatXRefRole())
+        app.registry.add_documenter(f"mat:{kind.name}", doc.file_documenter(kind))
+        app.add_directive_to_domain(
+            "mat", f"auto{kind.name}", mat_directives.MatlabAutodocDirective
+        )
 
     app.add_autodoc_attrgetter(mat_types.MatModule, mat_types.MatModule.getter)
     app.add_autodoc_attrgetter(mat_types.MatNamespace, mat_types.MatNamespace.getter)

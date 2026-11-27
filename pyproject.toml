@@ -124,6 +124,7 @@ source_pkgs = [
     "sphinxcontrib.mat_container",
     "sphinxcontrib.mat_directives",
     "sphinxcontrib.mat_documenters",
+    "sphinxcontrib.mat_filetypes",
     "sphinxcontrib.mat_handlers",
     "sphinxcontrib.mat_naming",
     "sphinxcontrib.mat_sidecars",

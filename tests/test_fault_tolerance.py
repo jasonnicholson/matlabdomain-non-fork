@@ -422,16 +422,15 @@ def malformed(tmp_path):
 
 @pytest.fixture
 def parsed(monkeypatch):
-    """Record every file the handlers parse."""
+    """Record every file the registered models parse."""
     calls = []
-    for name in ("parse_mfile", "parse_mlappfile"):
-        original = getattr(mat_types.MatObject, name)
+    for extension, original in mat_types._PARSERS.items():
 
         def counting(path, *args, _original=original, **kwargs):
             calls.append(path)
             return _original(path, *args, **kwargs)
 
-        monkeypatch.setattr(mat_types.MatObject, name, staticmethod(counting))
+        monkeypatch.setitem(mat_types._PARSERS, extension, counting)
     return calls
 
 
@@ -754,7 +753,7 @@ def test_read_failure_while_parsing_is_not_cached(make_app, tmp_path, monkeypatc
     def locked(*args, **kwargs):
         raise PermissionError(13, "Permission denied")
 
-    monkeypatch.setattr(mat_handlers.MFileHandler, "parse", locked)
+    monkeypatch.setitem(mat_types._PARSERS, ".m", locked)
     app = make_app(srcdir=tmp_path)
     app.build()
     assert warnings_of(app) == [("parse_error", "ft_ok_function.m")]

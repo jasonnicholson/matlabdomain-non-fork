@@ -24,6 +24,8 @@ LAYERS = [
     {"mat_naming"},
     # the index, the parse and the objects
     {"mat_types"},
+    # the file types beyond .m: each registers into the two layers above
+    {"mat_filetypes"},
     # readers of the model
     {"mat_sidecars", "mat_api_check", "mat_urls"},
     {"mat_documenters"},
@@ -50,6 +52,7 @@ ROLES = {
     "mat_handlers": SHARED,
     "mat_naming": SHARED,
     "mat_types": SHARED,
+    "mat_filetypes": SHARED,
     "mat_api_check": SHARED,
     "mat_config": SHARED,
     "mat_sidecars": BUILD,
@@ -73,8 +76,6 @@ MAY_IMPORT = {
 #: module): the debt to work down. Do not add to it; remove an entry when its
 #: import is gone (the test then asks for it).
 EXCEPTIONS = {
-    # The handlers parse through MatObject: the registry/model cycle.
-    ("sphinxcontrib.mat_handlers", "sphinxcontrib.mat_types"),
     # The check of matlab_apidoc_group reads the command's GROUPS.
     ("sphinxcontrib.mat_config", "sphinxcontrib.matlab_apidoc._generate"),
     # Stable addresses reuse the command's page names and marker test.
@@ -183,10 +184,10 @@ def test_exceptions_are_still_needed():
             ["sphinxcontrib.mat_naming", "sphinxcontrib.mat_types"],
         ),
         (
-            "from .mat_types import MatObject",
-            "sphinxcontrib.mat_handlers",
+            "from .. import mat_handlers, mat_types",
+            "sphinxcontrib.mat_filetypes.mlapp",
             False,
-            ["sphinxcontrib.mat_types"],
+            ["sphinxcontrib.mat_handlers", "sphinxcontrib.mat_types"],
         ),
         (
             "from ..mat_types import X",

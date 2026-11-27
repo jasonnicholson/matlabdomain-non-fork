@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from sphinxcontrib.mat_filetypes import mlapp
 from sphinxcontrib.mat_types import (
     MatClass,
     MatFunction,
@@ -1374,6 +1375,6 @@ def test_class_with_get_method(mod):
 
 def test_parse_mlappfile(dir_test_data):
     mfile = dir_test_data / "Application.mlapp"
-    obj = MatObject.parse_mlappfile(mfile, "Application", "test_data")
+    obj = mlapp.parse(mfile, "Application", "test_data")
     assert obj.name == "Application"
     assert obj.docstring == "Summary of app\n\nDescription of app"

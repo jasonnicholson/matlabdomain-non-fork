@@ -1,4 +1,5 @@
-"""Autodoc documenters for MATLAB functions, classes, scripts and apps.
+"""Autodoc documenters for MATLAB functions, classes and scripts, and one for
+the kinds of the other file types (``file_documenter``).
 
 :copyright: Copyright by the sphinxcontrib-matlabdomain team, see AUTHORS.
 :license: BSD, see LICENSE for details.
@@ -39,7 +40,6 @@ from sphinx.util.typing import OptionSpec
 from . import mat_naming, mat_sidecars
 from .mat_classify import UNKNOWN, is_hidden
 from .mat_types import (
-    MatApplication,
     MatClass,
     MatcodeError,
     MatEnumeration,
@@ -49,6 +49,7 @@ from .mat_types import (
     MatModule,
     MatModuleAnalyzer,
     MatNamespace,
+    MatObject,
     MatProperty,
     MatScript,
     display_name,
@@ -1907,16 +1908,28 @@ class MatScriptDocumenter(MatModuleLevelDocumenter):
         pass
 
 
-class MatApplicationDocumenter(MatModuleLevelDocumenter):
-    """Specialized Documenter subclass for Matlab Applications (.mlapp)."""
-
-    objtype = "application"
+class MatFileDocumenter(MatModuleLevelDocumenter):
+    """Documents an object of a kind of a file type beyond ``.m``: its help,
+    without members. ``file_documenter`` makes one subclass per kind.
+    """
 
     @classmethod
     @override
     def can_document_member(cls, member, membername, isattr, parent):
-        return isinstance(member, MatApplication)
+        return (
+            isinstance(member, MatObject)
+            and getattr(member, "source_type", None) == cls.objtype
+        )
 
     @override
     def document_members(self, all_members=False):
         pass
+
+
+def file_documenter(kind):
+    """Return the documenter of ``kind``, a ``mat_handlers.Kind`` of a file
+    type beyond ``.m``.
+    """
+    return type(
+        f"MatFileDocumenter_{kind.name}", (MatFileDocumenter,), {"objtype": kind.name}
+    )

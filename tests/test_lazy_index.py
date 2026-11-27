@@ -50,16 +50,15 @@ def folders(app):
 
 @pytest.fixture
 def parsed(monkeypatch):
-    """Record every file the handlers parse."""
+    """Record every file the registered models parse."""
     calls = []
-    for name in ("parse_mfile", "parse_mlappfile"):
-        original = getattr(mat_types.MatObject, name)
+    for extension, original in mat_types._PARSERS.items():
 
         def counting(path, *args, _original=original, **kwargs):
             calls.append(str(path))
             return _original(path, *args, **kwargs)
 
-        monkeypatch.setattr(mat_types.MatObject, name, staticmethod(counting))
+        monkeypatch.setitem(mat_types._PARSERS, extension, counting)
     return calls
 
 

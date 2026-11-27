@@ -6,6 +6,7 @@ import zipfile
 import pytest
 
 from sphinxcontrib import mat_handlers, mat_types
+from sphinxcontrib.mat_filetypes import mlapp as mlapp_type
 from sphinxcontrib.mat_types import (
     MatcodeError,
     MatEnumeration,
@@ -99,10 +100,8 @@ def test_handler_without_an_object_gives_a_placeholder(detached, monkeypatch):
         def classify(self, path, text=None):
             return "unknown"
 
-        def parse(self, path, stem, folder, encoding=None):
-            return None
-
     monkeypatch.setitem(mat_handlers._HANDLERS, ".xyz", NoObject())
+    monkeypatch.setitem(mat_types._PARSERS, ".xyz", lambda *_: None)
     (detached / "data.xyz").write_text("x")
     obj = MatObject.matlabify("data.xyz")
     assert isinstance(obj, MatScript)
@@ -198,5 +197,5 @@ def mlapp(path, core, meta):
 )
 def test_app_descriptions(tmp_path, core, meta, docstring):
     mlapp(tmp_path / "App.mlapp", core, meta)
-    app = MatObject.parse_mlappfile(str(tmp_path / "App.mlapp"), "App", "./")
+    app = mlapp_type.parse(str(tmp_path / "App.mlapp"), "App", "./")
     assert app.docstring == docstring

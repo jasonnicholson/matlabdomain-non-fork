@@ -1,10 +1,10 @@
 """Read members of a zip container file within limits.
 
-App Designer apps (``.mlapp``) are zip containers with XML members. Project
-files are trusted, but a file may be corrupt or huge, so everything that is
-read is bounded: the file, the number of its entries, each member that is
-read and the nesting of its XML. XML with a DTD or an entity declaration is
-refused.
+The file types of ``mat_filetypes/`` that are zip containers with XML
+members read them through here. Project files are trusted, but a file may
+be corrupt or huge, so everything that is read is bounded: the file, the
+number of its entries, each member that is read and the nesting of its
+XML. XML with a DTD or an entity declaration is refused.
 """
 
 from __future__ import annotations

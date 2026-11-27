@@ -1,13 +1,19 @@
-"""Registry of the handlers that read each source file type.
+"""Registry of the file types: one handler per file extension.
 
 See "The file-type registry" in ``docs/developer-guide/architecture.rst``.
 
-Each source file type is one handler, registered under its file extension.
-Discovery, parsing and path references ask this registry instead of testing
-extensions, so a new file type is one more handler, not a refactor. A
-handler provides:
+Discovery, the index stage and path references ask this registry instead of
+testing extensions. A file type registers here what the index stage and the
+labels of the domain and the commands need; it registers how its files are
+parsed with ``mat_types.register_model``. ``.m`` is the core type: its
+handler is here. The other types live in ``mat_filetypes/``, which registers
+them when it is imported (the entry points import it).
+
+A handler provides:
 
 - ``extension``: the extension it owns, e.g. ``".m"``;
+- ``kinds``: the :class:`Kind` records of the index types its ``classify``
+  returns (besides ``unknown``);
 - ``discover(path)``: True if ``path``, which has that extension, is a
   source file of this type (the base class checks that it is a file);
 - ``classify(path, text=None)``: the index type of the file (``unknown`` if
@@ -17,34 +23,61 @@ handler provides:
   formats) and ``(subtype, message, row)`` warnings; raises ``OSError``.
   The type it returns is the index type; a parsed object's
   ``source_type`` defaults to it. The default returns ``classify(path)``;
-- ``parse(path, stem, folder, encoding)``: the parsed ``MatObject``; a
-  handler whose ``read`` returns text also accepts it as ``text=``;
 - ``document(kind)``: the autodoc directive that documents a ``kind``;
   None for an index type that has no directive yet (apidoc leaves it out).
 
-Registration order is lookup order: a name without extension tries ``.m``
-before ``.mlapp``.
+The core (the domain, the documenters, ``matlab-api-check``, ``scmd
+apidoc`` and ``scmd quickstart``) has its own entries for the kinds of
+``.m``; for every other registered kind it takes the labels of its
+:class:`Kind`. Registration order is lookup order: a name without
+extension tries ``.m`` first.
 
 Planned file types: ``docs/developer-guide/roadmap.rst``.
 
-``mat_naming`` imports this module, so it must not import the parser or
-``mat_types`` at import time; handlers import them when they parse.
+``mat_naming`` imports this module, so it imports neither the parser nor
+``mat_types``.
 """
 
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass
 
 from . import mat_classify
 from .mat_typing import override
+
+
+@dataclass(frozen=True)
+class Kind:
+    """An index type of a file type, with the words the build and the
+    commands show for it.
+    """
+
+    #: the index type; also the object type, ``mat:<name>`` and
+    #: ``mat:auto<name>``
+    name: str
+    #: the object type's label in the domain (function)
+    label: str
+    #: the cross-reference role, ``:mat:<role>:``
+    role: str
+    #: the section title of ``scmd apidoc`` pages (Functions)
+    section: str
+    #: one object in the report of ``scmd quickstart`` (function)
+    noun: str
+    #: the objects in the summary of ``matlab-api-check`` (functions)
+    plural: str
+    #: the general index entry, ``%`` the display name and the folder; ""
+    #: for none
+    index_text: str
 
 
 class Handler:
     """Base handler: claims every existing file with its extension."""
 
     extension = ""
-    #: index types this handler's ``classify`` returns (besides ``unknown``)
-    kinds: tuple[str, ...] = ()
+    #: the index types this handler's ``classify`` returns (besides
+    #: ``unknown``)
+    kinds: tuple[Kind, ...] = ()
 
     def discover(self, path) -> bool:
         """Return True if ``path``, which has this handler's extension, is a source file
@@ -65,24 +98,38 @@ class Handler:
         """
         return self.classify(path), None, []
 
-    def parse(self, path, stem, folder, encoding=None):
-        """Return the parsed :class:`~sphinxcontrib.mat_types.MatObject` of the file at
-        ``path``, named ``stem``, in folder reference ``folder``.
-        """
-        raise NotImplementedError
-
     def document(self, kind: str) -> str | None:
         """Return the auto directive that documents index type ``kind``
         (``mat:autofunction``, ...), or None when ``kind`` has no directive.
         """
-        return f"mat:auto{kind}" if kind in self.kinds else None
+        return f"mat:auto{kind}" if any(k.name == kind for k in self.kinds) else None
 
 
 class MFileHandler(Handler):
     """MATLAB code files: scripts, functions and classes."""
 
     extension = ".m"
-    kinds = (mat_classify.SCRIPT, mat_classify.FUNCTION, mat_classify.CLASS)
+    kinds = (
+        Kind(mat_classify.SCRIPT, "script", "scpt", "Scripts", "script", "scripts", ""),
+        Kind(
+            mat_classify.FUNCTION,
+            "function",
+            "func",
+            "Functions",
+            "function",
+            "functions",
+            "%s() (function in %s)",
+        ),
+        Kind(
+            mat_classify.CLASS,
+            "class",
+            "class",
+            "Classes",
+            "class",
+            "classes",
+            "%s (class in %s)",
+        ),
+    )
 
     @override
     def classify(self, path, text=None):
@@ -114,29 +161,6 @@ class MFileHandler(Handler):
             )
         return kind, text, problems
 
-    @override
-    def parse(self, path, stem, folder, encoding=None, text=None):
-        from .mat_types import MatObject
-
-        return MatObject.parse_mfile(path, stem, folder, encoding, text)
-
-
-class MlappHandler(Handler):
-    """App Designer apps (a zip container with XML metadata)."""
-
-    extension = ".mlapp"
-    kinds = ("application",)
-
-    @override
-    def classify(self, path, text=None):
-        return "application" if self.discover(path) else "unknown"
-
-    @override
-    def parse(self, path, stem, folder, encoding=None):
-        from .mat_types import MatObject
-
-        return MatObject.parse_mlappfile(path, stem, folder)
-
 
 _HANDLERS: dict[str, Handler] = {}
 
@@ -158,6 +182,18 @@ def handlers() -> tuple[Handler, ...]:
     return tuple(_HANDLERS.values())
 
 
+def kinds() -> tuple[Kind, ...]:
+    """Return the kinds of the registered handlers in lookup order, each
+    once (a type may reuse the kind of another).
+    """
+    return tuple({k.name: k for h in _HANDLERS.values() for k in h.kinds}.values())
+
+
+def kind(name) -> Kind:
+    """Return the registered :class:`Kind` called ``name``; raise ``KeyError``."""
+    return {k.name: k for k in kinds()}[name]
+
+
 def handler_by_extension(path) -> Handler | None:
     """Return the handler registered for the extension of ``path``."""
     return _HANDLERS.get(os.path.splitext(os.fspath(path))[1])
@@ -172,4 +208,3 @@ def handler_for(path) -> Handler | None:
 
 
 register(MFileHandler())
-register(MlappHandler())

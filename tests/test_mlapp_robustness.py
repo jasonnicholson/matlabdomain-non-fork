@@ -10,7 +10,6 @@ import zipfile
 import pytest
 
 from sphinxcontrib import mat_container, mat_types
-from sphinxcontrib.mat_handlers import handler_by_extension
 
 CORE = (
     '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/'
@@ -35,8 +34,7 @@ def make_app(tmp_path, core=CORE, meta=META, extra=()):
 
 def parse(path):
     """Parse as a ``mat:autoapplication`` page does: a failure is a placeholder."""
-    handler = handler_by_extension(str(path))
-    return mat_types._parse(handler, str(path), "App", "", "application")
+    return mat_types._parse(str(path), "App", "", "application")
 
 
 def warnings_of(obj):
